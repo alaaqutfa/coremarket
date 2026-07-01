@@ -1,0 +1,11 @@
+*
+!.gitignore
+!css/
+!css/**
+!fonts/
+!fonts/**
+!img/
+!img/**
+!js/
+!js/**
+myText.txt

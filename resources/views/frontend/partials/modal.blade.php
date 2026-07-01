@@ -40,6 +40,7 @@
                 </button>
             </div>
             <div class="modal-body">
+                @if (Route::has('auction_product_bids.store'))
                 <form class="form-horizontal" action="{{ route('auction_product_bids.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="product_id" id="bid_product_id" value="">
@@ -56,6 +57,7 @@
                         <button type="submit" class="btn btn-sm btn-primary transition-3d-hover mr-1">{{ translate('Submit') }}</button>
                     </div>
                 </form>
+                @endif
             </div>
         </div>
     </div>
