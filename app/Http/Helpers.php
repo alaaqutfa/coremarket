@@ -1296,7 +1296,36 @@ if (! function_exists('get_setting')) {
 
 function hex2rgba($color, $opacity = false)
 {
-    return (new ColorCodeConverter())->convertHexToRgba($color, $opacity);
+    $default = 'rgb(230,46,4)';
+
+    if (empty($color) || !is_string($color)) {
+        return $default;
+    }
+
+    $color = ltrim(trim($color), '#');
+
+    if (strlen($color) === 3) {
+        $color = $color[0] . $color[0]
+            . $color[1] . $color[1]
+            . $color[2] . $color[2];
+    }
+
+    if (strlen($color) !== 6 || !ctype_xdigit($color)) {
+        return $default;
+    }
+
+    $rgb = [
+        hexdec(substr($color, 0, 2)),
+        hexdec(substr($color, 2, 2)),
+        hexdec(substr($color, 4, 2)),
+    ];
+
+    if ($opacity !== false) {
+        $opacity = max(0, min(1, (float) $opacity));
+        return 'rgba(' . implode(',', $rgb) . ',' . $opacity . ')';
+    }
+
+    return 'rgb(' . implode(',', $rgb) . ')';
 }
 
 if (! function_exists('isAdmin')) {

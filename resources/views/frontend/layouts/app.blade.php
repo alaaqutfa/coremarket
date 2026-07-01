@@ -439,12 +439,14 @@
                 AIZ.plugins.slickCarousel();
             });
 
-            $.post('{{ route('home.section.auction_products') }}', {
-                _token: '{{ csrf_token() }}'
-            }, function(data) {
-                $('#auction_products').html(data);
-                AIZ.plugins.slickCarousel();
-            });
+            @if (Route::has('home.section.auction_products'))
+                $.post('{{ route('home.section.auction_products') }}', {
+                    _token: '{{ csrf_token() }}'
+                }, function(data) {
+                    $('#auction_products').html(data);
+                    AIZ.plugins.slickCarousel();
+                });
+            @endif
 
             $.post('{{ route('home.section.home_categories') }}', {
                 _token: '{{ csrf_token() }}'
