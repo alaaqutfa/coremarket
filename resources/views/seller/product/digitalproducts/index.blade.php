@@ -164,6 +164,10 @@
                 if(data == 1){
                     AIZ.plugins.notify('success', '{{ translate('Published products updated successfully') }}');
                 }
+                else if(data && data.message){
+                    AIZ.plugins.notify('danger', data.message);
+                    location.reload();
+                }
                 else if(data == 2){
                     AIZ.plugins.notify('danger', '{{ translate('Please upgrade your package.') }}');
                     location.reload();
@@ -172,6 +176,12 @@
                     AIZ.plugins.notify('danger', '{{ translate('Something went wrong') }}');
                     location.reload();
                 }
+            }).fail(function(xhr){
+                const message = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : '{{ translate('Something went wrong') }}';
+                AIZ.plugins.notify('danger', message);
+                location.reload();
             });
         }
     </script>

@@ -273,7 +273,7 @@ Route::group(['prefix' => 'checkout'], function () {
         Route::get('/', 'index')->name('checkout');
         Route::any('/delivery-info', 'store_shipping_info')->name('checkout.store_shipping_infostore');
         Route::post('/payment-select', 'store_delivery_info')->name('checkout.store_delivery_info');
-        Route::post('/payment', 'checkout')->name('payment.checkout');
+        Route::post('/payment', 'checkout')->name('payment.checkout')->middleware('coremarket_license:accept_orders');
         Route::get('/order-confirmed', 'order_confirmed')->name('order_confirmed');
         Route::post('/apply-coupon-code', 'apply_coupon_code')->name('checkout.apply_coupon_code');
         Route::post('/remove-coupon-code', 'remove_coupon_code')->name('checkout.remove_coupon_code');

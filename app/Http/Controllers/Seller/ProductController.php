@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Seller;
 
 use AizPackages\CombinationGenerate\Services\CombinationService;
+use App\Exceptions\CoreMarketPlanException;
 use App\Http\Requests\ProductRequest;
 use Illuminate\Http\Request;
 use App\Models\AttributeValue;
@@ -22,6 +23,7 @@ use Auth;
 use App\Services\ProductService;
 use App\Services\ProductTaxService;
 use App\Services\ProductFlashDealService;
+use App\Services\CoreMarketLicenseService;
 use App\Services\ProductStockService;
 use App\Services\FrequentlyBoughtProductService;
 use Illuminate\Support\Facades\Notification;
@@ -34,19 +36,22 @@ class ProductController extends Controller
     protected $productFlashDealService;
     protected $productStockService;
     protected $frequentlyBoughtProductService;
+    protected $licenseService;
 
     public function __construct(
         ProductService $productService,
         ProductTaxService $productTaxService,
         ProductFlashDealService $productFlashDealService,
         ProductStockService $productStockService,
-        FrequentlyBoughtProductService $frequentlyBoughtProductService
+        FrequentlyBoughtProductService $frequentlyBoughtProductService,
+        CoreMarketLicenseService $licenseService
     ) {
         $this->productService = $productService;
         $this->productTaxService = $productTaxService;
         $this->productFlashDealService = $productFlashDealService;
         $this->productStockService = $productStockService;
         $this->frequentlyBoughtProductService = $frequentlyBoughtProductService;
+        $this->licenseService = $licenseService;
     }
 
     public function index(Request $request)
@@ -89,9 +94,14 @@ class ProductController extends Controller
             }
         }
 
-        $product = $this->productService->store($request->except([
-            '_token', 'sku', 'choice', 'tax_id', 'tax_value', 'tax_types', 'flash_deal_id', 'flash_discount', 'flash_discount_type'
-        ]));
+        try {
+            $product = $this->productService->store($request->except([
+                '_token', 'sku', 'choice', 'tax_id', 'tax_value', 'tax_types', 'flash_deal_id', 'flash_discount', 'flash_discount_type'
+            ]));
+        } catch (CoreMarketPlanException $exception) {
+            flash(translate($exception->getMessage()))->warning();
+            return back();
+        }
         $request->merge(['product_id' => $product->id]);
 
         ///Product categories
@@ -287,6 +297,17 @@ class ProductController extends Controller
     public function updatePublished(Request $request)
     {
         $product = Product::findOrFail($request->id);
+
+        if (
+            (int) $request->status === 1
+            && ! $this->licenseService->canPublishProduct((bool) $product->published)
+        ) {
+            return response()->json([
+                'result' => false,
+                'message' => translate($this->licenseService->productLimitMessage()),
+            ], 422);
+        }
+
         $product->published = $request->status;
         if (addon_is_activated('seller_subscription') && $request->status == 1) {
             $shop = $product->user->shop;
@@ -327,7 +348,12 @@ class ProductController extends Controller
         }
 
         //Product
-        $product_new = $this->productService->product_duplicate_store($product);
+        try {
+            $product_new = $this->productService->product_duplicate_store($product);
+        } catch (CoreMarketPlanException $exception) {
+            flash(translate($exception->getMessage()))->warning();
+            return back();
+        }
 
         //Product Stock
         $this->productStockService->product_duplicate_store($product->stocks, $product_new);

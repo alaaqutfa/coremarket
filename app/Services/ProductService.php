@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use AizPackages\CombinationGenerate\Services\CombinationService;
+use App\Exceptions\CoreMarketPlanException;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Color;
@@ -15,8 +16,19 @@ use Illuminate\Support\Str;
 
 class ProductService
 {
+    protected CoreMarketLicenseService $licenseService;
+
+    public function __construct(CoreMarketLicenseService $licenseService)
+    {
+        $this->licenseService = $licenseService;
+    }
+
     public function store(array $data)
     {
+        if (! $this->licenseService->canCreateProducts()) {
+            throw new CoreMarketPlanException($this->licenseService->productLimitMessage());
+        }
+
         $collection = collect($data);
         $approved = 1;
         if (auth()->user()->user_type == 'seller') {
@@ -296,6 +308,10 @@ class ProductService
 
     public function product_duplicate_store($product)
     {
+        if (! $this->licenseService->canCreateProducts()) {
+            throw new CoreMarketPlanException($this->licenseService->productLimitMessage());
+        }
+
         $product_new = $product->replicate();
         $product_new->slug = $product_new->slug . '-' . Str::random(5);
         $product_new->approved = (get_setting('product_approve_by_admin') == 1 && $product->added_by != 'admin') ? 0 : 1;

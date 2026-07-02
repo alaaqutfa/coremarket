@@ -2,7 +2,23 @@
 
 return [
     'plan' => [
-        'code' => 'ecommerce_starter',
+        'code' => env('COREMARKET_PLAN_CODE', 'ecommerce_starter'),
+    ],
+
+    'license' => [
+        'license_enabled' => env('COREMARKET_LICENSE_ENABLED', false),
+        'instance_id' => env('COREMARKET_INSTANCE_ID'),
+        'license_key' => env('COREMARKET_LICENSE_KEY'),
+        'domain' => env(
+            'COREMARKET_LICENSE_DOMAIN',
+            parse_url(env('APP_URL', ''), PHP_URL_HOST) ?: env('APP_URL')
+        ),
+        'plan_code' => env('COREMARKET_PLAN_CODE', 'ecommerce_starter'),
+        'status' => env('COREMARKET_LICENSE_STATUS', 'active'),
+        'starts_at' => env('COREMARKET_LICENSE_STARTS_AT'),
+        'expires_at' => env('COREMARKET_LICENSE_EXPIRES_AT'),
+        'grace_until' => env('COREMARKET_LICENSE_GRACE_UNTIL'),
+        'suspension_reason' => env('COREMARKET_LICENSE_SUSPENSION_REASON'),
     ],
 
     'features' => [

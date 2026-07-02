@@ -92,6 +92,7 @@ class Kernel extends HttpKernel
         'handle-demo-login' => \App\Http\Middleware\HandleDemoLogin::class,
         'restrict_store_admin' => \App\Http\Middleware\RestrictStoreAdmin::class,
         'coremarket_feature' => \App\Http\Middleware\EnsureCoreMarketFeature::class,
+        'coremarket_license' => \App\Http\Middleware\EnsureCoreMarketLicense::class,
     ];
 
     /**

@@ -128,6 +128,27 @@ if (! function_exists('coremarket_limit')) {
     }
 }
 
+if (! function_exists('coremarket_license_status')) {
+    function coremarket_license_status(): string
+    {
+        return app(\App\Services\CoreMarketLicenseService::class)->status();
+    }
+}
+
+if (! function_exists('coremarket_license_active')) {
+    function coremarket_license_active(): bool
+    {
+        return app(\App\Services\CoreMarketLicenseService::class)->isActive();
+    }
+}
+
+if (! function_exists('coremarket_license_snapshot')) {
+    function coremarket_license_snapshot(): array
+    {
+        return app(\App\Services\CoreMarketLicenseService::class)->snapshot();
+    }
+}
+
 /**
  * Save JSON File
  * @return Response

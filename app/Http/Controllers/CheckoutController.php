@@ -13,6 +13,7 @@ use App\Models\CouponUsage;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\CoreMarketLicenseService;
 use App\Utility\NotificationUtility;
 use Auth;
 use Hash;
@@ -126,6 +127,14 @@ class CheckoutController extends Controller
     //check the selected payment gateway and redirect to that controller accordingly
     public function checkout(Request $request)
     {
+        /** @var CoreMarketLicenseService $licenseService */
+        $licenseService = app(CoreMarketLicenseService::class);
+
+        if (! $licenseService->canAcceptOrders()) {
+            flash(translate($licenseService->orderLockMessage()))->warning();
+            return redirect()->route('checkout');
+        }
+
         // if guest checkout, create user
         if (auth()->user() == null) {
             $guest_user = $this->createUser($request->except('_token', 'payment_option'));
@@ -160,6 +169,12 @@ class CheckoutController extends Controller
             }
         }
         // Minumum order amount check end
+
+        if (! $licenseService->canCreateOrders()) {
+            flash(translate($licenseService->monthlyOrderLimitMessage()))->warning();
+            return redirect()->route('checkout');
+        }
+
         (new OrderController)->store($request);
 
         if (count($carts) > 0) {

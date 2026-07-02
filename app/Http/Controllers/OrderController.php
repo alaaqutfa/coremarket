@@ -14,6 +14,7 @@ use App\Models\Coupon;
 use App\Models\User;
 use App\Models\CombinedOrder;
 use App\Models\SmsTemplate;
+use App\Services\CoreMarketLicenseService;
 use Auth;
 use Mail;
 use App\Mail\InvoiceEmailManager;
@@ -140,6 +141,19 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+        /** @var CoreMarketLicenseService $licenseService */
+        $licenseService = app(CoreMarketLicenseService::class);
+
+        if (! $licenseService->canAcceptOrders(Auth::user())) {
+            flash(translate($licenseService->orderLockMessage()))->warning();
+            return redirect()->route('checkout');
+        }
+
+        if (! $licenseService->canCreateOrders()) {
+            flash(translate($licenseService->monthlyOrderLimitMessage()))->warning();
+            return redirect()->route('checkout');
+        }
+
         $carts = Cart::where('user_id', Auth::user()->id)->active()->get();
 
         if ($carts->isEmpty()) {

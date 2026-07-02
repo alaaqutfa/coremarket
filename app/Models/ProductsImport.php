@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\User;
+use App\Services\CoreMarketLicenseService;
 use App\Traits\PreventDemoModeChanges;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -22,6 +23,12 @@ class ProductsImport implements ToCollection, WithHeadingRow, WithValidation, To
     use PreventDemoModeChanges;
 
     private $rows = 0;
+    protected CoreMarketLicenseService $licenseService;
+
+    public function __construct(?CoreMarketLicenseService $licenseService = null)
+    {
+        $this->licenseService = $licenseService ?? app(CoreMarketLicenseService::class);
+    }
 
     public function collection(Collection $rows)
     {
@@ -38,6 +45,11 @@ class ProductsImport implements ToCollection, WithHeadingRow, WithValidation, To
         }
 
         if ($canImport) {
+            if (! $this->licenseService->canCreateProducts(count($rows))) {
+                flash(translate($this->licenseService->productLimitMessage()))->warning();
+                return;
+            }
+
             foreach ($rows as $row) {
                 $approved = 1;
                 if ($user->user_type == 'seller' && get_setting('product_approve_by_admin') == 1) {

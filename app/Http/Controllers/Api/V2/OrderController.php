@@ -12,6 +12,7 @@ use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\BusinessSetting;
 use App\Models\User;
+use App\Services\CoreMarketLicenseService;
 use DB;
 use \App\Utility\NotificationUtility;
 use App\Models\CombinedOrder;
@@ -21,6 +22,17 @@ class OrderController extends Controller
 {
     public function store(Request $request, $set_paid = false)
     {
+        /** @var CoreMarketLicenseService $licenseService */
+        $licenseService = app(CoreMarketLicenseService::class);
+
+        if (! $licenseService->canAcceptOrders(auth()->user())) {
+            return $this->failed(translate($licenseService->orderLockMessage()));
+        }
+
+        if (! $licenseService->canCreateOrders()) {
+            return $this->failed(translate($licenseService->monthlyOrderLimitMessage()));
+        }
+
         if (get_setting('minimum_order_amount_check') == 1) {
             $subtotal = 0;
             foreach (Cart::where('user_id', auth()->user()->id)->active()->get() as $key => $cartItem) {

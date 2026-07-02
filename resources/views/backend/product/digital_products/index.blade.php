@@ -164,9 +164,17 @@
                 if(data == 1){
                     AIZ.plugins.notify('success', '{{ translate('Published products updated successfully') }}');
                 }
+                else if(data && data.message){
+                    AIZ.plugins.notify('danger', data.message);
+                }
                 else{
                     AIZ.plugins.notify('danger', '{{ translate('Something went wrong') }}');
                 }
+            }).fail(function(xhr){
+                const message = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : '{{ translate('Something went wrong') }}';
+                AIZ.plugins.notify('danger', message);
             });
         }
 

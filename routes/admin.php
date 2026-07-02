@@ -115,13 +115,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/products/seller/{product_type}', 'seller_products')->name('products.seller');
         Route::get('/products/all', 'all_products')->name('products.all');
         Route::get('/products/create', 'create')->name('products.create');
-        Route::post('/products/store/', 'store')->name('products.store');
+        Route::post('/products/store/', 'store')->name('products.store')->middleware('coremarket_license:manage_store');
         Route::get('/products/admin/{id}/edit', 'admin_product_edit')->name('products.admin.edit');
         Route::get('/products/seller/{id}/edit', 'seller_product_edit')->name('products.seller.edit');
-        Route::post('/products/update/{product}', 'update')->name('products.update');
+        Route::post('/products/update/{product}', 'update')->name('products.update')->middleware('coremarket_license:manage_store');
         Route::post('/products/todays_deal', 'updateTodaysDeal')->name('products.todays_deal');
         Route::post('/products/featured', 'updateFeatured')->name('products.featured');
-        Route::post('/products/published', 'updatePublished')->name('products.published');
+        Route::post('/products/published', 'updatePublished')->name('products.published')->middleware('coremarket_license:manage_store');
         Route::post('/products/approved', 'updateProductApproval')->name('products.approved');
         Route::post('/products/get_products_by_subcategory', 'get_products_by_subcategory')->name('products.get_products_by_subcategory');
         Route::get('/products/duplicate/{id}', 'duplicate')->name('products.duplicate');
@@ -150,7 +150,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
 
         //Product Bulk Upload
         Route::get('/product-bulk-upload/index', 'index')->name('product_bulk_upload.index');
-        Route::post('/bulk-product-upload', 'bulk_upload')->name('bulk_product_upload');
+        Route::post('/bulk-product-upload', 'bulk_upload')->name('bulk_product_upload')->middleware('coremarket_license:manage_store');
         Route::get('/product-csv-download/{type}', 'import_product')->name('product_csv.download');
         Route::get('/vendor-product-csv-download/{id}', 'import_vendor_product')->name('import_vendor_product.download');
         Route::group(['prefix' => 'bulk-upload/download'], function () {

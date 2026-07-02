@@ -56,11 +56,11 @@ Route::group(['prefix' => 'v2/seller', 'middleware' => ['app_language']], functi
             Route::get('products/taxes', 'getTaxes');
             Route::get('products/attributes', 'getAttributes');
             Route::get('products/colors', 'getColors');
-            Route::post('products/add', 'store');
+            Route::post('products/add', 'store')->middleware('coremarket_license:manage_store');
             Route::get('products/edit/{id}', 'edit');
-            Route::post('products/update/{product}', 'update');
+            Route::post('products/update/{product}', 'update')->middleware('coremarket_license:manage_store');
             Route::post('product/change-featured', 'change_featured_status');
-            Route::post('product/change-status', 'change_status');
+            Route::post('product/change-status', 'change_status')->middleware('coremarket_license:manage_store');
             Route::get('product/duplicate/{id}', 'duplicate');
             Route::get('product/delete/{id}', 'destroy');
             Route::get('products/remaining-uploads', 'remainingUploads');
