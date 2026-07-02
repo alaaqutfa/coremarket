@@ -27,7 +27,7 @@
                     </a>
                 </div>
             </div>
-            @if (addon_is_activated('pos_system') && auth()->user()->can('pos_manager'))
+            @if (coremarket_feature_enabled('pos_enabled') && addon_is_activated('pos_system') && auth()->user()->can('pos_manager'))
             <!-- POS -->
             <div class="aiz-topbar-item mr-3">
                 <div class="d-flex align-items-center">
@@ -65,10 +65,12 @@
                         <a class="aiz-topbar-menu fs-13 fw-600 d-flex align-items-center justify-content-center {{ areActiveRoutes(['all_orders.index']) }}"
                             href="{{ route('all_orders.index') }}">{{ translate('Orders') }}</a>
                     @endcan
+                    @if (coremarket_feature_enabled('advanced_reports_enabled'))
                     @can('earning_report')
                         <a class="aiz-topbar-menu fs-13 fw-600 d-flex align-items-center justify-content-center {{ areActiveRoutes(['earning_payout_report.index']) }}"
                             href="{{ route('earning_payout_report.index') }}">{{ translate('Earnings') }}</a>
                     @endcan
+                    @endif
                     @can('edit_website_page')
                         <a class="aiz-topbar-menu fs-13 fw-600 d-flex align-items-center justify-content-center {{ (url()->current() == url('/admin/website/custom-pages/edit/home')) ? 'active' : '' }}"
                             href="{{ route('custom-pages.edit', ['id'=>'home', 'lang'=>env('DEFAULT_LANGUAGE'), 'page'=>'home']) }}">{{ translate('Homepage Settings') }}</a>

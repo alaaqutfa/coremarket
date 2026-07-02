@@ -230,6 +230,10 @@ class HomeController extends Controller
 
     public function load_best_sellers_section()
     {
+        if (! coremarket_feature_enabled('vendor_mode_enabled')) {
+            return '';
+        }
+
         return view('frontend.' . get_setting('homepage_select') . '.partials.best_sellers_section');
     }
 

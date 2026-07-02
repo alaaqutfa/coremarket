@@ -550,7 +550,7 @@
     @endif
 
     <!-- Top Sellers -->
-    @if (get_setting('vendor_system_activation') == 1)
+    @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1)
         @php
             $best_selers = get_best_sellers(6);
             $sellers_section_bg = get_setting('sellers_section_bg_color');
@@ -702,4 +702,3 @@
     @endif
 
 @endsection
-

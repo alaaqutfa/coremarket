@@ -496,7 +496,7 @@
     @endif
 
     <!-- Top Sellers -->
-    @if (get_setting('vendor_system_activation') == 1)
+    @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1)
         @php
             $best_selers = get_best_sellers(10);
         @endphp
@@ -642,4 +642,3 @@
     @endif
 
 @endsection
-

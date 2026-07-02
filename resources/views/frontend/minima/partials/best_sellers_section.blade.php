@@ -1,4 +1,4 @@
-@if (get_setting('vendor_system_activation') == 1)
+@if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1)
     <section class="mb-4">
         <div class="container">
             <div class="px-2 py-4 px-md-4 py-md-3 bg-white shadow-sm rounded">

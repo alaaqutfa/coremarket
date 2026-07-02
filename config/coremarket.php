@@ -1,6 +1,31 @@
 <?php
 
 return [
+    'plan' => [
+        'code' => 'ecommerce_starter',
+    ],
+
+    'features' => [
+        'pos_enabled' => false,
+        'payment_gateway_enabled' => false,
+        'vendor_mode_enabled' => false,
+        'seller_registration_enabled' => false,
+        'seller_panel_enabled' => false,
+        'mobile_app_links_enabled' => false,
+        'advanced_reports_enabled' => false,
+        'delivery_boy_enabled' => false,
+        'carrier_shipping_enabled' => false,
+        'wallet_enabled' => false,
+        'seller_packages_enabled' => false,
+        'basic_loyalty_enabled' => true,
+        'whatsapp_orders_enabled' => true,
+    ],
+
+    'limits' => [
+        'products_limit' => 50,
+        'monthly_orders_limit' => 300,
+    ],
+
     'access' => [
         'store_admin_role' => 'store_admin',
 
@@ -94,6 +119,7 @@ return [
             'google-firebase.update',
             'business_settings.update.activation',
             'business_settings.vendor_commission.update',
+            'business_settings.vendor_commission',
             'seller_verification_form.update',
             'shipping_configuration.update',
             'roles.*',
@@ -114,12 +140,29 @@ return [
             'languages.*',
             'app-translations.*',
             'customer_packages.*',
+            'seller_packages.*',
             'pickup_point.*',
             'countries.*',
             'states.*',
             'carriers.*',
             'zones.*',
             'cities.*',
+            'delivery-boys.*',
+            'delivery-boy.*',
+            'delivery-boy-configuration',
+            'delivery-boys-payment-histories',
+            'delivery-boys-collection-histories',
+            'paid-to-delivery-boy',
+            'collection-from-delivery-boy',
+            'orders.delivery-boy-assign',
+            'earning_payout_report.index',
+            'in_house_sale_report.index',
+            'seller_sale_report.index',
+            'stock_report.index',
+            'wish_report.index',
+            'user_search_report.index',
+            'commission-log.index',
+            'wallet-history.index',
             'cache.clear',
             'system_update',
             'import_demo_data',

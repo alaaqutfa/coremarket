@@ -110,8 +110,8 @@ Route::controller(HomeController::class)->group(function () {
     Route::post('/password/reset/email/submit', 'reset_password_with_code')->name('password.update');
 
     Route::get('/users/login', 'login')->name('user.login')->middleware('handle-demo-login');
-    Route::get('/seller/login', 'login')->name('seller.login')->middleware('handle-demo-login');
-    Route::get('/deliveryboy/login', 'login')->name('deliveryboy.login')->middleware('handle-demo-login');
+    Route::get('/seller/login', 'login')->name('seller.login')->middleware(['handle-demo-login', 'coremarket_feature:seller_panel_enabled']);
+    Route::get('/deliveryboy/login', 'login')->name('deliveryboy.login')->middleware(['handle-demo-login', 'coremarket_feature:delivery_boy_enabled']);
     Route::get('/users/registration', 'registration')->name('user.registration')->middleware('handle-demo-login');
     Route::post('/users/login/cart', 'cart_login')->name('cart.login.submit')->middleware('handle-demo-login');
 
@@ -149,7 +149,7 @@ Route::controller(HomeController::class)->group(function () {
 
     Route::get('/brands', 'all_brands')->name('brands.all');
     Route::get('/categories', 'all_categories')->name('categories.all');
-    Route::get('/sellers', 'all_seller')->name('sellers');
+    Route::get('/sellers', 'all_seller')->name('sellers')->middleware('coremarket_feature:vendor_mode_enabled');
     Route::get('/coupons', 'all_coupons')->name('coupons.all');
     Route::get('/inhouse', 'inhouse_products')->name('inhouse.all');
 
@@ -376,7 +376,7 @@ Route::group(['middleware' => ['auth']], function () {
     });
 });
 
-Route::resource('shops', ShopController::class)->middleware('handle-demo-login');
+Route::resource('shops', ShopController::class)->middleware(['handle-demo-login', 'coremarket_feature:seller_registration_enabled']);
 
 Route::get('/instamojo/payment/pay-success', [InstamojoController::class, 'success'])->name('instamojo.success');
 

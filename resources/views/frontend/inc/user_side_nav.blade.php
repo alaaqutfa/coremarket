@@ -245,7 +245,7 @@
                 @endif --}}
 
                 <!-- My Wallet -->
-                @if (get_setting('wallet_system') == 1)
+                @if (coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1)
                     <li class="aiz-side-nav-item">
                         <a href="{{ route('wallet.index') }}"
                             class="aiz-side-nav-link {{ areActiveRoutes(['wallet.index']) }}">

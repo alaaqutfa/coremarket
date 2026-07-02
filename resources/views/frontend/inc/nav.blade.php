@@ -84,7 +84,7 @@
 
                 <div class="col-6 text-right d-none d-lg-block">
                     <ul class="list-inline mb-0 h-100 d-flex justify-content-end align-items-center">
-                        @if (get_setting('vendor_system_activation') == 1)
+                        @if (coremarket_feature_enabled('vendor_mode_enabled') && coremarket_feature_enabled('seller_registration_enabled') && get_setting('vendor_system_activation') == 1)
                             <!-- Become a Seller -->
                             <li class="list-inline-item mr-0 pl-0 py-2">
                                 <a href="{{ route('shops.create') }}"

@@ -21,7 +21,7 @@ if (!class_exists(DeliveryBoyController::class)) {
     return;
 }
 
-Route::group(['prefix' =>'admin', 'middleware' => ['auth', 'admin', 'prevent-back-history']], function(){
+Route::group(['prefix' =>'admin', 'middleware' => ['auth', 'admin', 'prevent-back-history', 'coremarket_feature:delivery_boy_enabled,1']], function(){
     //Delivery Boy
     Route::resource('delivery-boys', DeliveryBoyController::class);
     
@@ -39,7 +39,7 @@ Route::group(['prefix' =>'admin', 'middleware' => ['auth', 'admin', 'prevent-bac
     });
 });
 
-Route::group(['middleware' => ['user', 'verified', 'unbanned', 'prevent-back-history']], function() {
+Route::group(['middleware' => ['user', 'verified', 'unbanned', 'prevent-back-history', 'coremarket_feature:delivery_boy_enabled']], function() {
     Route::controller(DeliveryBoyController::class)->group(function () {
         Route::get('/assigned-deliveries', 'assigned_delivery')->name('assigned-deliveries');
         Route::get('/pickup-deliveries', 'pickup_delivery')->name('pickup-deliveries');

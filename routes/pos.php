@@ -24,7 +24,7 @@ Route::controller(PosController::class)->group(function () {
 });
 
 //Admin
-Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'restrict_store_admin']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'restrict_store_admin', 'coremarket_feature:pos_enabled,1']], function () {
     //pos
     Route::controller(PosController::class)->group(function () {
         Route::get('/pos', 'index')->name('poin-of-sales.index');
@@ -45,7 +45,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'restrict_s
 });
 
 //Seller
-Route::group(['prefix' => 'seller', 'middleware' => ['seller', 'verified']], function () {
+Route::group(['prefix' => 'seller', 'middleware' => ['seller', 'verified', 'coremarket_feature:pos_enabled']], function () {
     Route::controller(SellerPosController::class)->group(function () {
         Route::get('/pos', 'index')->name('poin-of-sales.seller_index');
         Route::get('/pos/products', 'search')->name('pos.search_seller_product');

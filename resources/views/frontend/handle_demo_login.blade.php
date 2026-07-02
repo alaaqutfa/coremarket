@@ -74,11 +74,16 @@
                             </div>
                             <a href="https://demo.activeitzone.com/ecommerce/users/login" class="btn btn-block btn-lg btn-soft-primary fs-14 fw-700 mb-3 rounded-2">Login as Customer</a>
                             <a href="https://demo.activeitzone.com/ecommerce/login" class="btn btn-block btn-lg btn-soft-info fs-14 fw-700 mb-3 rounded-2">Login as Admin</a>
-                            <a href="https://demo.activeitzone.com/ecommerce/seller/login" class="btn btn-block btn-lg btn-soft-success fs-14 fw-700 mb-3 rounded-2">Login as Seller</a>
-                            <a href="https://demo.activeitzone.com/ecommerce/deliveryboy/login" class="btn btn-block btn-lg btn-soft-warning fs-14 fw-700 mb-3 rounded-2">Login as Delivery Boy</a>
+                            @if (coremarket_feature_enabled('seller_panel_enabled'))
+                                <a href="https://demo.activeitzone.com/ecommerce/seller/login" class="btn btn-block btn-lg btn-soft-success fs-14 fw-700 mb-3 rounded-2">Login as Seller</a>
+                            @endif
+                            @if (coremarket_feature_enabled('delivery_boy_enabled'))
+                                <a href="https://demo.activeitzone.com/ecommerce/deliveryboy/login" class="btn btn-block btn-lg btn-soft-warning fs-14 fw-700 mb-3 rounded-2">Login as Delivery Boy</a>
+                            @endif
                             <small class="d-block fs-10 text-center" style="color: #78829d;">* The above links of Login will forward you to main demo.</small>
                         </div>
                     </div>
+                    @if (coremarket_feature_enabled('mobile_app_links_enabled'))
                     <div class="text-center" style="margin-top: 40px;">
                         <small class="d-block fs-12 text-center mb-3" style="color: #78829d;">Mobile Apps for Active eCommerce CMS</small>
                         <div class="d-flex flex-wrap justify-content-center mb-3">
@@ -116,6 +121,7 @@
                             <a href="https://activeitzone.com/" target="_blank" class="fs-12 hov-text-primary" style="color: #78829d;">www.activeitzone.com</a>
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </section>

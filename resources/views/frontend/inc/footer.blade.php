@@ -255,7 +255,7 @@
                 @endif
 
                 <!-- Apps link -->
-                @if (get_setting('play_store_link') != null || get_setting('app_store_link') != null)
+                @if (coremarket_feature_enabled('mobile_app_links_enabled') && (get_setting('play_store_link') != null || get_setting('app_store_link') != null))
                     <h5 class="fs-14 fw-700 text-secondary text-uppercase mt-3">{{ translate('Mobile Apps') }}</h5>
                     <div class="d-flex mt-3">
                         <div class="">
@@ -286,7 +286,7 @@
 
 @php
     $col_values =
-        get_setting('vendor_system_activation') == 1 || addon_is_activated('delivery_boy')
+        (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1) || (coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy'))
             ? 'col-lg-3 col-md-6 col-sm-6'
             : 'col-md-4 col-sm-6';
 @endphp
@@ -402,11 +402,11 @@
             </div>
 
             <!-- Seller & Delivery Boy -->
-            @if (get_setting('vendor_system_activation') == 1 || addon_is_activated('delivery_boy'))
+            @if ((coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1) || (coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy')))
                 <div class="col-lg-3 col-md-4 col-sm-6">
                     <div class="text-center text-sm-left mt-4">
                         <!-- Seller -->
-                        @if (get_setting('vendor_system_activation') == 1)
+                        @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1)
                             <h4 class="fs-14 text-secondary text-uppercase fw-700 mb-3">{{ translate('Seller Zone') }}
                             </h4>
                             <ul class="list-unstyled">
@@ -425,7 +425,7 @@
                                         </a>
                                     </li>
                                 @endguest
-                                @if (get_setting('seller_app_link'))
+                                @if (coremarket_feature_enabled('mobile_app_links_enabled') && get_setting('seller_app_link'))
                                     <li class="mb-2">
                                         <a class="fs-13 text-soft-light animate-underline-white" target="_blank"
                                             href="{{ get_setting('seller_app_link') }}">
@@ -437,7 +437,7 @@
                         @endif
 
                         <!-- Delivery Boy -->
-                        @if (addon_is_activated('delivery_boy'))
+                        @if (coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy'))
                             <h4 class="fs-14 text-secondary text-uppercase fw-700 mt-4 mb-3">
                                 {{ translate('Delivery Boy') }}</h4>
                             <ul class="list-unstyled">
@@ -450,7 +450,7 @@
                                     </li>
                                 @endguest
 
-                                @if (get_setting('delivery_boy_app_link'))
+                                @if (coremarket_feature_enabled('mobile_app_links_enabled') && get_setting('delivery_boy_app_link'))
                                     <li class="mb-2">
                                         <a class="fs-13 text-soft-light animate-underline-white" target="_blank"
                                             href="{{ get_setting('delivery_boy_app_link') }}">
@@ -587,7 +587,7 @@
         </div>
 
         <!-- Seller -->
-        @if (get_setting('vendor_system_activation') == 1)
+        @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1)
             <div class="aiz-accordion-wrap bg-black">
                 <div class="aiz-accordion-heading container bg-black">
                     <button
@@ -611,7 +611,7 @@
                                     </a>
                                 </li>
                             @endguest
-                            @if (get_setting('seller_app_link'))
+                            @if (coremarket_feature_enabled('mobile_app_links_enabled') && get_setting('seller_app_link'))
                                 <li class="mb-2 pb-2">
                                     <a class="fs-13 text-soft-light text-sm-secondary animate-underline-white"
                                         target="_blank" href="{{ get_setting('seller_app_link') }}">
@@ -626,7 +626,7 @@
         @endif
 
         <!-- Delivery Boy -->
-        @if (addon_is_activated('delivery_boy'))
+        @if (coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy'))
             <div class="aiz-accordion-wrap bg-black">
                 <div class="aiz-accordion-heading container bg-black">
                     <button
@@ -643,7 +643,7 @@
                                     </a>
                                 </li>
                             @endguest
-                            @if (get_setting('delivery_boy_app_link'))
+                            @if (coremarket_feature_enabled('mobile_app_links_enabled') && get_setting('delivery_boy_app_link'))
                                 <li class="mb-2 pb-2">
                                     <a class="fs-13 text-soft-light text-sm-secondary animate-underline-white"
                                         target="_blank" href="{{ get_setting('delivery_boy_app_link') }}">

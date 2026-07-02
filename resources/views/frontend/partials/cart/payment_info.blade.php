@@ -140,7 +140,7 @@
     @endif
 
     <!-- Wallet Payment -->
-    @if (Auth::check() && get_setting('wallet_system') == 1)
+    @if (Auth::check() && coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1)
         <div class="py-4 px-4 text-center bg-soft-secondary-base mt-4">
             <div class="fs-14 mb-3">
                 <span class="opacity-80">{{ translate('Or, Your wallet balance :') }}</span>

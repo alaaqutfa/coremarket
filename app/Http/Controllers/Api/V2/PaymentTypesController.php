@@ -309,7 +309,7 @@ class PaymentTypesController
 
         // you cannot recharge wallet by wallet or cash payment
         if ($mode != 'wallet' && $mode != 'seller_package' && $list != "offline") {
-            if (get_setting('wallet_system') == 1) {
+            if (coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1) {
                 $payment_type = array();
                 $payment_type['payment_type'] = 'wallet_system';
                 $payment_type['payment_type_key'] = 'wallet';

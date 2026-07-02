@@ -18,7 +18,7 @@ if (!class_exists(SellerPackageController::class)) {
 }
 
 //Admin
-Route::group(['prefix' =>'admin', 'middleware' => ['auth', 'admin']], function(){
+Route::group(['prefix' =>'admin', 'middleware' => ['auth', 'admin', 'coremarket_feature:seller_packages_enabled,1']], function(){
     Route::resource('seller_packages', SellerPackageController::class);
     Route::controller(SellerPackageController::class)->group(function () {
         Route::get('/seller_packages/edit/{id}', 'edit')->name('seller_packages.edit');
@@ -27,7 +27,7 @@ Route::group(['prefix' =>'admin', 'middleware' => ['auth', 'admin']], function()
 });
 
 //FrontEnd
-Route::group(['middleware' => ['seller']], function(){
+Route::group(['middleware' => ['seller', 'coremarket_feature:seller_packages_enabled']], function(){
     Route::controller(SellerPackageController::class)->group(function () {
         Route::get('/seller/seller-packages', 'seller_packages_list')->name('seller.seller_packages_list');
         Route::get('/seller/packages-payment-list', 'packages_payment_list')->name('seller.packages_payment_list');

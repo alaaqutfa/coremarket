@@ -19,7 +19,7 @@
 
     <div class="row gutters-16">
         <!-- Wallet summary -->
-        @if (get_setting('wallet_system') == 1)
+        @if (coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1)
         <div class="col-xl-8 col-md-6 mb-4">
             <div class="h-100" style="background-image: url('{{ static_asset("assets/img/wallet-bg.png") }}'); background-size: cover; background-position: center center;">
                 <div class="p-4 h-100 w-100 w-xl-50">
@@ -42,7 +42,7 @@
 
         <div class="col mb-4">
             <div class="h-100">
-                <div class="row h-100 @if(get_setting('wallet_system') != 1 && addon_is_activated('club_point')) row-cols-md-2 @endif row-cols-1">
+                <div class="row h-100 @if((! coremarket_feature_enabled('wallet_enabled') || get_setting('wallet_system') != 1) && addon_is_activated('club_point')) row-cols-md-2 @endif row-cols-1">
                     <!-- Expenditure summary -->
                     <div class="col">
                         <div class="p-4 bg-primary @if(!addon_is_activated('club_point')) h-100 @endif" style="margin-bottom: 2rem;">

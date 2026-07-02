@@ -45,7 +45,7 @@
                 @endcan
 
                 <!-- POS Addon-->
-                @if (addon_is_activated('pos_system') && (auth()->user()->can('pos_manager') ||
+                @if (coremarket_feature_enabled('pos_enabled') && addon_is_activated('pos_system') && (auth()->user()->can('pos_manager') ||
                 auth()->user()->can('pos_configuration')))
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
@@ -504,7 +504,7 @@
                 @endcanany
 
                 <!-- Deliver Boy Addon-->
-                @if (addon_is_activated('delivery_boy'))
+                @if (coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy'))
                 @canany(['view_all_delivery_boy','add_delivery_boy','delivery_boy_payment_history','collected_histories_from_delivery_boy','order_cancle_request_by_delivery_boy','delivery_boy_configuration'])
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">

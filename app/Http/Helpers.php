@@ -100,6 +100,34 @@ if (! function_exists('default_language')) {
     }
 }
 
+if (! function_exists('coremarket_plan_code')) {
+    function coremarket_plan_code($default = null)
+    {
+        return app(\App\Services\CoreMarketFeatureService::class)->planCode($default);
+    }
+}
+
+if (! function_exists('coremarket_feature_enabled')) {
+    function coremarket_feature_enabled(string $feature, bool $default = false): bool
+    {
+        return app(\App\Services\CoreMarketFeatureService::class)->enabled($feature, $default);
+    }
+}
+
+if (! function_exists('coremarket_feature_value')) {
+    function coremarket_feature_value(string $feature, $default = null)
+    {
+        return app(\App\Services\CoreMarketFeatureService::class)->value($feature, $default);
+    }
+}
+
+if (! function_exists('coremarket_limit')) {
+    function coremarket_limit(string $limit, $default = null)
+    {
+        return app(\App\Services\CoreMarketFeatureService::class)->limit($limit, $default);
+    }
+}
+
 /**
  * Save JSON File
  * @return Response
@@ -2545,6 +2573,10 @@ if (! function_exists('get_notification_type')) {
 if (! function_exists('get_activate_payment_methods')) {
     function get_activate_payment_methods()
     {
+        if (! coremarket_feature_enabled('payment_gateway_enabled')) {
+            return collect();
+        }
+
         $payment_methods = PaymentMethod::where('active', 1)
             ->Where(function ($query) {
                 $query->whereNull('addon_identifier')
