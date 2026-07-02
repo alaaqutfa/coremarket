@@ -24,7 +24,7 @@ Route::controller(PosController::class)->group(function () {
 });
 
 //Admin
-Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'restrict_store_admin']], function () {
     //pos
     Route::controller(PosController::class)->group(function () {
         Route::get('/pos', 'index')->name('poin-of-sales.index');

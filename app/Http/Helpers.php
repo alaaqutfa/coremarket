@@ -1348,6 +1348,16 @@ if (! function_exists('isSeller')) {
     }
 }
 
+if (! function_exists('isStoreAdmin')) {
+    function isStoreAdmin()
+    {
+        return Auth::check()
+            && Auth::user()->user_type === 'staff'
+            && method_exists(Auth::user(), 'hasRole')
+            && Auth::user()->hasRole(config('coremarket.access.store_admin_role', 'store_admin'));
+    }
+}
+
 if (! function_exists('isCustomer')) {
     function isCustomer()
     {

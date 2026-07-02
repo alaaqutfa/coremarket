@@ -66,15 +66,15 @@ use App\Http\Controllers\ZoneController;
  */
 //Update Routes
 Route::controller(UpdateController::class)->group(function () {
-    Route::post('/update', 'step0')->name('update');
-    Route::get('/update/step1', 'step1')->name('update.step1');
-    Route::get('/update/step2', 'step2')->name('update.step2');
-    Route::get('/update/step3', 'step3')->name('update.step3');
-    Route::post('/purchase_code', 'purchase_code')->name('update.code');
+    Route::post('/update', 'step0')->name('update')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
+    Route::get('/update/step1', 'step1')->name('update.step1')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
+    Route::get('/update/step2', 'step2')->name('update.step2')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
+    Route::get('/update/step3', 'step3')->name('update.step3')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
+    Route::post('/purchase_code', 'purchase_code')->name('update.code')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware(['auth', 'admin', 'prevent-back-history']);
-Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-back-history']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-back-history', 'restrict_store_admin']], function () {
 
     // category
     Route::resource('categories', CategoryController::class);

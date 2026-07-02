@@ -408,6 +408,26 @@ class BusinessSettingsController extends Controller
 
     public function update(Request $request)
     {
+        if (isStoreAdmin()) {
+            $allowedTypes = config('coremarket.access.store_admin_allowed_business_setting_types', []);
+            $requestTypes = collect($request->types ?? [])
+                ->map(function ($type) {
+                    if (is_array($type)) {
+                        return array_values($type)[0] ?? null;
+                    }
+
+                    return $type;
+                })
+                ->filter()
+                ->values();
+
+            $hasDisallowedType = $requestTypes->contains(function ($type) use ($allowedTypes) {
+                return !in_array($type, $allowedTypes, true);
+            });
+
+            abort_if($hasDisallowedType, 403);
+        }
+
         foreach ($request->types as $key => $type) {
             if ($type == 'site_name') {
                 $this->overWriteEnvFile('APP_NAME', $request[$type]);

@@ -90,6 +90,7 @@ class Kernel extends HttpKernel
         'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
         'prevent-back-history' => \App\Http\Middleware\PreventBackHistory::class,
         'handle-demo-login' => \App\Http\Middleware\HandleDemoLogin::class,
+        'restrict_store_admin' => \App\Http\Middleware\RestrictStoreAdmin::class,
     ];
 
     /**
