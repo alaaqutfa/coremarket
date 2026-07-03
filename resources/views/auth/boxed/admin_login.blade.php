@@ -18,7 +18,7 @@
 
                             <!-- Titles -->
                             <div class="text-center text-lg-left">
-                                <h1 class="fs-20 fs-md-20 fw-700 text-primary" style="text-transform: uppercase;">{{ translate('Welcome to') }} {{ env('APP_NAME') }}</h1>
+                                <h1 class="fs-20 fs-md-20 fw-700 text-primary" style="text-transform: uppercase;">{{ translate('Welcome to') }} {{ coremarketStoreName() }}</h1>
                                 <h5 class="fs-14 fw-400 text-dark">{{ translate('Login to your account')}}</h5>
                             </div>
 
@@ -102,4 +102,3 @@
         </div>
     </section>
 </div>
-

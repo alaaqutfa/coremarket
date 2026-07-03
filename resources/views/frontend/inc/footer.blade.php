@@ -151,10 +151,10 @@
             <a href="{{ route('home') }}" class="d-block">
                 @if (get_setting('footer_logo') != null)
                     <img class="lazyload responsive-img" src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
-                        data-src="{{ uploaded_asset(get_setting('footer_logo')) }}" alt="{{ env('APP_NAME') }}">
+                        data-src="{{ uploaded_asset(get_setting('footer_logo')) }}" alt="{{ coremarketStoreName() }}">
                 @else
                     <img class="lazyload responsive-img" src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
-                        data-src="{{ static_asset('assets/img/logo.png') }}" alt="{{ env('APP_NAME') }}">
+                        data-src="{{ static_asset('assets/img/logo.png') }}" alt="{{ coremarketStoreName() }}">
                 @endif
             </a>
         </div>
@@ -263,7 +263,7 @@
                                 class="mr-2 mb-2 overflow-hidden hov-scale-img">
                                 <img class="lazyload has-transition"
                                     src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
-                                    data-src="{{ static_asset('assets/img/play.png') }}" alt="{{ env('APP_NAME') }}"
+                                    data-src="{{ static_asset('assets/img/play.png') }}" alt="{{ coremarketStoreName() }}"
                                     height="44">
                             </a>
                         </div>
@@ -272,7 +272,7 @@
                                 class="overflow-hidden hov-scale-img">
                                 <img class="lazyload has-transition"
                                     src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
-                                    data-src="{{ static_asset('assets/img/app.png') }}" alt="{{ env('APP_NAME') }}"
+                                    data-src="{{ static_asset('assets/img/app.png') }}" alt="{{ coremarketStoreName() }}"
                                     height="44">
                             </a>
                         </div>

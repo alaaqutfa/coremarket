@@ -49,7 +49,7 @@
         <meta property="og:url" content="{{ route('home') }}" />
         <meta property="og:image" content="{{ $meta_image }}" />
         <meta property="og:description" content="{{ get_setting('meta_description') }}" />
-        <meta property="og:site_name" content="{{ env('APP_NAME') }}" />
+        <meta property="og:site_name" content="{{ coremarketStoreName() }}" />
         <meta property="fb:app_id" content="{{ env('FACEBOOK_PIXEL_ID') }}">
     @endif
 

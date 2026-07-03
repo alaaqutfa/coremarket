@@ -149,6 +149,62 @@ if (! function_exists('coremarket_license_snapshot')) {
     }
 }
 
+if (! function_exists('coremarketStoreName')) {
+    function coremarketStoreName(): string
+    {
+        try {
+            $websiteName = get_setting('website_name');
+            if (!empty($websiteName) && !coremarketIsLegacyBrandValue($websiteName)) {
+                return $websiteName;
+            }
+
+            $siteName = get_setting('site_name');
+            if (!empty($siteName) && !coremarketIsLegacyBrandValue($siteName)) {
+                return $siteName;
+            }
+        } catch (\Throwable $exception) {
+            // Fall back to config/app defaults when settings are unavailable.
+        }
+
+        $appName = config('app.name');
+
+        if (!empty($appName) && !coremarketIsLegacyBrandValue($appName)) {
+            return $appName;
+        }
+
+        return 'CoreMarket';
+    }
+}
+
+if (! function_exists('coremarketIsLegacyBrandValue')) {
+    function coremarketIsLegacyBrandValue(?string $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        $normalizedValue = mb_strtolower(trim($value));
+        $legacyValues = [
+            'coin market',
+            'group coin',
+            'groupcoin',
+            'syrian souq',
+            'syriansouq',
+            'syrian-souq',
+            'الشاهين',
+            'الشاهين للتسوق',
+            'active ecommerce',
+            'active ecommerce cms',
+            'active e-commerce',
+            'active e-commerce cms',
+            'active it zone',
+            'activeitzone',
+        ];
+
+        return in_array($normalizedValue, $legacyValues, true);
+    }
+}
+
 /**
  * Save JSON File
  * @return Response

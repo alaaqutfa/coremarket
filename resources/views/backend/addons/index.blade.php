@@ -10,15 +10,10 @@
                     <a class="p-3 fs-16 text-reset" data-toggle="tab" href="#available">{{ translate('Available Addon')}}</a>
                 </div>
             </div>
-			{{-- <div class="col mt-3 mt-md-0 text-center text-md-right">
-                <a href="https://activeitzone.com/activation/addon" class="btn btn-primary" target="_blank">
-					{{ translate('Activate Addon Link') }}
-				</a>
-            </div> --}}
             <div class="col mt-3 mt-md-0 text-center text-md-right">
-                <a href="https://activeitzone.com/activation/addon" class="btn btn-primary mb-3 mb-sm-0 mx-3 mx-md-0 mr-lg-3" target="_blank">
-					{{ translate('Activate Addon Link') }}
-				</a>
+                <span class="d-inline-block text-muted fs-13 mb-3 mb-sm-0 mx-3 mx-md-0 mr-lg-3">
+                    {{ translate('External addon marketplace links are disabled in this managed baseline.') }}
+                </span>
                 <a href="{{ route('addons.create')}}" class="btn btn-primary mx-3 mx-md-0">{{ translate('Install/Update Addon')}}</a>
             </div>
         </div>
@@ -107,49 +102,16 @@
         }
 
         $(document).ready(function(){
-            $.post('https://activeitzone.com/addons/public/addons', {item: 'ecommerce'}, function(data){
-                //console.log(data);
-                html = '';
-                data.forEach((item, i) => {
-                    if(item.link != null){
-                        html += `<div class="col-lg-4 col-md-6 ">
-                                    <div class="card addon-card">
-                                        <div class="card-body">
-                                            <a href="${item.link}" target="_blank"><img class="img-fluid" src="${item.image}"></a>
-                                            <div class="pt-4">
-                                                <a class="fs-16 fw-600 text-reset" href="${item.link}" target="_blank">${item.name}</a>
-                                                <div class="rating mb-2"><i class="la la-star active"></i><i class="la la-star active"></i><i class="la la-star active"></i><i class="la la-star active"></i><i class="la la-star active"></i></div>
-                                                <p class="mar-no text-truncate-3">${item.short_description}</p>
-                                            </div>
-                                        </div>
-                                        <div class="card-footer">
-                                            <div class="text-danger fs-22 fw-600">$${item.price}</div>
-                                            <div class=""><a href="${item.link}" target="_blank" class="btn btn-sm btn-secondary">Preview</a> <a href="${item.purchase}" target="_blank" class="btn btn-sm btn-primary">Purchase</a></div>
-                                        </div>
-                                    </div>
-                                </div>`;
-                    }
-                    else {
-                        html += `<div class="col-lg-4 col-md-6 ">
-                                    <div class="card addon-card">
-                                        <div class="card-body">
-                                            <a><img class="img-fluid" src="${item.image}"></a>
-                                            <div class="pt-4">
-                                                <a class="fs-16 fw-600 text-reset" >${item.name}</a>
-                                                <div class="rating mb-2"><i class="la la-star active"></i><i class="la la-star active"></i><i class="la la-star active"></i><i class="la la-star active"></i><i class="la la-star active"></i></div>
-                                                <p class="mar-no text-truncate-3">${item.short_description}</p>
-                                            </div>
-                                            <div class="card-footer">
-                                                <div class="text-center"><div class="btn btn-outline btn-primary">Coming Soon</div></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>`;
-                    }
-
-                });
-                $('#available-addons-content').html(html);
-            });
+            $('#available-addons-content').html(
+                `<div class="col-12">
+                    <div class="card addon-card">
+                        <div class="card-body text-center py-5">
+                            <h4 class="fs-16 fw-600 mb-2">{{ translate('External addon listings are disabled') }}</h4>
+                            <p class="mb-0 text-muted">{{ translate('Use approved local packages or managed release files instead of legacy vendor feeds.') }}</p>
+                        </div>
+                    </div>
+                </div>`
+            );
         })
     </script>
 @endsection

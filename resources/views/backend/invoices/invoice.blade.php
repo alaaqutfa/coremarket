@@ -91,7 +91,7 @@
             </table>
             <table>
                 <tr>
-                    <td style="font-size: 1rem;" class="strong">{{ get_setting('site_name') }}</td>
+                    <td style="font-size: 1rem;" class="strong">{{ coremarketStoreName() }}</td>
                     <td class="text-right"></td>
                 </tr>
                 <tr>

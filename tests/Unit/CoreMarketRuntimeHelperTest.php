@@ -21,4 +21,26 @@ class CoreMarketRuntimeHelperTest extends TestCase
         $this->assertTrue(coremarketIsLocalHost('127.0.0.1'));
         $this->assertFalse(coremarketIsLocalHost('example-store.com'));
     }
+
+    public function test_store_name_falls_back_to_app_name_when_settings_are_missing(): void
+    {
+        config(['app.name' => 'Dynamic Store']);
+
+        $this->assertSame('Dynamic Store', coremarketStoreName());
+    }
+
+    public function test_store_name_uses_coremarket_as_last_fallback(): void
+    {
+        config(['app.name' => null]);
+
+        $this->assertSame('CoreMarket', coremarketStoreName());
+    }
+
+    public function test_store_name_skips_known_legacy_brands(): void
+    {
+        $this->assertTrue(coremarketIsLegacyBrandValue('Coin Market'));
+        $this->assertTrue(coremarketIsLegacyBrandValue('Syrian Souq'));
+        $this->assertTrue(coremarketIsLegacyBrandValue('Active eCommerce CMS'));
+        $this->assertFalse(coremarketIsLegacyBrandValue('Modern Store'));
+    }
 }
