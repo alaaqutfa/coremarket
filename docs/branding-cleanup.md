@@ -86,3 +86,23 @@ CoreMarket visual identity should align with the CorePilotOS family, but with a 
 - cart and checkout clarity
 - commerce-friendly CTAs
 - not a dashboard-only technical look
+- clean default spacing and restrained accent usage
+- white-label ready defaults that client instances can override through settings
+
+## Current Core Visual Priorities
+
+Safe visual cleanup in core should focus on:
+
+- generic fallback typography and spacing
+- clearer storefront and checkout guidance surfaces
+- reusable CTA styling for order/contact actions
+- removing demo-like visual clutter from default public views
+
+Defer these until official assets or instance requirements exist:
+
+- final CoreMarket logo
+- favicon set
+- admin white/black logos
+- frontend header and footer logo artwork
+- store hero and promotional placeholder artwork
+- mobile app promo artwork if that feature remains enabled for future plans

@@ -482,7 +482,7 @@
         @endif
     @else
         <!-- Add to cart & Buy now Buttons -->
-        <div class="mt-3">
+        <div class="mt-3 coremarket-product-contact-actions">
             @if ($detailedProduct->digital == 0)
                 @if ($detailedProduct->external_link != null)
                     <a type="button" class="btn btn-primary buy-now fw-600 add-to-cart px-4 rounded-0"
@@ -519,7 +519,7 @@
         @if ($productWhatsAppUrl)
             <div class="mt-3">
                 <a href="{{ $productWhatsAppUrl }}" target="_blank" rel="noopener"
-                    class="btn btn-soft-success fw-600 min-w-150px rounded-0">
+                    class="btn btn-soft-success fw-600 min-w-150px rounded-0 coremarket-contact-cta">
                     <i class="lab la-whatsapp"></i> {{ translate('Ask on WhatsApp') }}
                 </a>
             </div>

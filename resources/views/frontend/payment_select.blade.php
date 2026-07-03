@@ -103,18 +103,18 @@
                             <!-- Payment Options -->
                             <div class="card-body text-center px-4 pt-0">
                                 @if (! coremarket_feature_enabled('payment_gateway_enabled') && $hasOrderPaymentOption)
-                                    <div class="alert alert-soft-primary text-left mb-4" role="alert">
+                                    <div class="alert alert-soft-primary text-left mb-4 coremarket-checkout-note" role="alert">
                                         {{ translate('Online payment is currently unavailable. Place your order using cash on delivery or the available manual order option.') }}
                                     </div>
                                 @endif
 
                                 @if (! $hasOrderPaymentOption)
-                                    <div class="alert alert-soft-warning text-left mb-4" role="alert">
+                                    <div class="alert alert-soft-warning text-left mb-4 coremarket-checkout-note" role="alert">
                                         {{ translate('Orders are not available right now. Please contact the store for assistance.') }}
                                         @if ($whatsAppCheckoutUrl)
                                             <div class="mt-3">
                                                 <a href="{{ $whatsAppCheckoutUrl }}" target="_blank" rel="noopener"
-                                                    class="btn btn-soft-success rounded-0">
+                                                    class="btn btn-soft-success rounded-0 coremarket-contact-cta">
                                                     {{ translate('Contact store on WhatsApp') }}
                                                 </a>
                                             </div>

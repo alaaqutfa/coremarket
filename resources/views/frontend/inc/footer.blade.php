@@ -143,30 +143,20 @@
 </section>
 
 <!-- footer subscription & icons -->
-<section class="py-3 text-light footer-widget border-bottom"
-    style="border-color: #3d3d46 !important; background-color: #212129 !important;">
+<section class="py-3 text-light footer-widget border-bottom coremarket-footer-shell coremarket-footer-border">
     <div class="container">
         <!-- footer logo -->
         <div class="mt-3 mb-4">
             <a href="{{ route('home') }}" class="d-block">
                 @if (get_setting('footer_logo') != null)
-                    <img class="lazyload responsive-img" src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
+                    <img class="lazyload coremarket-footer-logo" src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
                         data-src="{{ uploaded_asset(get_setting('footer_logo')) }}" alt="{{ coremarketStoreName() }}">
                 @else
-                    <img class="lazyload responsive-img" src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
+                    <img class="lazyload coremarket-footer-logo" src="{{ static_asset('assets/img/placeholder-rect.jpg') }}"
                         data-src="{{ static_asset('assets/img/logo.png') }}" alt="{{ coremarketStoreName() }}">
                 @endif
             </a>
         </div>
-
-        <style>
-            .responsive-img {
-                max-width: 300px;
-                width: 100%;
-                object-fit: contain;
-                display: block;
-            }
-        </style>
 
 
         <div class="row">
@@ -204,48 +194,47 @@
                 @if (get_setting('show_social_links'))
                     <h5 class="fs-14 fw-700 text-secondary text-uppercase mt-3 mt-lg-0">{{ translate('Follow Us') }}
                     </h5>
-                    <ul class="list-inline social-icons mb-4"
-                        style="display: flex; justify-content: center; gap: 15px; padding: 10px 0;">
+                    <ul class="list-inline social-icons mb-4 coremarket-social-list">
                         @if (!empty(get_setting('facebook_link')))
-                            <li class="list-inline-item" style="list-style: none;">
-                                <a href="{{ get_setting('facebook_link') }}" target="_blank" class="facebook"
-                                    style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #3b5998; color: white; font-size: 20px; transition: all 0.3s ease; text-decoration: none;">
+                            <li class="list-inline-item coremarket-social-item">
+                                <a href="{{ get_setting('facebook_link') }}" target="_blank"
+                                    class="facebook coremarket-social-link coremarket-social-link--facebook">
                                     <i class="lab la-facebook-f"></i>
                                 </a>
                             </li>
                         @endif
 
                         @if (!empty(get_setting('twitter_link')))
-                            <li class="list-inline-item" style="list-style: none;">
-                                <a href="{{ get_setting('twitter_link') }}" target="_blank" class="facebook"
-                                    style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #25D366; color: white; font-size: 20px; transition: all 0.3s ease; text-decoration: none;">
-                                    <i class="lab la-whatsapp"></i>
+                            <li class="list-inline-item coremarket-social-item">
+                                <a href="{{ get_setting('twitter_link') }}" target="_blank"
+                                    class="twitter coremarket-social-link coremarket-social-link--twitter">
+                                    <i class="lab la-twitter"></i>
                                 </a>
                             </li>
                         @endif
 
                         @if (!empty(get_setting('instagram_link')))
-                            <li class="list-inline-item" style="list-style: none;">
-                                <a href="{{ get_setting('instagram_link') }}" target="_blank" class="instagram"
-                                    style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%); color: white; font-size: 20px; transition: all 0.3s ease; text-decoration: none;">
+                            <li class="list-inline-item coremarket-social-item">
+                                <a href="{{ get_setting('instagram_link') }}" target="_blank"
+                                    class="instagram coremarket-social-link coremarket-social-link--instagram">
                                     <i class="lab la-instagram"></i>
                                 </a>
                             </li>
                         @endif
 
                         @if (!empty(get_setting('youtube_link')))
-                            <li class="list-inline-item" style="list-style: none;">
-                                <a href="{{ get_setting('youtube_link') }}" target="_blank" class="youtube"
-                                    style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #ff0000; color: white; font-size: 20px; transition: all 0.3s ease; text-decoration: none;">
+                            <li class="list-inline-item coremarket-social-item">
+                                <a href="{{ get_setting('youtube_link') }}" target="_blank"
+                                    class="youtube coremarket-social-link coremarket-social-link--youtube">
                                     <i class="lab la-youtube"></i>
                                 </a>
                             </li>
                         @endif
 
                         @if (!empty(get_setting('linkedin_link')))
-                            <li class="list-inline-item" style="list-style: none;">
-                                <a href="{{ get_setting('linkedin_link') }}" target="_blank" class="linkedin"
-                                    style="display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background: #0077b5; color: white; font-size: 20px; transition: all 0.3s ease; text-decoration: none;">
+                            <li class="list-inline-item coremarket-social-item">
+                                <a href="{{ get_setting('linkedin_link') }}" target="_blank"
+                                    class="linkedin coremarket-social-link coremarket-social-link--linkedin">
                                     <i class="lab la-linkedin-in"></i>
                                 </a>
                             </li>
@@ -290,7 +279,7 @@
             ? 'col-lg-3 col-md-6 col-sm-6'
             : 'col-md-4 col-sm-6';
 @endphp
-<section class="py-lg-3 text-light footer-widget" style="background-color: #212129 !important;">
+<section class="py-lg-3 text-light footer-widget coremarket-footer-shell">
     <!-- footer widgets ========== [Accordion Fotter widgets are bellow from this]-->
     <div class="container d-none d-lg-block">
         <div class="row">
