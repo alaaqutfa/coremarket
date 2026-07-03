@@ -178,6 +178,76 @@ class CoreMarketLicenseService
             ->count();
     }
 
+    public function productUsagePercentage(?int $currentCount = null): int
+    {
+        $limit = (int) $this->limit('products_limit', 0);
+
+        if ($limit < 1) {
+            return 0;
+        }
+
+        $currentCount = $currentCount ?? $this->currentProductCount();
+
+        return (int) min(100, round(($currentCount / $limit) * 100));
+    }
+
+    public function monthlyOrderUsagePercentage(?int $currentCount = null, ?CarbonInterface $now = null): int
+    {
+        $limit = (int) $this->limit('monthly_orders_limit', 0);
+
+        if ($limit < 1) {
+            return 0;
+        }
+
+        $currentCount = $currentCount ?? $this->currentMonthlyOrderCount($now);
+
+        return (int) min(100, round(($currentCount / $limit) * 100));
+    }
+
+    public function isProductLimitReached(?int $currentCount = null): bool
+    {
+        $limit = (int) $this->limit('products_limit', 0);
+
+        if ($limit < 1) {
+            return false;
+        }
+
+        $currentCount = $currentCount ?? $this->currentProductCount();
+
+        return $currentCount >= $limit;
+    }
+
+    public function isMonthlyOrderLimitReached(?int $currentCount = null, ?CarbonInterface $now = null): bool
+    {
+        $limit = (int) $this->limit('monthly_orders_limit', 0);
+
+        if ($limit < 1) {
+            return false;
+        }
+
+        $currentCount = $currentCount ?? $this->currentMonthlyOrderCount($now);
+
+        return $currentCount >= $limit;
+    }
+
+    public function isNearProductLimit(?int $currentCount = null, int $threshold = 80): bool
+    {
+        if ($this->isProductLimitReached($currentCount)) {
+            return false;
+        }
+
+        return $this->productUsagePercentage($currentCount) >= $threshold;
+    }
+
+    public function isNearMonthlyOrderLimit(?int $currentCount = null, ?CarbonInterface $now = null, int $threshold = 80): bool
+    {
+        if ($this->isMonthlyOrderLimitReached($currentCount, $now)) {
+            return false;
+        }
+
+        return $this->monthlyOrderUsagePercentage($currentCount, $now) >= $threshold;
+    }
+
     public function canCreateOrders(int $incomingCount = 1, ?int $currentCount = null, ?CarbonInterface $now = null): bool
     {
         return ! $this->wouldExceedMonthlyOrderLimit($incomingCount, $currentCount, $now);
@@ -242,12 +312,12 @@ class CoreMarketLicenseService
         return method_exists($user, 'hasRole') && $user->hasRole('Super Admin');
     }
 
-    protected function expiresAt(): ?CarbonInterface
+    public function expiresAt(): ?CarbonInterface
     {
         return $this->parseDate(config('coremarket.license.expires_at'));
     }
 
-    protected function graceUntil(): ?CarbonInterface
+    public function graceUntil(): ?CarbonInterface
     {
         return $this->parseDate(config('coremarket.license.grace_until'));
     }

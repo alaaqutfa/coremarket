@@ -100,6 +100,49 @@ class CoreMarketLicenseServiceTest extends TestCase
         $this->assertTrue($service->canCreateOrders(1, 299));
     }
 
+    public function test_license_service_returns_usage_counts_and_percentages(): void
+    {
+        $service = $this->makeService([
+            'limits' => [
+                'products_limit' => 50,
+                'monthly_orders_limit' => 300,
+            ],
+        ]);
+
+        $this->assertSame(24, $service->productUsagePercentage(12));
+        $this->assertSame(25, $service->monthlyOrderUsagePercentage(75));
+    }
+
+    public function test_near_limit_calculation_works(): void
+    {
+        $service = $this->makeService([
+            'limits' => [
+                'products_limit' => 50,
+                'monthly_orders_limit' => 300,
+            ],
+        ]);
+
+        $this->assertTrue($service->isNearProductLimit(40));
+        $this->assertTrue($service->isNearMonthlyOrderLimit(240));
+        $this->assertFalse($service->isNearProductLimit(20));
+        $this->assertFalse($service->isNearMonthlyOrderLimit(60));
+    }
+
+    public function test_limit_reached_calculation_works(): void
+    {
+        $service = $this->makeService([
+            'limits' => [
+                'products_limit' => 50,
+                'monthly_orders_limit' => 300,
+            ],
+        ]);
+
+        $this->assertTrue($service->isProductLimitReached(50));
+        $this->assertTrue($service->isMonthlyOrderLimitReached(300));
+        $this->assertFalse($service->isProductLimitReached(49));
+        $this->assertFalse($service->isMonthlyOrderLimitReached(299));
+    }
+
     public function test_super_admin_can_bypass_license_lock_if_needed(): void
     {
         $service = $this->makeService([

@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\Upload;
 use App\Models\User;
+use App\Services\CoreMarketLicenseService;
 use Artisan;
 use Cache;
 use Carbon\Carbon;
@@ -26,6 +27,8 @@ class AdminController extends Controller
     public function admin_dashboard(Request $request)
     {
         // CoreComponentRepository::initializeCache();
+        /** @var CoreMarketLicenseService $licenseService */
+        $licenseService = app(CoreMarketLicenseService::class);
         $root_categories = Category::where('level', 0)->get();
 
         $data['cached_graph_data'] = Cache::remember('cached_graph_data', 86400, function () use ($root_categories) {
@@ -150,6 +153,28 @@ class AdminController extends Controller
             ->get();
         $data['inhouse_product_rating'] = Product::where('added_by', 'admin')->where('rating', '!=', 0)->avg('rating');
         $data['total_inhouse_order'] = Order::where("seller_id", $admin_id)->count();
+        $productsCount = $licenseService->currentProductCount();
+        $monthlyOrdersCount = $licenseService->currentMonthlyOrderCount();
+
+        $data['coremarket_license_status_card'] = [
+            'show' => isStoreAdmin(),
+            'plan_code' => $licenseService->currentPlan(),
+            'status' => $licenseService->status(),
+            'products_count' => $productsCount,
+            'products_limit' => (int) $licenseService->limit('products_limit', 0),
+            'products_usage_percentage' => $licenseService->productUsagePercentage($productsCount),
+            'products_limit_reached' => $licenseService->isProductLimitReached($productsCount),
+            'products_near_limit' => $licenseService->isNearProductLimit($productsCount),
+            'monthly_orders_count' => $monthlyOrdersCount,
+            'monthly_orders_limit' => (int) $licenseService->limit('monthly_orders_limit', 0),
+            'monthly_orders_usage_percentage' => $licenseService->monthlyOrderUsagePercentage($monthlyOrdersCount),
+            'monthly_orders_limit_reached' => $licenseService->isMonthlyOrderLimitReached($monthlyOrdersCount),
+            'monthly_orders_near_limit' => $licenseService->isNearMonthlyOrderLimit($monthlyOrdersCount),
+            'expires_at' => optional($licenseService->expiresAt())->toDateString(),
+            'grace_until' => optional($licenseService->graceUntil())->toDateString(),
+            'needs_attention' => $licenseService->isSuspended() || ($licenseService->isExpired() && ! $licenseService->isInGracePeriod()),
+            'in_grace_period' => $licenseService->isInGracePeriod(),
+        ];
 
         // dd($data['payment_type_wise_inhouse_sale']);
         return view('backend.dashboard', $data);

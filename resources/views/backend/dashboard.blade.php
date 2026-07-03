@@ -11,6 +11,9 @@
             </div>
         </div>
     @endif
+    @if (!empty($coremarket_license_status_card['show']))
+        @include('backend.inc.store_admin_license_status')
+    @endif
     @can('admin_dashboard')
         <div class="row gutters-16">
 
