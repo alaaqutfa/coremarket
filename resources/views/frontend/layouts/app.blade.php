@@ -242,7 +242,7 @@
     </div>
 
 
-    @if (env("DEMO_MODE") == "On")
+    @if (env("DEMO_MODE") == "On" && app()->environment('local'))
         <!-- demo nav -->
         @include('frontend.inc.demo_nav')
     @endif

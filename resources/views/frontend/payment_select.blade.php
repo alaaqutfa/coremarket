@@ -78,6 +78,7 @@
                             <!-- Payment Options -->
                             <div class="card-body text-center px-4 pt-0">
                                 <div class="row gutters-10">
+                                    @if (coremarket_feature_enabled('payment_gateway_enabled'))
                                     <!-- Paypal -->
                                     @if (get_setting('paypal_payment') == 1)
                                         <div class="col-6 col-xl-3 col-md-4">
@@ -487,6 +488,7 @@
                                                 </span>
                                             </label>
                                         </div>
+                                    @endif
                                     @endif
                                     <!-- Cash Payment -->
                                     @if (get_setting('cash_payment') == 1)

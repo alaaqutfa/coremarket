@@ -484,7 +484,7 @@
                                         </li>
                                     @endif --}}
 
-                                    @if (get_setting('wallet_system') == 1)
+                                    @if (coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1)
                                         <li class="user-top-nav-element border border-top-0" data-id="1">
                                             <a href="{{ route('wallet.index') }}"
                                                 class="text-truncate text-dark px-4 fs-14 d-flex align-items-center hov-column-gap-1">

@@ -142,8 +142,8 @@ Route::controller(HomeController::class)->group(function () {
 
     Route::get('/product/{slug}', 'product')->name('product');
     Route::post('/product/variant-price', 'variant_price')->name('products.variant_price');
-    Route::get('/shop/{slug}', 'shop')->name('shop.visit');
-    Route::get('/shop/{slug}/{type}', 'filter_shop')->name('shop.visit.type');
+    Route::get('/shop/{slug}', 'shop')->name('shop.visit')->middleware('coremarket_feature:vendor_mode_enabled');
+    Route::get('/shop/{slug}/{type}', 'filter_shop')->name('shop.visit.type')->middleware('coremarket_feature:vendor_mode_enabled');
 
     Route::get('/customer-packages', 'premium_package_index')->name('customer_packages_list_show');
 
