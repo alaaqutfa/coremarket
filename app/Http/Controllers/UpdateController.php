@@ -58,7 +58,7 @@ class UpdateController extends Controller
                     flash(translate('Could not open the updates zip file.'))->error();
                     return back();
                 }
-                if ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1') {
+                if (coremarketIsLocalHost()) {
                     return redirect()->route('update.step2');
                 }
                 return redirect()->route('update.step1');

@@ -68,7 +68,7 @@
                         </div>
                         <div class="mb-4 pb-4 absolute-bottom-left right-0 d-flex justify-content-center">
                             @php
-                                $route = ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1') ? route('step1') :  route('step2') 
+                                $route = coremarketIsLocalHost() ? route('step1') : route('step2');
                             @endphp
                             <a href="{{ $route }}" class="back-btn-svg mr-3" title="Go Back" style="box-shadow: 0px 8px 16px rgb(255 88 0 / 16%); border-radius: 50%;">
                               <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">

@@ -90,7 +90,7 @@
                     </div>
                     
                     <div class="mb-4 pb-4 absolute-bottom-left right-0 d-flex justify-content-center">
-                        @if ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1')
+                        @if (coremarketIsLocalHost())
                             <a href="{{ route('update.step2') }}" class="btn btn-install text-uppercase">Update</a>
                         @else
                             <a href="{{ route('update.step1') }}" class="btn btn-install text-uppercase">Next Step</a>

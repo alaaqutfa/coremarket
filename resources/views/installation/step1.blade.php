@@ -130,7 +130,7 @@
                             </svg>
                         </a>
                         @if ($permission['curl_enabled'] == 1 && $permission['db_file_write_perm'] == 1 && $permission['routes_file_write_perm'] == 1 && $phpVersion >= 7.20)
-                            @if ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1')
+                            @if (coremarketIsLocalHost())
                                 <a href = "{{ route('step3') }}" class="btn btn-install text-uppercase">Go To Next Step</a>
                             @else
                                 <a href = "{{ route('step2') }}" class="btn btn-install text-uppercase">Go To Next Step</a>

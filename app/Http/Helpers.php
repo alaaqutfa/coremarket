@@ -1295,6 +1295,35 @@ if (! function_exists('getBaseURL')) {
     }
 }
 
+if (! function_exists('coremarketRuntimeHost')) {
+    function coremarketRuntimeHost(): string
+    {
+        try {
+            if (app()->bound('request')) {
+                $host = app('request')->getHost();
+                if (!empty($host)) {
+                    return $host;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        $appUrl = (string) config('app.url', env('APP_URL', ''));
+        $host = parse_url($appUrl, PHP_URL_HOST);
+
+        return !empty($host) ? $host : 'localhost';
+    }
+}
+
+if (! function_exists('coremarketIsLocalHost')) {
+    function coremarketIsLocalHost(?string $host = null): bool
+    {
+        $host = strtolower($host ?: coremarketRuntimeHost());
+
+        return in_array($host, ['localhost', '127.0.0.1'], true);
+    }
+}
+
 if (! function_exists('getFileBaseURL')) {
     function getFileBaseURL()
     {
