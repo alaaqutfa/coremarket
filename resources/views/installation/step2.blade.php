@@ -32,7 +32,7 @@
                         </svg>
                         <h1 class="fs-21 fw-700 text-uppercase mt-2" style="color: #3d3d3d;">Purchase Code</h1>
                         <p class="fs-12 fw-500" style="color:  #666; line-height: 18px;">
-                            Provide your codecanyon purchase code.<br>
+                            Provide your license purchase code.<br>
                             <a href="https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code" target="_blank" class="text-blue hov-text-primary"><i>Where to get purchase code?</i></a>
                         </p>
                     </div>

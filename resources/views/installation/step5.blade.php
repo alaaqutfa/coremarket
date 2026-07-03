@@ -30,7 +30,7 @@
                               </g>
                             </g>
                         </svg>
-                        <h1 class="fs-21 fw-700 text-uppercase mt-2" style="color: #3d3d3d;">Active eCommerce CMS Settings</h1>
+                        <h1 class="fs-21 fw-700 text-uppercase mt-2" style="color: #3d3d3d;">CoreMarket Settings</h1>
                         <p class="fs-12 fw-500" style="color:  #666; line-height: 18px;">Fill this form with basic information & admin login credentials</p>
                     </div>
 
