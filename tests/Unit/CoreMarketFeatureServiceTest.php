@@ -22,6 +22,11 @@ class CoreMarketFeatureServiceTest extends TestCase
         $this->assertFalse(coremarket_feature_enabled('payment_gateway_enabled'));
     }
 
+    public function test_online_payment_methods_helper_returns_empty_when_payment_gateways_are_disabled(): void
+    {
+        $this->assertCount(0, get_activate_payment_methods());
+    }
+
     public function test_feature_helper_returns_false_for_disabled_vendor_mode(): void
     {
         $this->assertFalse(coremarket_feature_enabled('vendor_mode_enabled'));

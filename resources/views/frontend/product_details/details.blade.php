@@ -1,3 +1,11 @@
+@php
+    $productWhatsAppUrl = coremarket_feature_enabled('whatsapp_orders_enabled')
+        ? coremarketWhatsAppUrl(
+            'Hello ' . coremarketStoreName() . ', I would like to ask about ' . $detailedProduct->getTranslation('name') . '.'
+        )
+        : null;
+@endphp
+
 <div class="text-left">
     <!-- Product Name -->
     <h2 class="mb-4 fs-16 fw-700 text-dark">
@@ -507,6 +515,15 @@
                 </button>
             @endif
         </div>
+
+        @if ($productWhatsAppUrl)
+            <div class="mt-3">
+                <a href="{{ $productWhatsAppUrl }}" target="_blank" rel="noopener"
+                    class="btn btn-soft-success fw-600 min-w-150px rounded-0">
+                    <i class="lab la-whatsapp"></i> {{ translate('Ask on WhatsApp') }}
+                </a>
+            </div>
+        @endif
 
         <!-- Promote Link -->
         <div class="d-table width-100 mt-3">

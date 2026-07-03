@@ -205,6 +205,69 @@ if (! function_exists('coremarketIsLegacyBrandValue')) {
     }
 }
 
+if (! function_exists('coremarketSanitizePhoneNumber')) {
+    function coremarketSanitizePhoneNumber(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = preg_replace('/\D+/', '', $value);
+
+        return $normalized !== '' ? $normalized : null;
+    }
+}
+
+if (! function_exists('coremarketWhatsAppNumber')) {
+    function coremarketWhatsAppNumber(): ?string
+    {
+        if (config('coremarket.contact.resolve_from_settings', true)) {
+            try {
+                foreach (['whatsapp_number', 'contact_phone', 'helpline_number'] as $settingKey) {
+                    $sanitized = coremarketSanitizePhoneNumber(get_setting($settingKey));
+                    if ($sanitized !== null) {
+                        return $sanitized;
+                    }
+                }
+            } catch (\Throwable $exception) {
+                // Fall back to config defaults when settings are unavailable.
+            }
+        }
+
+        foreach ([
+            'coremarket.contact.whatsapp_number',
+            'coremarket.contact.contact_phone',
+            'coremarket.contact.helpline_number',
+        ] as $configKey) {
+            $sanitized = coremarketSanitizePhoneNumber(config($configKey));
+            if ($sanitized !== null) {
+                return $sanitized;
+            }
+        }
+
+        return null;
+    }
+}
+
+if (! function_exists('coremarketWhatsAppUrl')) {
+    function coremarketWhatsAppUrl(?string $message = null): ?string
+    {
+        $number = coremarketWhatsAppNumber();
+
+        if ($number === null) {
+            return null;
+        }
+
+        $url = 'https://wa.me/' . $number;
+
+        if ($message !== null && trim($message) !== '') {
+            $url .= '?text=' . rawurlencode($message);
+        }
+
+        return $url;
+    }
+}
+
 /**
  * Save JSON File
  * @return Response

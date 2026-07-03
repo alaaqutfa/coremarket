@@ -118,7 +118,7 @@
                                             <!-- Complete Ordert -->
                                             <div class="col-6 text-right">
                                                 <button type="button" onclick="submitOrder(this)" id="submitOrderBtn"
-                                                    class="btn btn-primary fs-14 fw-700 rounded-0 px-4">{{ translate('Complete Order') }}</button>
+                                                    class="btn btn-primary fs-14 fw-700 rounded-0 px-4">{{ translate('Place Order') }}</button>
                                             </div>
                                         </div>
 

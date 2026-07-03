@@ -1,6 +1,31 @@
 @extends('frontend.layouts.app')
 
 @section('content')
+    @php
+        $manualPaymentMethods = Auth::check() && addon_is_activated('offline_payment') ? get_all_manual_payment_methods() : collect();
+        $hasManualPaymentMethods = $manualPaymentMethods->count() > 0;
+        $hasCashOnDeliveryOption = false;
+
+        if (get_setting('cash_payment') == 1) {
+            $digital = 0;
+            $cod_on = 1;
+            foreach ($carts as $cartItem) {
+                $product = get_single_product($cartItem['product_id']);
+                if ($product['digital'] == 1) {
+                    $digital = 1;
+                }
+                if ($product['cash_on_delivery'] == 0) {
+                    $cod_on = 0;
+                }
+            }
+            $hasCashOnDeliveryOption = $digital != 1 && $cod_on == 1;
+        }
+
+        $hasOrderPaymentOption = $hasCashOnDeliveryOption || $hasManualPaymentMethods;
+        $whatsAppCheckoutUrl = coremarket_feature_enabled('whatsapp_orders_enabled')
+            ? coremarketWhatsAppUrl('Hello ' . coremarketStoreName() . ', I would like help completing my order.')
+            : null;
+    @endphp
 
     <!-- Steps -->
     <section class="pt-5 mb-4">
@@ -77,6 +102,26 @@
                             </div>
                             <!-- Payment Options -->
                             <div class="card-body text-center px-4 pt-0">
+                                @if (! coremarket_feature_enabled('payment_gateway_enabled') && $hasOrderPaymentOption)
+                                    <div class="alert alert-soft-primary text-left mb-4" role="alert">
+                                        {{ translate('Online payment is currently unavailable. Place your order using cash on delivery or the available manual order option.') }}
+                                    </div>
+                                @endif
+
+                                @if (! $hasOrderPaymentOption)
+                                    <div class="alert alert-soft-warning text-left mb-4" role="alert">
+                                        {{ translate('Orders are not available right now. Please contact the store for assistance.') }}
+                                        @if ($whatsAppCheckoutUrl)
+                                            <div class="mt-3">
+                                                <a href="{{ $whatsAppCheckoutUrl }}" target="_blank" rel="noopener"
+                                                    class="btn btn-soft-success rounded-0">
+                                                    {{ translate('Contact store on WhatsApp') }}
+                                                </a>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
+
                                 <div class="row gutters-10">
                                     @if (coremarket_feature_enabled('payment_gateway_enabled'))
                                     <!-- Paypal -->
@@ -491,21 +536,7 @@
                                     @endif
                                     @endif
                                     <!-- Cash Payment -->
-                                    @if (get_setting('cash_payment') == 1)
-                                        @php
-                                            $digital = 0;
-                                            $cod_on = 1;
-                                            foreach ($carts as $cartItem) {
-                                                $product = get_single_product($cartItem['product_id']);
-                                                if ($product['digital'] == 1) {
-                                                    $digital = 1;
-                                                }
-                                                if ($product['cash_on_delivery'] == 0) {
-                                                    $cod_on = 0;
-                                                }
-                                            }
-                                        @endphp
-                                        @if ($digital != 1 && $cod_on == 1)
+                                    @if ($hasCashOnDeliveryOption)
                                             <div class="col-6 col-xl-3 col-md-4">
                                                 <label class="aiz-megabox d-block mb-3">
                                                     <input value="cash_on_delivery" class="online_payment" type="radio"
@@ -520,12 +551,11 @@
                                                     </span>
                                                 </label>
                                             </div>
-                                        @endif
                                     @endif
                                     @if (Auth::check())
                                         <!-- Offline Payment -->
-                                        @if (addon_is_activated('offline_payment'))
-                                            @foreach (get_all_manual_payment_methods() as $method)
+                                        @if ($hasManualPaymentMethods)
+                                            @foreach ($manualPaymentMethods as $method)
                                                 <div class="col-6 col-xl-3 col-md-4">
                                                     <label class="aiz-megabox d-block mb-3">
                                                         <input value="{{ $method->heading }}" type="radio"
@@ -544,7 +574,7 @@
                                                 </div>
                                             @endforeach
 
-                                            @foreach (get_all_manual_payment_methods() as $method)
+                                            @foreach ($manualPaymentMethods as $method)
                                                 <div id="manual_payment_info_{{ $method->id }}" class="d-none">
                                                     @php echo $method->description @endphp
                                                     @if ($method->bank_info != null)
@@ -651,7 +681,8 @@
                                 <!-- Complete Ordert -->
                                 <div class="col-6 text-right">
                                     <button type="button" onclick="submitOrder(this)"
-                                        class="btn btn-primary fs-14 fw-700 rounded-0 px-4">{{ translate('Complete Order') }}</button>
+                                        class="btn btn-primary fs-14 fw-700 rounded-0 px-4"
+                                        @if (! $hasOrderPaymentOption) disabled @endif>{{ translate('Place Order') }}</button>
                                 </div>
                             </div>
                         </div>

@@ -43,4 +43,33 @@ class CoreMarketRuntimeHelperTest extends TestCase
         $this->assertTrue(coremarketIsLegacyBrandValue('Active eCommerce CMS'));
         $this->assertFalse(coremarketIsLegacyBrandValue('Modern Store'));
     }
+
+    public function test_whatsapp_helper_returns_null_when_no_number_is_available(): void
+    {
+        config([
+            'coremarket.contact.resolve_from_settings' => false,
+            'coremarket.contact.whatsapp_number' => null,
+            'coremarket.contact.contact_phone' => null,
+            'coremarket.contact.helpline_number' => null,
+        ]);
+
+        $this->assertNull(coremarketWhatsAppNumber());
+        $this->assertNull(coremarketWhatsAppUrl('Hello'));
+    }
+
+    public function test_whatsapp_helper_builds_url_from_available_number(): void
+    {
+        config([
+            'coremarket.contact.resolve_from_settings' => false,
+            'coremarket.contact.whatsapp_number' => null,
+            'coremarket.contact.contact_phone' => '+1 (555) 123-4567',
+            'coremarket.contact.helpline_number' => null,
+        ]);
+
+        $this->assertSame('15551234567', coremarketWhatsAppNumber());
+        $this->assertSame(
+            'https://wa.me/15551234567?text=Hello%20store',
+            coremarketWhatsAppUrl('Hello store')
+        );
+    }
 }

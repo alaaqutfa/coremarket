@@ -52,5 +52,6 @@ class CoreMarketStarterFeatureGatesTest extends TestCase
         $this->assertFalse($paymentTypeKeys->contains('sslcommerz'));
         $this->assertFalse($paymentTypeKeys->contains('paytm'));
         $this->assertFalse($paymentTypeKeys->contains('myfatoorah'));
+        $this->assertFalse($paymentTypeKeys->contains('wallet'));
     }
 }

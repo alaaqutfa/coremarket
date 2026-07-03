@@ -42,6 +42,13 @@ return [
         'monthly_orders_limit' => 300,
     ],
 
+    'contact' => [
+        'resolve_from_settings' => true,
+        'whatsapp_number' => null,
+        'contact_phone' => null,
+        'helpline_number' => null,
+    ],
+
     'instance_setup' => [
         'default_plan' => 'ecommerce_starter',
 
