@@ -1,4 +1,10 @@
-@if(get_setting('product_query_activation') == 1)
+@php
+    $coremarketSellerInteractionEnabled = coremarket_feature_enabled('vendor_mode_enabled')
+        && get_setting('vendor_system_activation') == 1
+        && $detailedProduct->added_by == 'seller';
+@endphp
+
+@if(get_setting('product_query_activation') == 1 && $coremarketSellerInteractionEnabled)
     <div class="bg-white border mt-4 mb-4" id="product_query">
         <div class="p-3 p-sm-4">
             <h3 class="fs-16 fw-700 mb-0">

@@ -4,6 +4,9 @@
             'Hello ' . coremarketStoreName() . ', I would like to ask about ' . $detailedProduct->getTranslation('name') . '.'
         )
         : null;
+    $coremarketSellerInteractionEnabled = coremarket_feature_enabled('vendor_mode_enabled')
+        && get_setting('vendor_system_activation') == 1
+        && $detailedProduct->added_by == 'seller';
 @endphp
 
 <div class="text-left">
@@ -42,7 +45,7 @@
         @endif
     </div>
     <div class="row align-items-center">
-        @if(get_setting('product_query_activation') == 1)
+        @if(get_setting('product_query_activation') == 1 && $coremarketSellerInteractionEnabled)
             <!-- Ask about this product -->
             <div class="col-xl-3 col-lg-4 col-md-3 col-sm-4 mb-3">
                 <a href="javascript:void();" onclick="goToView('product_query')" class="text-primary fs-14 fw-600 d-flex">
@@ -108,7 +111,7 @@
             @endif
         </div>
         <!-- Messase to seller -->
-        @if (get_setting('conversation_system') == 1)
+        @if (get_setting('conversation_system') == 1 && $coremarketSellerInteractionEnabled)
             <div class="">
                 <button class="btn btn-sm btn-soft-secondary-base btn-outline-secondary-base hov-svg-white hov-text-white rounded-4"
                     onclick="show_chat_modal()">
