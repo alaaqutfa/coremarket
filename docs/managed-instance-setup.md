@@ -92,17 +92,55 @@ Current behavior:
 - does not create users
 - does not upload media
 
-`--apply` is intentionally blocked for now and still runs as dry-run.
+## Safe Apply Command
 
-## Store Admin Creation Later
+`--apply` can now update only the allowed `business_settings`, but only when all safety conditions are met.
 
-During actual configuration:
+Example:
 
-- create a `users` row with `user_type=staff`
-- create the linked `staff` row
-- assign the `store_admin` role
-- provide a temporary password outside Git
-- change password on first handover if the project later adds that flow
+```bash
+php artisan coremarket:setup-instance client-store --apply --confirm-instance-setup --store-name="Client Store" --domain=example-store.com --admin-email=owner@example-store.com --site-motto="Managed Store" --contact-phone="+10000000000"
+```
+
+Apply safety rules:
+
+- `--apply` must be present
+- `--confirm-instance-setup` must be present
+- `instance_id` must be provided
+- `--store-name`, `--domain`, and `--admin-email` must be provided
+- the command prints the full summary before writing
+
+What the command writes in apply mode:
+
+- only the safe `business_settings` from the setup map
+- no destructive deletes
+- no logo upload IDs
+- no payment credentials
+
+What the command does not write:
+
+- `.env`
+- media or uploads
+- products
+- orders
+- payment gateway secrets
+
+## Store Admin Handling
+
+Optional flag:
+
+```bash
+--create-store-admin
+```
+
+Current status:
+
+- still preview-only in this step
+- requires `--apply` and `--confirm-instance-setup`
+- requires `--admin-name` and `--admin-email`
+- does not create a real user yet
+- does not generate or print a password
+- final user creation should happen only after payment and manual password handoff approval
 
 ## Media Uploads Later
 
@@ -140,3 +178,20 @@ Suggested template columns:
 8. Apply white-label `business_settings`.
 9. Create the Store Admin account.
 10. Verify route list, homepage, login, branding, product flow, and checkout flow.
+
+## Before Client Payment
+
+- run `dry-run` only
+- do not create an instance
+- do not create a Store Admin
+- do not upload assets
+- do not deploy
+
+## After Client Payment
+
+- prepare the instance `.env` outside Git
+- create the dedicated database
+- run the setup command with `--apply --confirm-instance-setup`
+- upload logos and media outside Git
+- create or verify the Store Admin account
+- test homepage, login, product flow, and order flow

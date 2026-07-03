@@ -50,7 +50,6 @@ return [
             'site_motto' => 'site_motto',
             'meta_title' => 'meta_title',
             'meta_description' => 'meta_description',
-            'contact_address' => 'contact_address',
             'contact_phone' => 'contact_phone',
             'contact_email' => 'contact_email',
             'helpline_number' => 'whatsapp',
@@ -58,7 +57,6 @@ return [
             'vendor_system_activation' => 0,
             'wallet_system' => 0,
             'cash_payment' => 1,
-            'system_default_currency' => 'currency',
             'timezone' => 'timezone',
         ],
 
