@@ -42,6 +42,32 @@ return [
         'monthly_orders_limit' => 300,
     ],
 
+    'instance_setup' => [
+        'default_plan' => 'ecommerce_starter',
+
+        'business_settings_map' => [
+            'website_name' => 'store_name',
+            'site_motto' => 'site_motto',
+            'meta_title' => 'meta_title',
+            'meta_description' => 'meta_description',
+            'contact_address' => 'contact_address',
+            'contact_phone' => 'contact_phone',
+            'contact_email' => 'contact_email',
+            'helpline_number' => 'whatsapp',
+            'frontend_copyright_text' => 'footer_text',
+            'vendor_system_activation' => 0,
+            'wallet_system' => 0,
+            'cash_payment' => 1,
+            'system_default_currency' => 'currency',
+            'timezone' => 'timezone',
+        ],
+
+        'media_notes' => [
+            'Logo/media must be uploaded manually and assigned through business_settings upload IDs.',
+            'Do not commit client logos, favicons, or uploaded media to Git.',
+        ],
+    ],
+
     'access' => [
         'store_admin_role' => 'store_admin',
 
