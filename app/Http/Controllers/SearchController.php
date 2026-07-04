@@ -29,6 +29,7 @@ class SearchController extends Controller
         $selected_color = null;
         $category = [];
         $categories = [];
+        $category_ids = [];
 
         $conditions = [];
 
@@ -61,12 +62,14 @@ class SearchController extends Controller
                     if (count($ids) > 0) {
                         foreach ($ids as $id) {
                             $category_ids[] = $id;
-                            array_merge($category_ids, CategoryUtility::children_ids($id));
+                            $category_ids = array_merge($category_ids, CategoryUtility::children_ids($id));
                         }
                     }
                 }
-                $attribute_ids = AttributeCategory::whereIn('category_id', $category_ids)->pluck('attribute_id')->toArray();
-                $attributes = Attribute::whereIn('id', $attribute_ids)->get();
+                if (! empty($category_ids)) {
+                    $attribute_ids = AttributeCategory::whereIn('category_id', $category_ids)->pluck('attribute_id')->toArray();
+                    $attributes = Attribute::whereIn('id', $attribute_ids)->get();
+                }
             }
         }
 
