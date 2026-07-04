@@ -66,6 +66,9 @@ Use `business_settings` for the public white-label surface:
 Media-related keys such as `site_icon`, `header_logo`, `footer_logo`, `system_logo_white`, and `system_logo_black`
 must be assigned after the related files are uploaded and their upload IDs are known.
 
+Legacy storefront values in `business_settings` must be reviewed before any client handoff.
+Old store names, demo links, popup copy, watermark text, and marketing links should never be carried into a managed client instance unchanged.
+
 ## What Must Stay Out of Git
 
 - `.env`
@@ -124,6 +127,37 @@ What the command does not write:
 - products
 - orders
 - payment gateway secrets
+
+## Storefront Cleanup Audit Command
+
+Use the generic storefront cleanup planner when the baseline still contains legacy branding or demo links in `business_settings`:
+
+```bash
+php artisan coremarket:clean-storefront-settings --dry-run
+```
+
+Apply mode is intentionally guarded:
+
+```bash
+php artisan coremarket:clean-storefront-settings --apply --confirm-storefront-cleanup
+```
+
+Cleanup scope:
+
+- safe storefront `business_settings` only
+- popup marketing defaults
+- public meta and store-name defaults
+- legacy demo links in menu/footer/link settings
+
+Cleanup does not touch:
+
+- products
+- orders
+- users
+- shops
+- uploads
+- logo upload IDs
+- media files
 
 ## Store Admin Handling
 
@@ -192,6 +226,7 @@ Suggested template columns:
 - prepare the instance `.env` outside Git
 - create the dedicated database
 - run the setup command with `--apply --confirm-instance-setup`
+- run storefront cleanup or verify the cleanup plan before exposing the instance publicly
 - upload logos and media outside Git
 - create or verify the Store Admin account
 - test homepage, login, product flow, and order flow

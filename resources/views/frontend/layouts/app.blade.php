@@ -256,7 +256,7 @@
 
     <div class="aiz-custom-alert {{ get_setting('custom_alert_location') }}">
         @foreach ($custom_alerts as $custom_alert)
-            @if($custom_alert->id == 1)
+            @if($custom_alert->id == 1 && get_setting('show_cookies_agreement') == 'on')
                 <div class="aiz-cookie-alert mb-3" style="box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.24);">
                     <div class="p-3 px-lg-2rem rounded-0" style="background: {{ $custom_alert->background_color }};">
                         <div class="text-{{ $custom_alert->text_color }} mb-3">
@@ -288,66 +288,68 @@
     </div>
 
     <!-- website popup -->
-    @php
-        $dynamic_popups = App\Models\DynamicPopup::where('status', 1)->orderBy('id', 'asc')->get();
-    @endphp
-    @foreach ($dynamic_popups as $key => $dynamic_popup)
-        @if($dynamic_popup->id == 1)
-            <div class="modal website-popup removable-session d-none" data-key="website-popup" data-value="removed">
-                <div class="absolute-full bg-black opacity-60"></div>
-                <div class="modal-dialog modal-dialog-centered modal-dialog-zoom modal-md mx-4 mx-md-auto">
-                    <div class="modal-content position-relative border-0 rounded-0">
-                        <div class="aiz-editor-data">
-                            <div class="d-block">
-                                <img class="w-100" src="{{ uploaded_asset($dynamic_popup->banner) }}" alt="dynamic_popup">
+    @if (get_setting('show_website_popup') == 'on')
+        @php
+            $dynamic_popups = App\Models\DynamicPopup::where('status', 1)->orderBy('id', 'asc')->get();
+        @endphp
+        @foreach ($dynamic_popups as $key => $dynamic_popup)
+            @if($dynamic_popup->id == 1)
+                <div class="modal website-popup removable-session d-none" data-key="website-popup" data-value="removed">
+                    <div class="absolute-full bg-black opacity-60"></div>
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-zoom modal-md mx-4 mx-md-auto">
+                        <div class="modal-content position-relative border-0 rounded-0">
+                            <div class="aiz-editor-data">
+                                <div class="d-block">
+                                    <img class="w-100" src="{{ uploaded_asset($dynamic_popup->banner) }}" alt="dynamic_popup">
+                                </div>
                             </div>
+                            <div class="pb-5 pt-4 px-3 px-md-2rem">
+                                <h1 class="fs-30 fw-700 text-dark">{{ $dynamic_popup->title }}</h1>
+                                <p class="fs-14 fw-400 mt-3 mb-4">{{ $dynamic_popup->summary }}</p>
+                                @if ($dynamic_popup->show_subscribe_form == 'on')
+                                    <form class="" method="POST" action="{{ route('subscribers.store') }}">
+                                        @csrf
+                                        <div class="form-group mb-0">
+                                            <input type="email" class="form-control" placeholder="{{ translate('Your Email Address') }}" name="email" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-block mt-3 rounded-0 text-{{ $dynamic_popup->btn_text_color }}" style="background: {{ $dynamic_popup->btn_background_color }};">
+                                            {{ $dynamic_popup->btn_text }}
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                            <button class="absolute-top-right bg-white shadow-lg btn btn-circle btn-icon mr-n3 mt-n3 set-session" data-key="website-popup" data-value="removed" data-toggle="remove-parent" data-parent=".website-popup">
+                                <i class="la la-close fs-20"></i>
+                            </button>
                         </div>
-                        <div class="pb-5 pt-4 px-3 px-md-2rem">
-                            <h1 class="fs-30 fw-700 text-dark">{{ $dynamic_popup->title }}</h1>
-                            <p class="fs-14 fw-400 mt-3 mb-4">{{ $dynamic_popup->summary }}</p>
-                            @if ($dynamic_popup->show_subscribe_form == 'on')
-                                <form class="" method="POST" action="{{ route('subscribers.store') }}">
-                                    @csrf
-                                    <div class="form-group mb-0">
-                                        <input type="email" class="form-control" placeholder="{{ translate('Your Email Address') }}" name="email" required>
-                                    </div>
-                                    <button type="submit" class="btn btn-block mt-3 rounded-0 text-{{ $dynamic_popup->btn_text_color }}" style="background: {{ $dynamic_popup->btn_background_color }};">
-                                        {{ $dynamic_popup->btn_text }}
-                                    </button>
-                                </form>
-                            @endif
-                        </div>
-                        <button class="absolute-top-right bg-white shadow-lg btn btn-circle btn-icon mr-n3 mt-n3 set-session" data-key="website-popup" data-value="removed" data-toggle="remove-parent" data-parent=".website-popup">
-                            <i class="la la-close fs-20"></i>
-                        </button>
                     </div>
                 </div>
-            </div>
-        @else
-            <div class="modal website-popup removable-session d-none" data-key="website-popup-{{ $dynamic_popup->id }}" data-value="removed">
-                <div class="absolute-full bg-black opacity-60"></div>
-                <div class="modal-dialog modal-dialog-centered modal-dialog-zoom modal-md mx-4 mx-md-auto">
-                    <div class="modal-content position-relative border-0 rounded-0">
-                        <div class="aiz-editor-data">
-                            <div class="d-block">
-                                <img class="w-100" src="{{ uploaded_asset($dynamic_popup->banner) }}" alt="dynamic_popup">
+            @else
+                <div class="modal website-popup removable-session d-none" data-key="website-popup-{{ $dynamic_popup->id }}" data-value="removed">
+                    <div class="absolute-full bg-black opacity-60"></div>
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-zoom modal-md mx-4 mx-md-auto">
+                        <div class="modal-content position-relative border-0 rounded-0">
+                            <div class="aiz-editor-data">
+                                <div class="d-block">
+                                    <img class="w-100" src="{{ uploaded_asset($dynamic_popup->banner) }}" alt="dynamic_popup">
+                                </div>
                             </div>
+                            <div class="pb-5 pt-4 px-3 px-md-2rem">
+                                <h1 class="fs-30 fw-700 text-dark">{{ $dynamic_popup->title }}</h1>
+                                <p class="fs-14 fw-400 mt-3 mb-4">{{ $dynamic_popup->summary }}</p>
+                                <a href="{{ $dynamic_popup->btn_link }}" class="btn btn-block mt-3 rounded-0 text-{{ $dynamic_popup->btn_text_color }}" style="background: {{ $dynamic_popup->btn_background_color }};">
+                                    {{ $dynamic_popup->btn_text }}
+                                </a>
+                            </div>
+                            <button class="absolute-top-right bg-white shadow-lg btn btn-circle btn-icon mr-n3 mt-n3 set-session" data-key="website-popup-{{ $dynamic_popup->id }}" data-value="removed" data-toggle="remove-parent" data-parent=".website-popup">
+                                <i class="la la-close fs-20"></i>
+                            </button>
                         </div>
-                        <div class="pb-5 pt-4 px-3 px-md-2rem">
-                            <h1 class="fs-30 fw-700 text-dark">{{ $dynamic_popup->title }}</h1>
-                            <p class="fs-14 fw-400 mt-3 mb-4">{{ $dynamic_popup->summary }}</p>
-                            <a href="{{ $dynamic_popup->btn_link }}" class="btn btn-block mt-3 rounded-0 text-{{ $dynamic_popup->btn_text_color }}" style="background: {{ $dynamic_popup->btn_background_color }};">
-                                {{ $dynamic_popup->btn_text }}
-                            </a>
-                        </div>
-                        <button class="absolute-top-right bg-white shadow-lg btn btn-circle btn-icon mr-n3 mt-n3 set-session" data-key="website-popup-{{ $dynamic_popup->id }}" data-value="removed" data-toggle="remove-parent" data-parent=".website-popup">
-                            <i class="la la-close fs-20"></i>
-                        </button>
                     </div>
                 </div>
-            </div>
-        @endif
-    @endforeach
+            @endif
+        @endforeach
+    @endif
 
     @include('frontend.partials.modal')
 

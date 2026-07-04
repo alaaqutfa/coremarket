@@ -40,6 +40,16 @@ Recommended branding keys to configure per instance:
 - `contact_address`
 - social links such as Facebook, Instagram, X/Twitter, YouTube, LinkedIn, and WhatsApp when supported
 
+`business_settings` are also the main source of storefront contamination in legacy imports. Before any managed instance goes live, review:
+
+- public store-name keys
+- meta title and description
+- footer and copyright text
+- header/footer/demo links
+- popup and cookie settings
+- watermark text
+- app/store download links
+
 ## Legacy Names Purged or Neutralized
 
 Visible legacy names should not appear in the managed baseline:
@@ -76,6 +86,9 @@ Do not replace uploaded instance logos through Git. Those must be uploaded per i
 - Configure public naming through `business_settings`, not core code.
 - Keep client logos, favicons, and media outside Git.
 - Use `CoreMarket` only when no instance-specific store name has been configured yet.
+- Disable or replace old popup marketing content before public launch.
+- Remove demo/store links that point to previous brands or environments.
+- Replace media/logo upload IDs per instance instead of reusing legacy upload references.
 
 ## Visual Identity Note
 

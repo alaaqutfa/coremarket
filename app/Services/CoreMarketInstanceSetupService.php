@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BusinessSetting;
+use Illuminate\Support\Facades\Cache;
 
 class CoreMarketInstanceSetupService
 {
@@ -150,6 +151,8 @@ class CoreMarketInstanceSetupService
                 'status' => $wasExisting ? 'updated' : 'created',
             ];
         }
+
+        Cache::forget('business_settings');
 
         return $applied;
     }

@@ -73,6 +73,40 @@ return [
         ],
     ],
 
+    'storefront_cleanup' => [
+        'setting_defaults' => [
+            'website_name' => 'CoreMarket',
+            'site_name' => 'CoreMarket',
+            'site_motto' => 'Modern managed ecommerce storefront',
+            'meta_title' => 'CoreMarket',
+            'meta_description' => 'Modern managed ecommerce storefront',
+            'contact_phone' => '',
+            'contact_email' => '',
+            'topbar_banner_link' => '',
+            'header_menu_links' => '["/","/products","/categories","/flash-deals"]',
+            'widget_one_links' => '["/privacy-policy","/terms","/support-policy","/return-policy"]',
+            'watermark_text' => '',
+            'seller_app_link' => '',
+            'delivery_boy_app_link' => '',
+            'play_store_link' => '',
+            'app_store_link' => '',
+            'show_website_popup' => '0',
+        ],
+
+        'localized_setting_defaults' => [
+            'footer_title' => 'CoreMarket',
+            'frontend_copyright_text' => '© CoreMarket. All rights reserved.',
+            'website_popup_content' => '',
+        ],
+
+        'notes' => [
+            'This cleanup targets business_settings only.',
+            'It does not modify products, orders, users, shops, uploads, or logo upload IDs.',
+            'Popup marketing should be disabled in the managed baseline unless a client explicitly configures it later.',
+            'Cookie agreement content remains configurable per instance.',
+        ],
+    ],
+
     'access' => [
         'store_admin_role' => 'store_admin',
 
