@@ -159,6 +159,18 @@ Cleanup does not touch:
 - logo upload IDs
 - media files
 
+## Demo Data Warning
+
+The current local development database should be treated as legacy/demo-contaminated unless it has already passed a dedicated cleanup step.
+
+Before using any database as a managed-instance baseline:
+
+- review `business_settings` for old store names, demo links, popup content, and cookie text
+- review products, brands, categories, flash deals, and homepage-linked content
+- avoid direct hard-delete cleanup when catalog relations are unclear
+
+See [docs/demo-data-cleanup.md](/C:/xampp/htdocs/coremarket/docs/demo-data-cleanup.md) for the audit and cleanup planning guidance.
+
 ## Store Admin Handling
 
 Optional flag:
