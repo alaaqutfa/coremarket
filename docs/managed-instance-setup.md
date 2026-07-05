@@ -83,6 +83,12 @@ Clean baseline database strategy is documented separately in
 [docs/clean-baseline-database-strategy.md](/C:/xampp/htdocs/coremarket/docs/clean-baseline-database-strategy.md).
 Use that document when deciding how a new managed instance database is created before this setup flow is applied.
 
+For a read-only preflight against the current local database, run:
+
+```bash
+php artisan coremarket:audit-baseline-readiness
+```
+
 ## Dry-Run Setup Command
 
 Use the generic setup planner:

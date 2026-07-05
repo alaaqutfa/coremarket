@@ -311,3 +311,21 @@ Until a dedicated baseline build step is executed:
 - do not use the current demo/legacy database as a client baseline
 - do not rely on migrations alone to create a new managed instance database
 - prefer a controlled hybrid baseline artifact derived from the live working schema
+
+## Read-Only Readiness Audit
+
+Use the baseline readiness audit command to inspect the current database without writing any data:
+
+```bash
+php artisan coremarket:audit-baseline-readiness
+```
+
+The command reports:
+
+- core table counts
+- required baseline setting presence
+- vendor, wallet, popup, and cash/manual payment status
+- legacy branding warnings
+- schema drift between tracked migrations and the live database
+
+The command is read-only and does not modify the database.
