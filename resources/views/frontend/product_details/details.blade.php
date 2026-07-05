@@ -499,7 +499,7 @@
                         <i class="las la-shopping-bag"></i> {{ translate('Add to cart') }}
                     </button>
                     <button type="button" class="btn btn-primary buy-now fw-600 add-to-cart min-w-150px rounded-0"
-                        @if (Auth::check() || get_Setting('guest_checkout_activation') == 1) onclick="addToCart()" @else onclick="showLoginModal()" @endif>
+                        @if (Auth::check() || get_Setting('guest_checkout_activation') == 1) onclick="buyNow()" @else onclick="showLoginModal()" @endif>
                         <i class="la la-shopping-cart"></i> {{ translate('Buy Now') }}
                     </button>
                 @endif
@@ -513,7 +513,7 @@
                     <i class="las la-shopping-bag"></i> {{ translate('Add to cart') }}
                 </button>
                 <button type="button" class="btn btn-primary buy-now fw-600 add-to-cart min-w-150px rounded-0"
-                    @if (Auth::check() || get_Setting('guest_checkout_activation') == 1) onclick="addToCart()" @else onclick="showLoginModal()" @endif>
+                    @if (Auth::check() || get_Setting('guest_checkout_activation') == 1) onclick="buyNow()" @else onclick="showLoginModal()" @endif>
                     <i class="la la-shopping-cart"></i> {{ translate('Buy Now') }}
                 </button>
             @endif
