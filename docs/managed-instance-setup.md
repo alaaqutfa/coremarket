@@ -83,6 +83,9 @@ Clean baseline database strategy is documented separately in
 [docs/clean-baseline-database-strategy.md](/C:/xampp/htdocs/coremarket/docs/clean-baseline-database-strategy.md).
 Use that document when deciding how a new managed instance database is created before this setup flow is applied.
 
+For the full managed client launch checklist after the clean baseline exists, use
+[docs/managed-client-instance-launch.md](/C:/xampp/htdocs/coremarket/docs/managed-client-instance-launch.md).
+
 For a read-only preflight against the current local database, run:
 
 ```bash
