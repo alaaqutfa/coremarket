@@ -59,6 +59,9 @@ Practical options:
 - Avoid as a first move:
   hard-delete catalog data from the current database
 
+For the clean managed-instance database plan, see
+[docs/clean-baseline-database-strategy.md](/C:/xampp/htdocs/coremarket/docs/clean-baseline-database-strategy.md).
+
 ## Storefront Cleanup Scope
 
 The following database-driven surfaces should be cleaned before any public handoff:
