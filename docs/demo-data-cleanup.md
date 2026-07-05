@@ -111,6 +111,9 @@ Guidelines:
 - clearly label accounts as local QA only
 - create them through a dedicated command or manual checklist in a future step
 
+The local QA seeding workflow is documented in
+[docs/qa-store-seed.md](/C:/xampp/htdocs/coremarket/docs/qa-store-seed.md).
+
 ## End-to-End Order QA Prerequisites
 
 A realistic end-to-end order QA pass later should require:

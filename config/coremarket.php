@@ -259,4 +259,42 @@ return [
             'admin/all-file',
         ],
     ],
+
+    'qa_seed' => [
+        'default_password' => env('COREMARKET_QA_PASSWORD', 'qa-coremarket-local'),
+
+        'customer' => [
+            'name' => 'QA CoreMarket Customer',
+            'email' => 'qa.customer.coremarket@example.test',
+            'phone' => '+10000000001',
+        ],
+
+        'store_admin' => [
+            'name' => 'QA CoreMarket Store Admin',
+            'email' => 'qa.storeadmin.coremarket@example.test',
+            'phone' => '+10000000002',
+        ],
+
+        'category' => [
+            'name' => 'QA CoreMarket Category',
+            'slug' => 'qa-coremarket-category',
+        ],
+
+        'product' => [
+            'name' => 'QA CoreMarket Sample Product',
+            'slug' => 'qa-coremarket-sample-product',
+            'unit_price' => 25,
+            'current_stock' => 10,
+            'unit' => 'pc',
+            'description' => 'QA CoreMarket sample product for local end-to-end checkout testing.',
+        ],
+
+        'settings' => [
+            'cash_payment' => '1',
+            'vendor_system_activation' => '0',
+            'wallet_system' => '0',
+            'show_website_popup' => '0',
+            'show_cookies_agreement' => '0',
+        ],
+    ],
 ];

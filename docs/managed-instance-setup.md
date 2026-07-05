@@ -89,6 +89,12 @@ For a read-only preflight against the current local database, run:
 php artisan coremarket:audit-baseline-readiness
 ```
 
+For local-only end-to-end storefront QA data, use:
+
+```bash
+php artisan coremarket:seed-qa-store --dry-run
+```
+
 ## Dry-Run Setup Command
 
 Use the generic setup planner:
