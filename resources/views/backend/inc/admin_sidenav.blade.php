@@ -14,7 +14,7 @@
         $coremarketReportsAdvancedEnabled = coremarket_feature_enabled('reports_advanced');
         $coremarketUploadsManagerEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('uploads_manager');
         $coremarketStaffManagementEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('staff_management');
-        $coremarketAddonRequestsEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('addon_requests');
+        $coremarketAddonRequestsEnabled = coremarket_feature_enabled('addon_requests');
         $coremarketSubscriptionPageEnabled = coremarket_feature_enabled('subscription_page', true);
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
@@ -1993,7 +1993,6 @@
                 @endcanany
 
                 <!-- Addon Manager -->
-                @can('manage_addons')
                 @if ($coremarketAddonRequestsEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="{{route('addons.index')}}"
@@ -2006,11 +2005,10 @@
                                     transform="translate(-1 -1)" fill="#575b6a" />
                             </svg>
                         </div>
-                        <span class="aiz-side-nav-text">{{translate('Addon Manager')}}</span>
+                        <span class="aiz-side-nav-text">{{translate('Addon Requests')}}</span>
                     </a>
                 </li>
                 @endif
-                @endcan
             </ul><!-- .aiz-side-nav -->
         </div><!-- .aiz-side-nav-wrap -->
     </div><!-- .aiz-sidebar -->

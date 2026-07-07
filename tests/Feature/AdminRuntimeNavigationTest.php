@@ -43,6 +43,7 @@ class AdminRuntimeNavigationTest extends TestCase
             $this->assertStringContainsString('Customers', $html);
             $this->assertStringContainsString('Website Setup', $html);
             $this->assertStringContainsString('My Subscription', $html);
+            $this->assertStringContainsString('Addon Requests', $html);
             $this->assertStringNotContainsString('Seller Product', $html);
             $this->assertStringNotContainsString('Seller Orders', $html);
             $this->assertStringNotContainsString('Seller Verification Form', $html);
@@ -86,6 +87,7 @@ class AdminRuntimeNavigationTest extends TestCase
 
             $this->assertStringContainsString('Sellers', $html);
             $this->assertStringContainsString('My Subscription', $html);
+            $this->assertStringContainsString('Addon Requests', $html);
             $this->assertStringContainsString('Setup & Configurations', $html);
             $this->assertStringContainsString('System', $html);
             $this->assertStringContainsString('Uploaded Files', $html);

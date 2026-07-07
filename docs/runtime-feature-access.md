@@ -154,3 +154,25 @@ The page should also remind client users that:
 - CorePilotOS manages subscriptions, pricing, activation, and upgrades
 - CoreMarket only reflects the applied runtime access snapshot
 - upgrade or activation requests should go through support
+
+## Add-on Request Catalog
+
+`/admin/addons` is a request-only catalog in the managed CoreMarket baseline.
+
+It must not behave like a code installer or external vendor marketplace.
+
+Safe behavior:
+
+- list managed add-on capabilities such as sellers, POS, marketing, support, reports, and payment setup
+- show whether a capability is enabled in the current runtime snapshot
+- show whether the current applied plan can include it or requires an upgrade
+- link the user to support or WhatsApp for activation requests
+- link back to `/admin/my-subscription` for plan and limit review
+
+Unsafe legacy behavior that must stay disabled:
+
+- zip upload and code installation
+- direct addon activation toggles
+- external vendor activation callbacks
+- purchase-code driven install flows
+- SQL execution from addon packages
