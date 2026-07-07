@@ -1,6 +1,11 @@
 @extends('backend.layouts.app')
 
 @section('content')
+    @php
+        $coremarketSellersEnabled = coremarket_feature_enabled('sellers')
+            && coremarket_feature_enabled('multi_vendor')
+            && get_setting('vendor_system_activation') == 1;
+    @endphp
     @if (auth()->user()->can('smtp_settings') &&
             env('MAIL_USERNAME') == null &&
             env('MAIL_PASSWORD') == null)
@@ -93,16 +98,18 @@
                                             {{ $total_inhouse_products }}
                                         </h3>
                                     </div>
-                                    <!-- Sellers Products -->
-                                    <div class="d-flex justify-content-between">
-                                        <h3 class="fs-13 fw-600 text-truncate mr-2">
-                                            <span class="badge badge-md badge-dot badge-circle badge-primary mr-2"></span>
-                                            {{ translate('Sellers Products') }}
-                                        </h3>
-                                        <h3 class="fs-13 fw-600 mb-0">
-                                            {{ $total_sellers_products }}
-                                        </h3>
-                                    </div>
+                                    @if ($coremarketSellersEnabled)
+                                        <!-- Sellers Products -->
+                                        <div class="d-flex justify-content-between">
+                                            <h3 class="fs-13 fw-600 text-truncate mr-2">
+                                                <span class="badge badge-md badge-dot badge-circle badge-primary mr-2"></span>
+                                                {{ translate('Sellers Products') }}
+                                            </h3>
+                                            <h3 class="fs-13 fw-600 mb-0">
+                                                {{ $total_sellers_products }}
+                                            </h3>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -217,7 +224,7 @@
             <div class="col-lg-6">
                 <div class="row gutters-16">
                     <!-- Total Sales -->
-                    <div class="col-sm-6">
+                    <div class="{{ $coremarketSellersEnabled ? 'col-sm-6' : 'col-sm-12' }}">
                         <div class="dashboard-box bg-soft-primary mb-2rem overflow-hidden" style="height: 470px;">
                             <div class="d-flex flex-column justify-content-between h-100">
                                 <!-- Total Sales -->
@@ -255,26 +262,28 @@
                                             {{ single_price($admin_sale_this_month->total_sale) }}
                                         </h3>
                                     </div>
-                                    <!-- Sellers Sales -->
-                                    <div class="d-flex justify-content-between">
-                                        <h3 class="fs-13 fw-600 mb-0">
-                                            <span
-                                                class="badge badge-md badge-dot badge-circle badge-success text-truncate mr-2"></span>
-                                            {{ translate('Sellers Sales') }}
-                                        </h3>
-                                        <h3 class="fs-13 fw-600 mb-0">
-                                            {{ single_price($seller_sale_this_month->total_sale) }}
-                                        </h3>
-                                    </div>
+                                    @if ($coremarketSellersEnabled)
+                                        <!-- Sellers Sales -->
+                                        <div class="d-flex justify-content-between">
+                                            <h3 class="fs-13 fw-600 mb-0">
+                                                <span
+                                                    class="badge badge-md badge-dot badge-circle badge-success text-truncate mr-2"></span>
+                                                {{ translate('Sellers Sales') }}
+                                            </h3>
+                                            <h3 class="fs-13 fw-600 mb-0">
+                                                {{ single_price($seller_sale_this_month->total_sale) }}
+                                            </h3>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Total Sellers -->
-                    <div class="col-sm-6">
-                        <div class="dashboard-box bg-white mb-2rem overflow-hidden" style="height: 470px;">
-                            @if (get_setting('vendor_system_activation') == 1)
+                    @if ($coremarketSellersEnabled)
+                        <!-- Total Sellers -->
+                        <div class="col-sm-6">
+                            <div class="dashboard-box bg-white mb-2rem overflow-hidden" style="height: 470px;">
                                 <div class="d-flex flex-column justify-content-between h-100">
                                     <!-- Total Sellers -->
                                     <div>
@@ -331,20 +340,9 @@
                                             class="btn btn-md btn-soft-danger btn-block rounded-2">{{ translate('Pending Sellers') }}</a>
                                     </div>
                                 </div>
-                            @else
-                                <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                                    <div class="h-200px">
-                                        <img src="{{ static_asset('assets/img/multivendor.jpg') }}"
-                                            alt="{{ translate('multivendor') }}" class="h-100 img-fit">
-                                    </div>
-                                    <a href="{{ route('activation.index') }}"
-                                        class="mt-4 fs-13 fw-600 text-info hov-text-primary animate-underline-primary">
-                                        {{ translate('Activate Vendor System') }}
-                                    </a>
-                                </div>
-                            @endif
+                            </div>
                         </div>
-                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -674,7 +672,7 @@
                 </div>
             </div>
 
-            @if (get_setting('vendor_system_activation') == 1)
+            @if ($coremarketSellersEnabled)
                 <!-- Top Seller & Products -->
                 <div class="col-lg-6">
                     <div class="dashboard-box bg-white mb-2rem overflow-hidden p-2rem" style="height: 474px;">

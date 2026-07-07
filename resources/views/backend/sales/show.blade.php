@@ -1,6 +1,9 @@
 @extends('backend.layouts.app')
 
 @section('content')
+    @php
+        $coremarketDeliveryBoyEnabled = coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy');
+    @endphp
 
     <div class="card">
         <div class="card-header">
@@ -18,7 +21,7 @@
                 @if ($order->seller_id == $admin_user_id || get_setting('product_manage_by_admin') == 1)
 
                     <!--Assign Delivery Boy-->
-                    @if (addon_is_activated('delivery_boy'))
+                    @if ($coremarketDeliveryBoyEnabled)
                         <div class="col-md-3 ml-auto">
                             <label for="assign_deliver_boy">{{ translate('Assign Deliver Boy') }}</label>
                             @if (($delivery_status == 'pending' || $delivery_status == 'confirmed' || $delivery_status == 'picked_up') && auth()->user()->can('assign_delivery_boy_for_orders'))

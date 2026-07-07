@@ -1,6 +1,12 @@
 @extends('backend.layouts.app')
 
 @section('content')
+    @php
+        $coremarketSellersEnabled = coremarket_feature_enabled('sellers')
+            && coremarket_feature_enabled('multi_vendor')
+            && get_setting('vendor_system_activation') == 1;
+        $coremarketPosEnabled = coremarket_feature_enabled('pos_enabled') && addon_is_activated('pos_system');
+    @endphp
     <div class="card">
         <form class="" action="" id="sort_orders" method="GET">
             <div class="card-header row gutters-5">
@@ -97,9 +103,11 @@
                             <th>{{ translate('Order Code') }}</th>
                             <th data-breakpoints="md">{{ translate('Num. of Products') }}</th>
                             <th data-breakpoints="md">{{ translate('Customer') }}</th>
-                            <th data-breakpoints="md">{{ translate('Seller') }}</th>
+                            @if ($coremarketSellersEnabled)
+                                <th data-breakpoints="md">{{ translate('Seller') }}</th>
+                            @endif
                             <th data-breakpoints="md">{{ translate('total_order') }}</th>
-                            @if (get_setting('vendor_commission_activation'))
+                            @if ($coremarketSellersEnabled && get_setting('vendor_commission_activation'))
                                 <th data-breakpoints="md">{{ translate('due_to_seller') }}</th>
                                 <th data-breakpoints="md">{{ translate('commission') }}</th>
                             @endif
@@ -119,7 +127,7 @@
                                 $seller_earning = 0;
                                 $admin_commission = 0;
                                 $customer_commission = 0;
-                                if (get_setting('vendor_commission_activation') && $order->commission_calculated) {
+                                if ($coremarketSellersEnabled && get_setting('vendor_commission_activation') && $order->commission_calculated) {
                                     $orderCommissions = \App\Models\CommissionHistory::where(
                                         'order_id',
                                         $order->id,
@@ -152,7 +160,7 @@
                                     @if ($order->viewed == 0)
                                         <span class="badge badge-inline badge-info">{{ translate('New') }}</span>
                                     @endif
-                                    @if (addon_is_activated('pos_system') && $order->order_from == 'pos')
+                                    @if ($coremarketPosEnabled && $order->order_from == 'pos')
                                         <span class="badge badge-inline badge-danger">{{ translate('POS') }}</span>
                                     @endif
                                 </td>
@@ -166,17 +174,19 @@
                                         Guest ({{ $order->guest_id }})
                                     @endif
                                 </td>
-                                <td>
-                                    @if ($order->shop)
-                                        {{ $order->shop->name }}
-                                    @else
-                                        {{ translate('Inhouse Order') }}
-                                    @endif
-                                </td>
+                                @if ($coremarketSellersEnabled)
+                                    <td>
+                                        @if ($order->shop)
+                                            {{ $order->shop->name }}
+                                        @else
+                                            {{ translate('Inhouse Order') }}
+                                        @endif
+                                    </td>
+                                @endif
                                 <td>
                                     {{ single_price($grand_total) }}
                                 </td>
-                                @if (get_setting('vendor_commission_activation'))
+                                @if ($coremarketSellersEnabled && get_setting('vendor_commission_activation'))
                                     @if ($order->commission_calculated)
                                         <td>
                                             {{ single_price($seller_earning) }}
@@ -218,7 +228,7 @@
                                     </td>
                                 @endif
                                 <td class="text-right">
-                                    @if (addon_is_activated('pos_system') && $order->order_from == 'pos')
+                                    @if ($coremarketPosEnabled && $order->order_from == 'pos')
                                         <a class="btn btn-soft-success btn-icon btn-circle btn-sm"
                                             href="{{ route('admin.invoice.thermal_printer', $order->id) }}" target="_blank"
                                             title="{{ translate('Thermal Printer') }}">

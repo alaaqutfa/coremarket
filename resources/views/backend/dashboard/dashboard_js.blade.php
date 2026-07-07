@@ -1,4 +1,7 @@
 <script>
+    var coremarketDashboardSellersEnabled = @json(coremarket_feature_enabled('sellers')
+        && coremarket_feature_enabled('multi_vendor')
+        && get_setting('vendor_system_activation') == 1);
     var spinner =
         '<div class="h-100 d-flex align-items-center justify-content-center">' +
         '<div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div>' +
@@ -7,7 +10,9 @@
     // top_category_products_tab("all");
     inhouse_top_brands("all");
     inhouse_top_categories("all");
-    top_sellers_products_tab('all');
+    if (coremarketDashboardSellersEnabled) {
+        top_sellers_products_tab('all');
+    }
     // top_brands_products_tab('all');
 
     $(".top_category_products_tab").click(function () {
@@ -22,9 +27,11 @@
         inhouse_top_categories($(this).data("target"));
     });
 
-    $(".top_sellers_products_tab").click(function () {
-        top_sellers_products_tab($(this).data("target"));
-    });
+    if (coremarketDashboardSellersEnabled) {
+        $(".top_sellers_products_tab").click(function () {
+            top_sellers_products_tab($(this).data("target"));
+        });
+    }
 
     $(".top_brands_products_tab").click(function () {
         top_brands_products_tab($(this).data("target"));

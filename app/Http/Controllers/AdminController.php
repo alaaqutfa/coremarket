@@ -29,6 +29,7 @@ class AdminController extends Controller
         // CoreComponentRepository::initializeCache();
         /** @var CoreMarketLicenseService $licenseService */
         $licenseService = app(CoreMarketLicenseService::class);
+        $coremarketWalletEnabled = coremarket_feature_enabled('wallet_enabled');
         $root_categories = Category::where('level', 0)->get();
 
         $data['cached_graph_data'] = Cache::remember('cached_graph_data', 86400, function () use ($root_categories) {
@@ -150,7 +151,11 @@ class AdminController extends Controller
             ->where("user_id", '!=', null)
             ->where("seller_id", $admin_id)
             ->groupBy(DB::raw('1'))
-            ->get();
+            ->get()
+            ->filter(function ($row) use ($coremarketWalletEnabled) {
+                return $coremarketWalletEnabled || $row->payment_type !== 'wallet';
+            })
+            ->values();
         $data['inhouse_product_rating'] = Product::where('added_by', 'admin')->where('rating', '!=', 0)->avg('rating');
         $data['total_inhouse_order'] = Order::where("seller_id", $admin_id)->count();
         $productsCount = $licenseService->currentProductCount();
@@ -258,6 +263,8 @@ class AdminController extends Controller
 
     public function top_sellers_products_section(Request $request)
     {
+        abort_unless(coremarket_feature_enabled('sellers') && coremarket_feature_enabled('multi_vendor'), 404);
+
         // $top_sellers_products = DB::table(DB::raw('(SELECT products.id product_id, products.name product_name, products.user_id,
         //                                                 `products`.`thumbnail_img` as `product_thumbnail_img`, od.sales, od.total, shops.name AS shop_name,
         //                                                 `shops`.`logo`,

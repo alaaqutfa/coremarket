@@ -5,6 +5,14 @@
     @php
         // CoreComponentRepository::instantiateShopRepository();
         // CoreComponentRepository::initializeCache();
+        $coremarketSellersEnabled = coremarket_feature_enabled('sellers')
+            && coremarket_feature_enabled('multi_vendor')
+            && get_setting('vendor_system_activation') == 1;
+        $coremarketStoreAdmin = isStoreAdmin();
+        $coremarketLicenseService = app(\App\Services\CoreMarketLicenseService::class);
+        $coremarketProductsCount = $coremarketLicenseService->currentProductCount();
+        $coremarketProductsLimit = (int) $coremarketLicenseService->limit('products_limit', 0);
+        $coremarketShowProductUsage = $coremarketStoreAdmin && $coremarketProductsLimit > 0;
     @endphp
 
     <div class="aiz-titlebar text-left mt-2 mb-3">
@@ -22,6 +30,27 @@
         </div>
     </div>
     <br>
+
+    @if ($coremarketShowProductUsage)
+        @php
+            $coremarketProductLimitReached = $coremarketLicenseService->isProductLimitReached($coremarketProductsCount);
+            $coremarketNearProductLimit = $coremarketLicenseService->isNearProductLimit($coremarketProductsCount);
+            $coremarketProductAlertClass = $coremarketProductLimitReached
+                ? 'alert-danger'
+                : ($coremarketNearProductLimit
+                    ? 'alert-warning'
+                    : 'alert-info');
+        @endphp
+        <div class="alert {{ $coremarketProductAlertClass }}">
+            <strong>{{ translate('Products usage') }}:</strong>
+            {{ $coremarketProductsCount }} / {{ $coremarketProductsLimit }}
+            @if ($coremarketProductLimitReached)
+                <div class="mt-1">{{ $coremarketLicenseService->productLimitMessage() }}</div>
+            @elseif ($coremarketNearProductLimit)
+                <div class="mt-1">{{ translate('You are close to your current plan limit.') }}</div>
+            @endif
+        </div>
+    @endif
 
     <div class="card">
         <form class="" id="sort_products" action="" method="GET">
@@ -42,7 +71,7 @@
                     </div>
                 @endcan
 
-                @if ($type == 'Seller')
+                @if ($type == 'Seller' && $coremarketSellersEnabled)
                     <div class="col-md-2 ml-auto">
                         <select class="form-control form-control-sm aiz-selectpicker mb-2 mb-md-0" id="user_id"
                             name="user_id" onchange="sort_products()">
@@ -55,7 +84,7 @@
                         </select>
                     </div>
                 @endif
-                @if ($type == 'All' && get_setting('vendor_system_activation') == 1)
+                @if ($type == 'All' && $coremarketSellersEnabled)
                     <div class="col-md-2 ml-auto">
                         <select class="form-control form-control-sm aiz-selectpicker mb-2 mb-md-0" id="user_id"
                             name="user_id" onchange="sort_products()">
@@ -119,14 +148,14 @@
         <th data-breakpoints="lg">#</th>
     @endif
     <th>{{ translate('Name') }}</th>
-    @if ($type == 'Seller' || $type == 'All')
+    @if (($type == 'Seller' || $type == 'All') && $coremarketSellersEnabled)
         <th data-breakpoints="lg">{{ translate('Added By') }}</th>
     @endif
     <th data-breakpoints="sm">{{ translate('Info') }}</th>
     <th data-breakpoints="md">{{ translate('Total Stock') }}</th>
     <th data-breakpoints="lg">{{ translate('Todays Deal') }}</th>
     <th data-breakpoints="lg">{{ translate('Published') }}</th>
-    @if (get_setting('product_approve_by_admin') == 1 && $type == 'Seller')
+    @if (get_setting('product_approve_by_admin') == 1 && $type == 'Seller' && $coremarketSellersEnabled)
         <th data-breakpoints="lg">{{ translate('Approved') }}</th>
     @endif
     <th data-breakpoints="lg">{{ translate('Featured') }}</th>
@@ -161,7 +190,7 @@
                 </div>
             </div>
         </td>
-        @if ($type == 'Seller' || $type == 'All')
+        @if (($type == 'Seller' || $type == 'All') && $coremarketSellersEnabled)
             <td>{{ optional($product->user)->name }}</td>
         @endif
         <td>
@@ -214,7 +243,7 @@
                 <span class="slider round"></span>
             </label>
         </td>
-        @if (get_setting('product_approve_by_admin') == 1 && $type == 'Seller')
+        @if (get_setting('product_approve_by_admin') == 1 && $type == 'Seller' && $coremarketSellersEnabled)
             <td>
                 <label class="aiz-switch aiz-switch-success mb-0">
                     <input onchange="update_approved(this)" value="{{ $product->id }}"

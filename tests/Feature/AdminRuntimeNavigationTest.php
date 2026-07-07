@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\BusinessSetting;
 use App\Models\User;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
@@ -116,6 +118,115 @@ class AdminRuntimeNavigationTest extends TestCase
         }
     }
 
+    public function test_dashboard_hides_seller_components_for_starter_single_store_even_when_vendor_setting_exists(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->seedBusinessSetting('vendor_system_activation', 1);
+
+            config()->set('coremarket.runtime.applied_plan_code', 'starter');
+            config()->set('coremarket.runtime.store_mode', 'single_store');
+
+            $user = $this->makeUserWithRoleAndPermissions(
+                'Owner Dashboard QA',
+                'owner.dashboard@example.test',
+                'admin',
+                'Runtime Dashboard Owner',
+                array_merge($this->navigationPermissions(), ['admin_dashboard'])
+            );
+
+            $this->actingAs($user);
+
+            $html = view('backend.dashboard', $this->dashboardViewData())->render();
+
+            $this->assertStringContainsString('Total Products', $html);
+            $this->assertStringNotContainsString('Sellers Products', $html);
+            $this->assertStringNotContainsString('Sellers Sales', $html);
+            $this->assertStringNotContainsString('Total Sellers', $html);
+            $this->assertStringNotContainsString('Top Seller & Products', $html);
+            $this->assertStringNotContainsString('Activate Vendor System', $html);
+        } finally {
+            DB::rollBack();
+            Cache::forget('business_settings');
+        }
+    }
+
+    public function test_product_index_hides_seller_controls_and_shows_usage_card_for_store_admin_in_single_store_mode(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->seedBusinessSetting('vendor_system_activation', 1);
+
+            config()->set('coremarket.runtime.applied_plan_code', 'starter');
+            config()->set('coremarket.runtime.store_mode', 'single_store');
+
+            $user = $this->makeUserWithRoleAndPermissions(
+                'Store Admin Product QA',
+                'storeadmin.products@example.test',
+                'staff',
+                config('coremarket.access.store_admin_role', 'store_admin'),
+                ['add_new_product', 'show_all_products']
+            );
+
+            $this->actingAs($user);
+
+            $html = view('backend.product.products.index', [
+                'type' => 'All',
+                'seller_id' => null,
+                'products' => $this->emptyPaginator(),
+            ])->render();
+
+            $this->assertStringContainsString('Products usage', $html);
+            $this->assertStringNotContainsString('All Sellers', $html);
+            $this->assertStringNotContainsString('Added By', $html);
+        } finally {
+            DB::rollBack();
+            Cache::forget('business_settings');
+        }
+    }
+
+    public function test_orders_index_hides_seller_columns_when_sellers_are_disabled(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->seedBusinessSetting('vendor_system_activation', 1);
+            $this->seedBusinessSetting('vendor_commission_activation', 1);
+
+            config()->set('coremarket.runtime.applied_plan_code', 'starter');
+            config()->set('coremarket.runtime.store_mode', 'single_store');
+
+            $user = $this->makeUserWithRoleAndPermissions(
+                'Owner Orders QA',
+                'owner.orders@example.test',
+                'admin',
+                'Runtime Orders Owner',
+                ['view_order_details']
+            );
+
+            $this->actingAs($user);
+
+            $html = view('backend.sales.index', [
+                'orders' => $this->emptyPaginator(),
+                'delivery_status' => null,
+                'payment_status' => null,
+                'date' => null,
+                'sort_search' => null,
+            ])->render();
+
+            $this->assertStringContainsString('Order Code', $html);
+            $this->assertStringContainsString('Payment method', $html);
+            $this->assertStringNotContainsString('<th data-breakpoints="md">Seller</th>', $html);
+            $this->assertStringNotContainsString('due_to_seller', $html);
+            $this->assertStringNotContainsString('commission', $html);
+        } finally {
+            DB::rollBack();
+            Cache::forget('business_settings');
+        }
+    }
+
     private function makeUserWithRoleAndPermissions(
         string $name,
         string $email,
@@ -213,6 +324,52 @@ class AdminRuntimeNavigationTest extends TestCase
             'view_staff_roles',
             'manage_addons',
             'uploaded_files',
+        ];
+    }
+
+    private function emptyPaginator(): LengthAwarePaginator
+    {
+        return new LengthAwarePaginator(collect(), 0, 15, 1, [
+            'path' => '/',
+        ]);
+    }
+
+    private function dashboardViewData(): array
+    {
+        $emptyCollection = new Collection();
+        $zeroSale = (object) ['total_sale' => 0];
+
+        return [
+            'cached_graph_data' => ['num_of_sale_data' => '', 'qty_data' => ''],
+            'root_categories' => $emptyCollection,
+            'total_customers' => 0,
+            'top_customers' => $emptyCollection,
+            'total_products' => 0,
+            'total_inhouse_products' => 0,
+            'total_sellers_products' => 0,
+            'total_categories' => 0,
+            'top_categories' => $emptyCollection,
+            'total_brands' => 0,
+            'top_brands' => $emptyCollection,
+            'total_sale' => 0,
+            'sale_this_month' => 0,
+            'admin_sale_this_month' => $zeroSale,
+            'seller_sale_this_month' => $zeroSale,
+            'sales_stat' => [],
+            'total_sellers' => 0,
+            'status_wise_sellers' => $emptyCollection,
+            'top_sellers' => $emptyCollection,
+            'total_order' => 0,
+            'total_placed_order' => 0,
+            'total_pending_order' => 0,
+            'total_confirmed_order' => 0,
+            'total_picked_up_order' => 0,
+            'total_shipped_order' => 0,
+            'total_inhouse_sale' => 0,
+            'payment_type_wise_inhouse_sale' => $emptyCollection,
+            'inhouse_product_rating' => 0,
+            'total_inhouse_order' => 0,
+            'coremarket_license_status_card' => ['show' => false],
         ];
     }
 }
