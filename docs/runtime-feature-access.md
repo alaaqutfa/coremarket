@@ -100,6 +100,14 @@ This step does not yet:
 
 The managed instance setup command consumes this matrix to preview and apply runtime plan and store mode values without turning CoreMarket into the commercial plan manager.
 
+## Admin Navigation Gating
+
+Admin navigation should reuse the same runtime feature matrix instead of hardcoded client-specific menu forks.
+
+- Sidebar visibility must follow runtime features such as `sellers`, `pos`, `blog`, `marketing_basic`, `marketing_advanced`, `support_basic`, `support_advanced`, `reports_basic`, `reports_advanced`, `uploads_manager`, `staff_management`, and `addon_requests`.
+- Owner-only areas such as activation, system, unsafe setup pages, and internal configuration surfaces must remain hidden from `store_admin`.
+- Route access must not rely on sidebar hiding alone. Disabled sections should return a safe `404` through the existing CoreMarket feature middleware when the runtime feature is off.
+
 ## Activation Control Center
 
 `/admin/activation` is an internal CoreMarket control overview for owner/admin support users.

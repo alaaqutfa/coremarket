@@ -1,4 +1,22 @@
 <div class="aiz-sidebar-wrap">
+    @php
+        $coremarketStoreAdmin = isStoreAdmin();
+        $coremarketSellersEnabled = coremarket_feature_enabled('sellers')
+            && coremarket_feature_enabled('multi_vendor')
+            && (int) get_setting('vendor_system_activation') === 1;
+        $coremarketPosEnabled = coremarket_feature_enabled('pos_enabled') && addon_is_activated('pos_system');
+        $coremarketBlogEnabled = coremarket_feature_enabled('blog');
+        $coremarketMarketingBasicEnabled = coremarket_feature_enabled('marketing_basic');
+        $coremarketMarketingAdvancedEnabled = coremarket_feature_enabled('marketing_advanced');
+        $coremarketSupportBasicEnabled = coremarket_feature_enabled('support_basic');
+        $coremarketSupportAdvancedEnabled = coremarket_feature_enabled('support_advanced');
+        $coremarketReportsBasicEnabled = coremarket_feature_enabled('reports_basic');
+        $coremarketReportsAdvancedEnabled = coremarket_feature_enabled('reports_advanced');
+        $coremarketUploadsManagerEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('uploads_manager');
+        $coremarketStaffManagementEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('staff_management');
+        $coremarketAddonRequestsEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('addon_requests');
+        $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
+    @endphp
     <div class="aiz-sidebar left c-scrollbar">
         <div class="aiz-side-nav-logo-wrap">
             <a href="{{ route('admin.dashboard') }}" class="d-block text-left">
@@ -45,7 +63,7 @@
                 @endcan
 
                 <!-- POS Addon-->
-                @if (coremarket_feature_enabled('pos_enabled') && addon_is_activated('pos_system') && (auth()->user()->can('pos_manager') ||
+                @if ($coremarketPosEnabled && (auth()->user()->can('pos_manager') ||
                 auth()->user()->can('pos_configuration')))
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
@@ -150,7 +168,7 @@
                             </a>
                         </li>
                         @endcan
-                        @if(get_setting('vendor_system_activation') == 1)
+                        @if($coremarketSellersEnabled)
                         @can('show_seller_products')
                         <li class="aiz-side-nav-item">
                             <a href="javascript:void(0);" class="aiz-side-nav-link">
@@ -359,7 +377,7 @@
                             </a>
                         </li>
                         @endcan
-                        @if (get_setting('vendor_system_activation') == 1)
+                        @if ($coremarketSellersEnabled)
                         @can('view_seller_auction_products')
                         <li class="aiz-side-nav-item">
                             <a href="{{route('auction.seller_products')}}" class="aiz-side-nav-link">
@@ -428,7 +446,7 @@
                             </a>
                         </li>
                         @endcan
-                        @if (get_setting('vendor_system_activation') == 1)
+                        @if ($coremarketSellersEnabled)
                         @can('view_sellers_wholesale_products')
                         <li class="aiz-side-nav-item">
                             <a href="{{route('wholesale_products.seller')}}"
@@ -480,7 +498,7 @@
                             </a>
                         </li>
                         @endcan
-                        @if (get_setting('vendor_system_activation') == 1)
+                        @if ($coremarketSellersEnabled)
                         @can('view_seller_orders')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('seller_orders.index') }}"
@@ -681,7 +699,7 @@
                 @endcanany
 
                 <!-- Sellers -->
-                @if (get_setting('vendor_system_activation') == 1)
+                @if ($coremarketSellersEnabled)
                 @canany(['view_all_seller','seller_payment_history','view_seller_payout_requests','seller_commission_configuration','view_all_seller_packages','seller_verification_form_configuration'])
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
@@ -770,6 +788,7 @@
                 @endif
 
                 {{-- Uploads Files --}}
+                @if ($coremarketUploadsManagerEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="{{ route('uploaded-files.index') }}"
                         class="aiz-side-nav-link {{ areActiveRoutes(['uploaded-files.create'])}}">
@@ -785,10 +804,12 @@
                         <span class="aiz-side-nav-text">{{ translate('Uploaded Files') }}</span>
                     </a>
                 </li>
+                @endif
 
                 <!-- Reports -->
                 @canany(['earning_report',
                 'in_house_product_sale_report','seller_products_sale_report','products_stock_report','product_wishlist_report','user_search_report','commission_history_report','wallet_transaction_report'])
+                @if ($coremarketReportsBasicEnabled || $coremarketReportsAdvancedEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <div class="aiz-side-nav-icon">
@@ -810,6 +831,7 @@
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
+                        @if ($coremarketReportsBasicEnabled)
                         @can('earning_report')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('earning_payout_report.index') }}" class="aiz-side-nav-link">
@@ -825,19 +847,21 @@
                             </a>
                         </li>
                         @endcan
-                        @can('seller_products_sale_report')
-                        <li class="aiz-side-nav-item">
-                            <a href="{{ route('seller_sale_report.index') }}"
-                                class="aiz-side-nav-link {{ areActiveRoutes(['seller_sale_report.index'])}}">
-                                <span class="aiz-side-nav-text">{{ translate('Seller Products Sale') }}</span>
-                            </a>
-                        </li>
-                        @endcan
                         @can('products_stock_report')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('stock_report.index') }}"
                                 class="aiz-side-nav-link {{ areActiveRoutes(['stock_report.index'])}}">
                                 <span class="aiz-side-nav-text">{{ translate('Products Stock') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+                        @endif
+                        @if ($coremarketReportsAdvancedEnabled)
+                        @can('seller_products_sale_report')
+                        <li class="aiz-side-nav-item">
+                            <a href="{{ route('seller_sale_report.index') }}"
+                                class="aiz-side-nav-link {{ areActiveRoutes(['seller_sale_report.index'])}}">
+                                <span class="aiz-side-nav-text">{{ translate('Seller Products Sale') }}</span>
                             </a>
                         </li>
                         @endcan
@@ -871,12 +895,15 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
                     </ul>
                 </li>
+                @endif
                 @endcanany
 
                 <!--Blog System-->
                 @canany(['view_blogs','view_blog_categories'])
+                @if ($coremarketBlogEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <div class="aiz-side-nav-icon">
@@ -908,6 +935,7 @@
                         @endcan
                     </ul>
                 </li>
+                @endif
                 @endcanany
 
                 <!-- marketing -->
@@ -922,6 +950,7 @@
                 'send_bulk_sms',
                 'view_all_subscribers',
                 'view_all_coupons'])
+                @if ($coremarketMarketingBasicEnabled || $coremarketMarketingAdvancedEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <div class="aiz-side-nav-icon">
@@ -944,6 +973,7 @@
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
+                        @if ($coremarketMarketingBasicEnabled)
                         @can('view_all_flash_deals')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('flash_deals.index') }}"
@@ -952,6 +982,8 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
+                        @if ($coremarketMarketingAdvancedEnabled)
                         @can('view_all_dynamic_popups')
                         <li class="aiz-side-nav-item">
                             <a href="{{route('dynamic-popups.index')}}"
@@ -968,6 +1000,8 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
+                        @if ($coremarketMarketingBasicEnabled)
                         @can('send_newsletter')
                         <li class="aiz-side-nav-item">
                             <a href="{{route('newsletters.index')}}" class="aiz-side-nav-link">
@@ -975,6 +1009,8 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
+                        @if ($coremarketMarketingAdvancedEnabled)
                         @canany(['notification_settings','view_all_notification_types','send_custom_notification',
                         'view_custom_notification_history'])
                         <li class="aiz-side-nav-item">
@@ -1016,6 +1052,8 @@
                             </ul>
                         </li>
                         @endcanany
+                        @endif
+                        @if ($coremarketMarketingAdvancedEnabled)
                         @if (addon_is_activated('otp_system') && auth()->user()->can('send_bulk_sms'))
                         <li class="aiz-side-nav-item">
                             <a href="{{route('sms.index')}}" class="aiz-side-nav-link">
@@ -1031,6 +1069,8 @@
                             </a>
                         </li>
                         @endif
+                        @endif
+                        @if ($coremarketMarketingBasicEnabled)
                         @can('view_all_subscribers')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('subscribers.index') }}" class="aiz-side-nav-link">
@@ -1046,12 +1086,15 @@
                             </a>
                         </li>
                         @endif
+                        @endif
                     </ul>
                 </li>
+                @endif
                 @endcanany
 
                 <!-- Support -->
                 @canany(['view_all_support_tickets','view_all_product_conversations','view_all_product_queries'])
+                @if ($coremarketSupportBasicEnabled || $coremarketSupportAdvancedEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <div class="aiz-side-nav-icon">
@@ -1072,6 +1115,7 @@
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
+                        @if ($coremarketSupportBasicEnabled)
                         @can('view_all_support_tickets')
                         @php
                         $support_ticket = DB::table('tickets')
@@ -1104,6 +1148,8 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
+                        @if ($coremarketSupportAdvancedEnabled)
                         @if (get_setting('product_query_activation') == 1)
                         @can('view_all_product_queries')
                         <li class="aiz-side-nav-item">
@@ -1114,8 +1160,10 @@
                         </li>
                         @endcan
                         @endif
+                        @endif
                     </ul>
                 </li>
+                @endif
                 @endcanany
 
                 <!-- Affiliate Addon -->
@@ -1516,6 +1564,7 @@
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
+                        @if ($coremarketOwnerNavigationEnabled)
                         @can('select_homepage')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('website.select-homepage') }}" class="aiz-side-nav-link">
@@ -1523,6 +1572,7 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
                         @can('edit_website_page')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('custom-pages.edit', ['id'=>'home', 'lang'=>env('DEFAULT_LANGUAGE'), 'page'=>'home']) }}"
@@ -1531,6 +1581,7 @@
                             </a>
                         </li>
                         @endcan
+                        @if ($coremarketOwnerNavigationEnabled)
                         @can('authentication_layout_settings')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('website.authentication-layout-settings') }}" class="aiz-side-nav-link">
@@ -1538,6 +1589,7 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
                         @can('header_setup')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('website.header') }}" class="aiz-side-nav-link">
@@ -1561,6 +1613,7 @@
                             </a>
                         </li>
                         @endcan
+                        @if ($coremarketOwnerNavigationEnabled)
                         @can('website_appearance')
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('website.appearance') }}" class="aiz-side-nav-link">
@@ -1568,6 +1621,7 @@
                             </a>
                         </li>
                         @endcan
+                        @endif
                     </ul>
                 </li>
                 @endcanany
@@ -1577,6 +1631,7 @@
                 'pickup_point_setup','smtp_settings','payment_methods_configurations','order_configuration','file_system_&_cache_configuration',
                 'social_media_logins','facebook_chat','facebook_comment','analytics_tools_configuration','google_recaptcha_configuration','google_map_setting',
                 'google_firebase_setting','shipping_configuration','shipping_country_setting','manage_shipping_states','manage_shipping_cities','manage_zones','manage_carriers'])
+                @if ($coremarketOwnerNavigationEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <div class="aiz-side-nav-icon">
@@ -1793,10 +1848,12 @@
                         @endif
                     </ul>
                 </li>
+                @endif
                 @endcanany
 
                 <!-- Staffs -->
                 @canany(['view_all_staffs','view_staff_roles'])
+                @if ($coremarketStaffManagementEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <div class="aiz-side-nav-icon">
@@ -1841,10 +1898,12 @@
                         @endcan
                     </ul>
                 </li>
+                @endif
                 @endcanany
 
                 <!-- System Update & Server Status -->
                 @canany(['system_update','server_status'])
+                @if ($coremarketOwnerNavigationEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <div class="aiz-side-nav-icon">
@@ -1916,10 +1975,12 @@
                         @endcan
                     </ul>
                 </li>
+                @endif
                 @endcanany
 
                 <!-- Addon Manager -->
                 @can('manage_addons')
+                @if ($coremarketAddonRequestsEnabled)
                 <li class="aiz-side-nav-item">
                     <a href="{{route('addons.index')}}"
                         class="aiz-side-nav-link {{ areActiveRoutes(['addons.index', 'addons.create'])}}">
@@ -1934,6 +1995,7 @@
                         <span class="aiz-side-nav-text">{{translate('Addon Manager')}}</span>
                     </a>
                 </li>
+                @endif
                 @endcan
             </ul><!-- .aiz-side-nav -->
         </div><!-- .aiz-side-nav-wrap -->

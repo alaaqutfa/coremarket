@@ -112,12 +112,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     // Products
     Route::controller(ProductController::class)->group(function () {
         Route::get('/products/admin', 'admin_products')->name('products.admin');
-        Route::get('/products/seller/{product_type}', 'seller_products')->name('products.seller');
+        Route::get('/products/seller/{product_type}', 'seller_products')->name('products.seller')->middleware('coremarket_feature:sellers,0');
         Route::get('/products/all', 'all_products')->name('products.all');
         Route::get('/products/create', 'create')->name('products.create');
         Route::post('/products/store/', 'store')->name('products.store')->middleware('coremarket_license:manage_store');
         Route::get('/products/admin/{id}/edit', 'admin_product_edit')->name('products.admin.edit');
-        Route::get('/products/seller/{id}/edit', 'seller_product_edit')->name('products.seller.edit');
+        Route::get('/products/seller/{id}/edit', 'seller_product_edit')->name('products.seller.edit')->middleware('coremarket_feature:sellers,0');
         Route::post('/products/update/{product}', 'update')->name('products.update')->middleware('coremarket_license:manage_store');
         Route::post('/products/todays_deal', 'updateTodaysDeal')->name('products.todays_deal');
         Route::post('/products/featured', 'updateFeatured')->name('products.featured');
@@ -161,8 +161,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     // Seller
-    Route::resource('sellers', SellerController::class);
-    Route::controller(SellerController::class)->group(function () {
+    Route::resource('sellers', SellerController::class)->middleware('coremarket_feature:sellers,0');
+    Route::controller(SellerController::class)->middleware('coremarket_feature:sellers,0')->group(function () {
         Route::get('sellers_ban/{id}', 'ban')->name('sellers.ban');
         Route::get('/sellers/destroy/{id}', 'destroy')->name('sellers.destroy');
         Route::post('/bulk-seller-delete', 'bulk_seller_delete')->name('bulk-seller-delete');
@@ -176,21 +176,21 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     // Seller Payment
-    Route::controller(PaymentController::class)->group(function () {
+    Route::controller(PaymentController::class)->middleware('coremarket_feature:sellers,0')->group(function () {
         Route::get('/seller/payments', 'payment_histories')->name('sellers.payment_histories');
         Route::get('/seller/payments/show/{id}', 'show')->name('sellers.payment_history');
     });
 
     // Seller Requests
-    Route::controller(SellerRequestController::class)->group(function () {
+    Route::controller(SellerRequestController::class)->middleware('coremarket_feature:sellers,0')->group(function () {
         Route::get('/seller/requests', 'index')->name('sellers.requests.index');
         Route::post('/seller/request/approved', 'updateApproval')->name('seller.requests.approved');
         Route::get('/seller/requests/{id}', 'destroy')->name('sellers.request.destroy');
     });
 
     // Seller Withdraw Request
-    Route::resource('/withdraw_requests', SellerWithdrawRequestController::class);
-    Route::controller(SellerWithdrawRequestController::class)->group(function () {
+    Route::resource('/withdraw_requests', SellerWithdrawRequestController::class)->middleware('coremarket_feature:sellers,0');
+    Route::controller(SellerWithdrawRequestController::class)->middleware('coremarket_feature:sellers,0')->group(function () {
         Route::get('/withdraw_requests_all', 'index')->name('withdraw_requests_all');
         Route::post('/withdraw_request/payment_modal', 'payment_modal')->name('withdraw_request.payment_modal');
         Route::post('/withdraw_request/message_modal', 'message_modal')->name('withdraw_request.message_modal');
@@ -315,7 +315,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::controller(WebsiteController::class)->group(function () {
             Route::get('/footer', 'footer')->name('website.footer');
             Route::get('/header', 'header')->name('website.header');
-            Route::get('/appearance', 'appearance')->name('website.appearance');
+            Route::get('/appearance', 'appearance')->name('website.appearance')->middleware('coremarket_feature:website_appearance,1');
             Route::get('/select-homepage', 'select_homepage')->name('website.select-homepage');
             Route::get('/authentication-layout-settings', 'authentication_layout_settings')->name('website.authentication-layout-settings');
             Route::get('/pages', 'pages')->name('website.pages');
@@ -330,8 +330,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     // Staff Roles
-    Route::resource('roles', RoleController::class);
-    Route::controller(RoleController::class)->group(function () {
+    Route::resource('roles', RoleController::class)->middleware('coremarket_feature:staff_management,1');
+    Route::controller(RoleController::class)->middleware('coremarket_feature:staff_management,1')->group(function () {
         Route::get('/roles/edit/{id}', 'edit')->name('roles.edit');
         Route::get('/roles/destroy/{id}', 'destroy')->name('roles.destroy');
 
@@ -340,12 +340,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     // Staff
-    Route::resource('staffs', StaffController::class);
-    Route::get('/staffs/destroy/{id}', [StaffController::class, 'destroy'])->name('staffs.destroy');
+    Route::resource('staffs', StaffController::class)->middleware('coremarket_feature:staff_management,1');
+    Route::get('/staffs/destroy/{id}', [StaffController::class, 'destroy'])->name('staffs.destroy')->middleware('coremarket_feature:staff_management,1');
 
     // Flash Deal
-    Route::resource('flash_deals', FlashDealController::class);
-    Route::controller(FlashDealController::class)->group(function () {
+    Route::resource('flash_deals', FlashDealController::class)->middleware('coremarket_feature:marketing_basic,0');
+    Route::controller(FlashDealController::class)->middleware('coremarket_feature:marketing_basic,0')->group(function () {
         Route::get('/flash_deals/edit/{id}', 'edit')->name('flash_deals.edit');
         Route::get('/flash_deals/destroy/{id}', 'destroy')->name('flash_deals.destroy');
         Route::post('/flash_deals/update_status', 'update_status')->name('flash_deals.update_status');
@@ -355,7 +355,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     //Subscribers
-    Route::controller(SubscriberController::class)->group(function () {
+    Route::controller(SubscriberController::class)->middleware('coremarket_feature:marketing_basic,0')->group(function () {
         Route::get('/subscribers', 'index')->name('subscribers.index');
         Route::get('/subscribers/destroy/{id}', 'destroy')->name('subscriber.destroy');
     });
@@ -366,12 +366,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         // All Orders
         Route::get('/all_orders', 'all_orders')->name('all_orders.index');
         Route::get('/inhouse-orders', 'all_orders')->name('inhouse_orders.index');
-        Route::get('/seller_orders', 'all_orders')->name('seller_orders.index');
+        Route::get('/seller_orders', 'all_orders')->name('seller_orders.index')->middleware('coremarket_feature:sellers,0');
         Route::get('orders_by_pickup_point', 'all_orders')->name('pick_up_point.index');
 
         Route::get('/orders/{id}/show', 'show')->name('all_orders.show');
         Route::get('/inhouse-orders/{id}/show', 'show')->name('inhouse_orders.show');
-        Route::get('/seller_orders/{id}/show', 'show')->name('seller_orders.show');
+        Route::get('/seller_orders/{id}/show', 'show')->name('seller_orders.show')->middleware('coremarket_feature:sellers,0');
         Route::get('/orders_by_pickup_point/{id}/show', 'show')->name('pick_up_point.order_show');
 
         Route::post('/bulk-order-status', 'bulk_order_status')->name('bulk-order-status');
@@ -397,38 +397,38 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     //Reports
     Route::controller(ReportController::class)->group(function () {
         Route::get('/in_house_sale_report', 'in_house_sale_report')->name('in_house_sale_report.index');
-        Route::get('/seller_sale_report', 'seller_sale_report')->name('seller_sale_report.index');
+        Route::get('/seller_sale_report', 'seller_sale_report')->name('seller_sale_report.index')->middleware('coremarket_feature:reports_advanced,0');
         Route::get('/stock_report', 'stock_report')->name('stock_report.index');
-        Route::get('/wish_report', 'wish_report')->name('wish_report.index');
-        Route::get('/user_search_report', 'user_search_report')->name('user_search_report.index');
-        Route::get('/commission-log', 'commission_history')->name('commission-log.index');
-        Route::get('/wallet-history', 'wallet_transaction_history')->name('wallet-history.index');
+        Route::get('/wish_report', 'wish_report')->name('wish_report.index')->middleware('coremarket_feature:reports_advanced,0');
+        Route::get('/user_search_report', 'user_search_report')->name('user_search_report.index')->middleware('coremarket_feature:reports_advanced,0');
+        Route::get('/commission-log', 'commission_history')->name('commission-log.index')->middleware('coremarket_feature:reports_advanced,0');
+        Route::get('/wallet-history', 'wallet_transaction_history')->name('wallet-history.index')->middleware('coremarket_feature:reports_advanced,0');
     });
 
     // Earning Report
     Route::group(['prefix' => 'reports'], function () {
-        Route::get('/earning-payout-report', [EarningReportController::class, 'index'])->name('earning_payout_report.index');
-        Route::post('/earning-payout-report/net-sales', [EarningReportController::class, 'net_sales']);
-        Route::post('/earning-payout-report/payouts', [EarningReportController::class, 'payouts']);
-        Route::post('/earning-payout-report/sale-analytic', [EarningReportController::class, 'sale_analytic']);
-        Route::post('/earning-payout-report/payout-analytic', [EarningReportController::class, 'payout_analytic']);
+        Route::get('/earning-payout-report', [EarningReportController::class, 'index'])->name('earning_payout_report.index')->middleware('coremarket_feature:reports_basic,0');
+        Route::post('/earning-payout-report/net-sales', [EarningReportController::class, 'net_sales'])->middleware('coremarket_feature:reports_basic,0');
+        Route::post('/earning-payout-report/payouts', [EarningReportController::class, 'payouts'])->middleware('coremarket_feature:reports_basic,0');
+        Route::post('/earning-payout-report/sale-analytic', [EarningReportController::class, 'sale_analytic'])->middleware('coremarket_feature:reports_basic,0');
+        Route::post('/earning-payout-report/payout-analytic', [EarningReportController::class, 'payout_analytic'])->middleware('coremarket_feature:reports_basic,0');
     });
 
     //Blog Section
     //Blog cateory
-    Route::resource('blog-category', BlogCategoryController::class);
-    Route::get('/blog-category/destroy/{id}', [BlogCategoryController::class, 'destroy'])->name('blog-category.destroy');
+    Route::resource('blog-category', BlogCategoryController::class)->middleware('coremarket_feature:blog,0');
+    Route::get('/blog-category/destroy/{id}', [BlogCategoryController::class, 'destroy'])->name('blog-category.destroy')->middleware('coremarket_feature:blog,0');
 
     // Blog
-    Route::resource('blog', BlogController::class);
-    Route::controller(BlogController::class)->group(function () {
+    Route::resource('blog', BlogController::class)->middleware('coremarket_feature:blog,0');
+    Route::controller(BlogController::class)->middleware('coremarket_feature:blog,0')->group(function () {
         Route::get('/blog/destroy/{id}', 'destroy')->name('blog.destroy');
         Route::post('/blog/change-status', 'change_status')->name('blog.change-status');
     });
 
     //Coupons
-    Route::resource('coupon', CouponController::class);
-    Route::controller(CouponController::class)->group(function () {
+    Route::resource('coupon', CouponController::class)->middleware('coremarket_feature:marketing_basic,0');
+    Route::controller(CouponController::class)->middleware('coremarket_feature:marketing_basic,0')->group(function () {
         Route::post('/coupon/update-status', 'updateStatus')->name('coupon.update_status');
         Route::get('/coupon/destroy/{id}', 'destroy')->name('coupon.destroy');
 
@@ -444,7 +444,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     //Support_Ticket
-    Route::controller(SupportTicketController::class)->group(function () {
+    Route::controller(SupportTicketController::class)->middleware('coremarket_feature:support_basic,0')->group(function () {
         Route::get('support_ticket/', 'admin_index')->name('support_ticket.admin_index');
         Route::get('support_ticket/{id}/show', 'admin_show')->name('support_ticket.admin_show');
         Route::post('support_ticket/reply', 'admin_store')->name('support_ticket.admin_store');
@@ -458,13 +458,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     });
 
     //conversation of seller customer
-    Route::controller(ConversationController::class)->group(function () {
+    Route::controller(ConversationController::class)->middleware('coremarket_feature:support_basic,0')->group(function () {
         Route::get('conversations', 'admin_index')->name('conversations.admin_index');
         Route::get('conversations/{id}/show', 'admin_show')->name('conversations.admin_show');
     });
 
     // product Queries show on Admin panel
-    Route::controller(ProductQueryController::class)->group(function () {
+    Route::controller(ProductQueryController::class)->middleware('coremarket_feature:support_advanced,0')->group(function () {
         Route::get('/product-queries', 'index')->name('product_query.index');
         Route::get('/product-queries/{id}', 'show')->name('product_query.show');
         Route::put('/product-queries/{id}', 'reply')->name('product_query.reply');
@@ -500,8 +500,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     Route::get('/measurement-points/destroy/{id}',  [MeasurementPointsController::class, 'destroy'])->name('measurement-points.destroy');
 
     // Addon
-    Route::resource('addons', AddonController::class);
-    Route::post('/addons/activation', [AddonController::class, 'activation'])->name('addons.activation');
+    Route::resource('addons', AddonController::class)->middleware('coremarket_feature:addon_requests,1');
+    Route::post('/addons/activation', [AddonController::class, 'activation'])->name('addons.activation')->middleware('coremarket_feature:addon_requests,1');
 
     //Customer Package
     Route::resource('customer_packages', CustomerPackageController::class);
@@ -557,8 +557,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     Route::post('/import-data', [BusinessSettingsController::class, 'import_data'])->name('import_data');
 
     // uploaded files
-    Route::resource('/uploaded-files', AizUploadController::class);
-    Route::controller(AizUploadController::class)->group(function () {
+    Route::resource('/uploaded-files', AizUploadController::class)->middleware('coremarket_feature:uploads_manager,1');
+    Route::controller(AizUploadController::class)->middleware('coremarket_feature:uploads_manager,1')->group(function () {
         Route::any('/uploaded-files/file-info', 'file_info')->name('uploaded-files.info');
         Route::get('/uploaded-files/destroy/{id}', 'destroy')->name('uploaded-files.destroy');
         Route::post('/bulk-uploaded-files-delete', 'bulk_uploaded_files_delete')->name('bulk-uploaded-files-delete');
@@ -567,23 +567,23 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
 
     Route::controller(NotificationController::class)->group(function () {
         Route::get('/all-notifications', 'adminIndex')->name('admin.all-notifications');
-        Route::get('/notification-settings', 'notificationSettings')->name('notification.settings');
+        Route::get('/notification-settings', 'notificationSettings')->name('notification.settings')->middleware('coremarket_feature:marketing_advanced,0');
 
         Route::post('/notifications/bulk-delete', 'bulkDeleteAdmin')->name('admin.notifications.bulk_delete');
         Route::get('/notification/read-and-redirect/{id}', 'readAndRedirect')->name('admin.notification.read-and-redirect');
 
-        Route::get('/custom-notification', 'customNotification')->name('custom_notification');
-        Route::post('/custom-notification/send', 'sendCustomNotification')->name('custom_notification.send');
+        Route::get('/custom-notification', 'customNotification')->name('custom_notification')->middleware('coremarket_feature:marketing_advanced,0');
+        Route::post('/custom-notification/send', 'sendCustomNotification')->name('custom_notification.send')->middleware('coremarket_feature:marketing_advanced,0');
 
-        Route::get('/custom-notification/history', 'customNotificationHistory')->name('custom_notification.history');
-        Route::get('/custom-notifications.delete/{identifier}', 'customNotificationSingleDelete')->name('custom-notifications.delete');
-        Route::post('/custom-notifications.bulk_delete', 'customNotificationBulkDelete')->name('custom-notifications.bulk_delete');
-        Route::post('/custom-notified-customers-list', 'customNotifiedCustomersList')->name('custom_notified_customers_list');
+        Route::get('/custom-notification/history', 'customNotificationHistory')->name('custom_notification.history')->middleware('coremarket_feature:marketing_advanced,0');
+        Route::get('/custom-notifications.delete/{identifier}', 'customNotificationSingleDelete')->name('custom-notifications.delete')->middleware('coremarket_feature:marketing_advanced,0');
+        Route::post('/custom-notifications.bulk_delete', 'customNotificationBulkDelete')->name('custom-notifications.bulk_delete')->middleware('coremarket_feature:marketing_advanced,0');
+        Route::post('/custom-notified-customers-list', 'customNotifiedCustomersList')->name('custom_notified_customers_list')->middleware('coremarket_feature:marketing_advanced,0');
 
     });
 
-    Route::resource('notification-type', NotificationTypeController::class);
-    Route::controller(NotificationTypeController::class)->group(function () {
+    Route::resource('notification-type', NotificationTypeController::class)->middleware('coremarket_feature:marketing_advanced,0');
+    Route::controller(NotificationTypeController::class)->middleware('coremarket_feature:marketing_advanced,0')->group(function () {
         Route::get('/notification-type/edit/{id}', 'edit')->name('notification-type.edit');
         Route::post('/notification-type/update-status', 'updateStatus')->name('notification-type.update-status');
         Route::get('/notification-type/destroy/{id}', 'destroy')->name('notification-type.destroy');

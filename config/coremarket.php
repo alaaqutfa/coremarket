@@ -493,6 +493,9 @@ return [
             'poin-of-sales.*',
             'pos.*',
             'admin.invoice.thermal_printer',
+            'website.select-homepage',
+            'website.authentication-layout-settings',
+            'website.appearance',
         ],
 
         'store_admin_blocked_route_uris' => [
