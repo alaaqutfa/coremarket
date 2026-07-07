@@ -1,6 +1,31 @@
 @extends('backend.layouts.app')
 
 @section('content')
+    @php
+        $coremarketReportsContext = $coremarket_reports_context ?? [];
+        $coremarketSellersEnabled = (bool) ($coremarketReportsContext['sellers_enabled'] ?? false);
+        $coremarketDeliveryEnabled = (bool) ($coremarketReportsContext['delivery_enabled'] ?? false);
+        $coremarketNetSalesSeries = [
+            ['label' => translate('Product Sales'), 'color' => '#1D82FA', 'key' => 'product_sale'],
+        ];
+        if ($coremarketSellersEnabled) {
+            $coremarketNetSalesSeries[] = ['label' => translate('Commission'), 'color' => '#FE884D', 'key' => 'commission'];
+            $coremarketNetSalesSeries[] = ['label' => translate('Seller Subscription'), 'color' => '#8F60EE', 'key' => 'seller_subscription'];
+        }
+        $coremarketNetSalesSeries[] = ['label' => translate('Customer Subscription'), 'color' => '#51CC8A', 'key' => 'customer_subscription'];
+        if ($coremarketDeliveryEnabled) {
+            $coremarketNetSalesSeries[] = ['label' => translate('Delivery'), 'color' => '#FFC700', 'key' => 'delivery'];
+        }
+
+        $coremarketPayoutSeries = [];
+        if ($coremarketSellersEnabled) {
+            $coremarketPayoutSeries[] = ['label' => translate('Seller Payout'), 'color' => '#51CC8A', 'key' => 'seller_payout'];
+        }
+        $coremarketPayoutSeries[] = ['label' => translate('Product Refund'), 'color' => '#f0416c', 'key' => 'product_refund'];
+        if ($coremarketDeliveryEnabled) {
+            $coremarketPayoutSeries[] = ['label' => translate('Delivery Boy'), 'color' => '#FFC700', 'key' => 'delivery_boy_payout'];
+        }
+    @endphp
     <div class="aiz-titlebar text-left mt-2 mb-3">
         <div class=" align-items-center">
             <h1 class="h3">{{ translate('Earning Report') }}</h1>
@@ -392,6 +417,9 @@
 
 @section('script')
     <script type="text/javascript">
+        var coremarketNetSalesSeries = @json($coremarketNetSalesSeries);
+        var coremarketPayoutSeries = @json($coremarketPayoutSeries);
+
         net_sales($(".net_sales_tab").data('target'));
         payouts($(".payouts_tab").data('target'));
         sales_analytics($(".sales_analytics_tab").data('target'));
@@ -495,11 +523,7 @@
             type: 'bar',
             data: {
                 labels: [
-                    "{{ translate('Product Sales') }}",
-                    "{{ translate('Commission') }}",
-                    "{{ translate('Seller Subscription') }}",
-                    "{{ translate('Customer Subscription') }}",
-                    "{{ translate('Delivery') }}"
+                    ...coremarketNetSalesSeries.map(function(item) { return item.label; })
                 ],
                 datasets: [{
                     axis: 'y',
@@ -510,18 +534,10 @@
                     borderSkipped: false,
                     barThickness: 30,
                     backgroundColor: [
-                        '#1D82FA',
-                        '#FE884D',
-                        '#8F60EE',
-                        '#51CC8A',
-                        '#FFC700',
+                        ...coremarketNetSalesSeries.map(function(item) { return item.color; })
                     ],
                     borderColor: [
-                        '#1D82FA',
-                        '#FE884D',
-                        '#8F60EE',
-                        '#51CC8A',
-                        '#FFC700',
+                        ...coremarketNetSalesSeries.map(function(item) { return item.color; })
                     ],
                     borderWidth: 1
                 }]
@@ -575,11 +591,9 @@
                     interval_type: interval_type,
                 },
                 success: function(data) {
-                    net_sales_chart.data.datasets[0].data[0] = data.product_sale;
-                    net_sales_chart.data.datasets[0].data[1] = data.commission;
-                    net_sales_chart.data.datasets[0].data[2] = data.seller_subscription;
-                    net_sales_chart.data.datasets[0].data[3] = data.customer_subscription;
-                    net_sales_chart.data.datasets[0].data[4] = data.delivery;
+                    net_sales_chart.data.datasets[0].data = coremarketNetSalesSeries.map(function(item) {
+                        return data[item.key] ?? 0;
+                    });
     
                     net_sales_chart.update();
                 },
@@ -590,19 +604,15 @@
         payouts_chart = new Chart(payouts_graph, {
             type: 'bar',
             data: {
-                labels: ["{{ translate('Seller Payout') }}", "{{ translate('Product Refund') }}", "{{ translate('Delivery Boy') }}"],
+                labels: [...coremarketPayoutSeries.map(function(item) { return item.label; })],
                 datasets: [{
                     axis: 'y',
                     data: [],
                     backgroundColor: [
-                        '#51CC8A',
-                        '#f0416c',
-                        '#FFC700'
+                        ...coremarketPayoutSeries.map(function(item) { return item.color; })
                     ],
                     borderColor: [
-                        '#51CC8A',
-                        '#f0416c',
-                        '#FFC700'
+                        ...coremarketPayoutSeries.map(function(item) { return item.color; })
                     ],
                     borderWidth: 1,
                     borderSkipped: false,
@@ -659,9 +669,9 @@
                     interval_type: interval_type,
                 },
                 success: function(data) {
-                    payouts_chart.data.datasets[0].data[0] = data.seller_payout;
-                    payouts_chart.data.datasets[0].data[1] = data.product_refund;
-                    payouts_chart.data.datasets[0].data[2] = data.delivery_boy_payout;
+                    payouts_chart.data.datasets[0].data = coremarketPayoutSeries.map(function(item) {
+                        return data[item.key] ?? 0;
+                    });
     
                     payouts_chart.update();
                 },

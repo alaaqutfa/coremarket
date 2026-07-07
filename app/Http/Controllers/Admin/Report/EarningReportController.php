@@ -26,6 +26,9 @@ class EarningReportController extends Controller
 
     public function index()
     {
+        $sellersEnabled = $this->sellersEnabled();
+        $deliveryEnabled = $this->deliveryEnabled();
+
         // sale data
         $product_sales = Order::where('delivery_status', 'delivered')->groupBy('time')
                         ->select(DB::raw('SUM(grand_total) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
@@ -36,7 +39,7 @@ class EarningReportController extends Controller
 
         $seller_subscriptions = array();
         $total_seller_subscriptions_earning = 0;
-        if (addon_is_activated('seller_subscription')) {
+        if ($sellersEnabled && addon_is_activated('seller_subscription')) {
             $seller_subscriptions = SellerPackagePayment::groupBy('time')
                                     ->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
                                     ->whereYear('created_at', Carbon::now()->year)
@@ -55,12 +58,16 @@ class EarningReportController extends Controller
         $total_customer_subscriptions_earning = CustomerPackagePayment::where('approval', 1)->sum('amount');
 
         // Payouts data
-        $seller_payments = Payment::groupBy('time')->where('payment_method','!=','Seller paid to admin')
-                        ->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
-                        ->whereYear('created_at', Carbon::now()->year)
-                        ->orderBy(DB::raw('MONTH(created_at)'), 'asc')
-                        ->get();
-        $total_seller_payment_amount = Payment::where('payment_method','!=','Seller paid to admin')->sum('amount');
+        $seller_payments = collect();
+        $total_seller_payment_amount = 0;
+        if ($sellersEnabled) {
+            $seller_payments = Payment::groupBy('time')->where('payment_method','!=','Seller paid to admin')
+                            ->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
+                            ->whereYear('created_at', Carbon::now()->year)
+                            ->orderBy(DB::raw('MONTH(created_at)'), 'asc')
+                            ->get();
+            $total_seller_payment_amount = Payment::where('payment_method','!=','Seller paid to admin')->sum('amount');
+        }
 
         $refunds = array();
         $total_refund_amount = 0;
@@ -76,7 +83,7 @@ class EarningReportController extends Controller
 
         $delivery_boy_payments = array();
         $total_delivery_boy_payment_amount = 0;
-        if (addon_is_activated('delivery_boy')) {
+        if ($deliveryEnabled) {
             $delivery_boy_payments = DeliveryBoyPayment::groupBy('time')
                                     ->select(DB::raw('SUM(payment) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
                                     ->whereYear('created_at', Carbon::now()->year)
@@ -132,6 +139,7 @@ class EarningReportController extends Controller
         }
         $data['sales_stat'] = $sale_data;
         $data['payout_stat'] = $payout_data;
+        $data['coremarket_reports_context'] = $this->reportContext();
 
         // Total sale Alltime and This month Sales
         $sales_this_month = 0;
@@ -189,29 +197,37 @@ class EarningReportController extends Controller
     public function net_sales(Request $request)
     {
         $intervalType = $request->interval_type;
+        $sellersEnabled = $this->sellersEnabled();
+        $deliveryEnabled = $this->deliveryEnabled();
         // Commission
-        $commission_query = CommissionHistory::query();
-        if ($intervalType == 'DAY') {
-            $commission_query->whereDate('created_at', Carbon::today());
+        $data['commission'] = 0;
+        if ($sellersEnabled) {
+            $commission_query = CommissionHistory::query();
+            if ($intervalType == 'DAY') {
+                $commission_query->whereDate('created_at', Carbon::today());
+            }
+            elseif($intervalType == 'WEEK' || $intervalType == 'MONTH') {
+                $day = $intervalType == 'WEEK' ? 7 : 30;
+                $commission_query->whereDate('created_at', '>', Carbon::now()->subDays($day));
+            }
+            $commission_query = $commission_query->select(DB::raw('SUM(admin_commission) as total_commission'))->first();
+            $data['commission'] = $commission_query->total_commission;
         }
-        elseif($intervalType == 'WEEK' || $intervalType == 'MONTH') {
-            $day = $intervalType == 'WEEK' ? 7 : 30;
-            $commission_query->whereDate('created_at', '>', Carbon::now()->subDays($day));
-        }
-        $commission_query = $commission_query->select(DB::raw('SUM(admin_commission) as total_commission'))->first();
-        $data['commission'] = $commission_query->total_commission;
 
         // Earning from delivery
-        $delivery_cost_query = OrderDetail::query();
-        $delivery_cost_query->select(DB::raw('SUM(shipping_cost) as total'))->where('delivery_status', 'delivered');
-        if ($intervalType == 'DAY') {
-            $delivery_cost_query->whereDate('created_at', Carbon::today());
+        $data['delivery'] = 0;
+        if ($deliveryEnabled) {
+            $delivery_cost_query = OrderDetail::query();
+            $delivery_cost_query->select(DB::raw('SUM(shipping_cost) as total'))->where('delivery_status', 'delivered');
+            if ($intervalType == 'DAY') {
+                $delivery_cost_query->whereDate('created_at', Carbon::today());
+            }
+            elseif($intervalType == 'WEEK' || $intervalType == 'MONTH') {
+                $day = $intervalType == 'WEEK' ? 7 : 30;
+                $delivery_cost_query->whereDate('created_at', '>', Carbon::now()->subDays($day));
+            }
+            $data['delivery'] = $delivery_cost_query->first()->total;
         }
-        elseif($intervalType == 'WEEK' || $intervalType == 'MONTH') {
-            $day = $intervalType == 'WEEK' ? 7 : 30;
-            $delivery_cost_query->whereDate('created_at', '>', Carbon::now()->subDays($day));
-        }
-        $data['delivery'] = $delivery_cost_query->first()->total;
 
         // Product Sales
         $product_sale_query = Order::query();
@@ -228,7 +244,7 @@ class EarningReportController extends Controller
 
         // Seller Subscription
         $data['seller_subscription'] = 0.00;
-        if (addon_is_activated('seller_subscription')) {
+        if ($sellersEnabled && addon_is_activated('seller_subscription')) {
             $seller_subscription = SellerPackagePayment::query();
             if ($intervalType == 'DAY') {
                 $seller_subscription->whereDate('created_at', Carbon::today());
@@ -260,17 +276,22 @@ class EarningReportController extends Controller
     public function payouts(Request $request)
     {
         $intervalType = $request->interval_type;
+        $sellersEnabled = $this->sellersEnabled();
+        $deliveryEnabled = $this->deliveryEnabled();
         // Seller payout
-        $seller_payout = Payment::where('payment_method','!=','Seller paid to admin');
-        if ($intervalType == 'DAY') {
-            $seller_payout->whereDate('created_at', Carbon::today());
+        $data['seller_payout'] = 0;
+        if ($sellersEnabled) {
+            $seller_payout = Payment::where('payment_method','!=','Seller paid to admin');
+            if ($intervalType == 'DAY') {
+                $seller_payout->whereDate('created_at', Carbon::today());
+            }
+            elseif($intervalType == 'WEEK' || $intervalType == 'MONTH') {
+                $day = $intervalType == 'WEEK' ? 7 : 30;
+                $seller_payout->whereDate('created_at', '>', Carbon::now()->subDays($day));
+            }
+            $seller_payout->select(DB::raw('SUM(amount) as total_payout'));
+            $data['seller_payout'] = $seller_payout->first()->total_payout;
         }
-        elseif($intervalType == 'WEEK' || $intervalType == 'MONTH') {
-            $day = $intervalType == 'WEEK' ? 7 : 30;
-            $seller_payout->whereDate('created_at', '>', Carbon::now()->subDays($day));
-        }
-        $seller_payout->select(DB::raw('SUM(amount) as total_payout'));
-        $data['seller_payout'] = $seller_payout->first()->total_payout;
 
         // Refund Amount
         $refund_amount = 0;
@@ -290,7 +311,7 @@ class EarningReportController extends Controller
 
         // Delivery Boy payout
         $delivery_boy_payout = 0;
-        if (addon_is_activated('delivery_boy')) {
+        if ($deliveryEnabled) {
 
             $delivery_boy_payout = DeliveryBoyPayment::query();
             if ($intervalType == 'DAY') {
@@ -312,6 +333,7 @@ class EarningReportController extends Controller
     function sale_analytic(Request $request)
     {
         $intervalType = $request->interval_type;
+        $sellersEnabled = $this->sellersEnabled();
         // product Sale Analytics
         $order_query = Order::where('delivery_status', 'delivered')->groupBy('time')->whereYear('created_at', Carbon::now()->year);
         if($intervalType == 'MONTH'){
@@ -326,7 +348,7 @@ class EarningReportController extends Controller
 
         // Earning from Seller Subscription
         $seller_subscriptions = array();
-        if (addon_is_activated('seller_subscription')) {
+        if ($sellersEnabled && addon_is_activated('seller_subscription')) {
             $seller_subscriptions_query = SellerPackagePayment::groupBy('time')->where('approval', 1)->whereYear('created_at', Carbon::now()->year);
             if($intervalType == 'MONTH'){
                 $seller_subscriptions_query->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'));
@@ -427,18 +449,23 @@ class EarningReportController extends Controller
     function payout_analytic(Request $request)
     {
         $intervalType = $request->interval_type;
+        $sellersEnabled = $this->sellersEnabled();
+        $deliveryEnabled = $this->deliveryEnabled();
         // Seller payments
-        $seller_payment_query = Payment::groupBy('time')->where('payment_method','!=','Seller paid to admin')->whereYear('created_at', Carbon::now()->year);
-        if($intervalType == 'MONTH'){
-            $seller_payment_query->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
-                        ->orderBy(DB::raw('MONTH(created_at)'), 'asc');
+        $seller_payments = collect();
+        if ($sellersEnabled) {
+            $seller_payment_query = Payment::groupBy('time')->where('payment_method','!=','Seller paid to admin')->whereYear('created_at', Carbon::now()->year);
+            if($intervalType == 'MONTH'){
+                $seller_payment_query->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
+                            ->orderBy(DB::raw('MONTH(created_at)'), 'asc');
+            }
+            else {
+                $seller_payment_query->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%d") AS time'))
+                    ->whereMonth('created_at', Carbon::now()->month)
+                    ->orderBy(DB::raw('Date(created_at)'), 'asc');
+            }
+            $seller_payments = $seller_payment_query->get();
         }
-        else {
-            $seller_payment_query->select(DB::raw('SUM(amount) as total'), DB::raw('DATE_FORMAT(created_at, "%d") AS time'))
-                ->whereMonth('created_at', Carbon::now()->month)
-                ->orderBy(DB::raw('Date(created_at)'), 'asc');
-        }
-        $seller_payments = $seller_payment_query->get();
 
         // Refunds
         $refunds = array();
@@ -458,7 +485,7 @@ class EarningReportController extends Controller
 
         // Delivery Boy Payments
         $delivery_boy_payments = array();
-        if (addon_is_activated('delivery_boy')) {
+        if ($deliveryEnabled) {
             $delivery_boy_payment_query = DeliveryBoyPayment::groupBy('time')->whereYear('created_at', Carbon::now()->year);
             if($intervalType == 'MONTH'){
                 $delivery_boy_payment_query->select(DB::raw('SUM(payment) as total'), DB::raw('DATE_FORMAT(created_at, "%M") AS time'))
@@ -557,5 +584,29 @@ class EarningReportController extends Controller
                 $sellerPackagePayment->save();
             }
         }
+    }
+
+    protected function sellersEnabled(): bool
+    {
+        return coremarket_feature_enabled('sellers')
+            && coremarket_feature_enabled('multi_vendor')
+            && get_setting('vendor_system_activation') == 1;
+    }
+
+    protected function deliveryEnabled(): bool
+    {
+        return coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy');
+    }
+
+    protected function reportContext(): array
+    {
+        return [
+            'sellers_enabled' => $this->sellersEnabled(),
+            'delivery_enabled' => $this->deliveryEnabled(),
+            'wallet_enabled' => coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1,
+            'pos_enabled' => coremarket_feature_enabled('pos_enabled') && addon_is_activated('pos_system'),
+            'reports_basic_enabled' => coremarket_feature_enabled('reports_basic'),
+            'reports_advanced_enabled' => coremarket_feature_enabled('reports_advanced'),
+        ];
     }
 }

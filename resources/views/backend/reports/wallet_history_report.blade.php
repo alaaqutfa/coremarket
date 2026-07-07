@@ -1,6 +1,9 @@
 @extends('backend.layouts.app')
 
 @section('content')
+@php
+    $coremarketWalletEnabled = coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1;
+@endphp
 
 <div class="aiz-titlebar text-left mt-2 mb-3">
     <div class=" align-items-center">
@@ -11,6 +14,13 @@
 <div class="row">
     <div class="col-md-10 mx-auto">
         <div class="card">
+            @if (! $coremarketWalletEnabled)
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        {{ translate('Wallet reports are unavailable while wallet features are disabled for this store mode.') }}
+                    </div>
+                </div>
+            @else
             <form action="{{ route('wallet-history.index') }}" method="GET">
                 <div class="card-header row gutters-5">
                     <div class="col text-center text-md-left">
@@ -84,6 +94,7 @@
                     {{ $wallets->appends(request()->input())->links() }}
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </div>

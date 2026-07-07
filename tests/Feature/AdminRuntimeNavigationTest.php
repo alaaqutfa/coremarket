@@ -227,6 +227,88 @@ class AdminRuntimeNavigationTest extends TestCase
         }
     }
 
+    public function test_business_single_store_blocks_seller_and_wallet_reports_even_when_advanced_reports_are_enabled(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->seedBusinessSetting('vendor_system_activation', 1);
+            $this->seedBusinessSetting('wallet_system', 1);
+
+            config()->set('coremarket.runtime.applied_plan_code', 'business');
+            config()->set('coremarket.runtime.store_mode', 'single_store');
+
+            $user = $this->makeUserWithRoleAndPermissions(
+                'Owner Reports QA',
+                'owner.reports@example.test',
+                'admin',
+                'Runtime Reports Owner',
+                ['seller_products_sale_report', 'commission_history_report', 'wallet_transaction_report']
+            );
+
+            $this->actingAs($user)->get(route('seller_sale_report.index'))->assertNotFound();
+            $this->actingAs($user)->get(route('commission-log.index'))->assertNotFound();
+            $this->actingAs($user)->get(route('wallet-history.index'))->assertNotFound();
+        } finally {
+            DB::rollBack();
+            Cache::forget('business_settings');
+        }
+    }
+
+    public function test_earning_report_hides_seller_and_delivery_series_when_runtime_features_are_disabled(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->seedBusinessSetting('vendor_system_activation', 1);
+            $this->seedBusinessSetting('wallet_system', 1);
+
+            config()->set('coremarket.runtime.applied_plan_code', 'business');
+            config()->set('coremarket.runtime.store_mode', 'single_store');
+
+            $user = $this->makeUserWithRoleAndPermissions(
+                'Owner Earning QA',
+                'owner.earning@example.test',
+                'admin',
+                'Runtime Earning Owner',
+                ['earning_report']
+            );
+
+            $this->actingAs($user);
+
+            $html = view('backend.reports.earning_payout_report', [
+                'total_sales_alltime' => 0,
+                'sales_this_month' => 0,
+                'total_payouts' => 0,
+                'payout_this_month' => 0,
+                'total_categories' => 0,
+                'top_categories' => collect(),
+                'total_brands' => 0,
+                'top_brands' => collect(),
+                'sales_stat' => [],
+                'payout_stat' => [],
+                'coremarket_reports_context' => [
+                    'sellers_enabled' => false,
+                    'delivery_enabled' => false,
+                    'wallet_enabled' => false,
+                    'pos_enabled' => false,
+                    'reports_basic_enabled' => true,
+                    'reports_advanced_enabled' => true,
+                ],
+            ])->render();
+
+            $this->assertStringContainsString('"label":"Product Sales"', $html);
+            $this->assertStringContainsString('"label":"Customer Subscription"', $html);
+            $this->assertStringNotContainsString('"label":"Seller Subscription"', $html);
+            $this->assertStringNotContainsString('"label":"Seller Payout"', $html);
+            $this->assertStringNotContainsString('"label":"Delivery Boy"', $html);
+            $this->assertStringNotContainsString('"label":"Delivery"', $html);
+        } finally {
+            DB::rollBack();
+            Cache::forget('business_settings');
+        }
+    }
+
     private function makeUserWithRoleAndPermissions(
         string $name,
         string $email,

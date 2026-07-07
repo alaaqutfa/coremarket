@@ -1,3 +1,16 @@
+@php
+    $coremarketSellersEnabled = coremarket_feature_enabled('sellers')
+        && coremarket_feature_enabled('multi_vendor')
+        && get_setting('vendor_system_activation') == 1;
+@endphp
+
+@if (! $coremarketSellersEnabled)
+    <div class="card-body">
+        <div class="alert alert-info mb-0">
+            {{ translate('Commission history is unavailable while marketplace seller features are disabled for this store mode.') }}
+        </div>
+    </div>
+@else
 <form action="{{ route('commission-log.index') }}" method="GET">
     <div class="card-header row gutters-5">
         <div class="col text-center text-md-left">
@@ -63,3 +76,4 @@
         {{ $commission_history->appends(request()->input())->links() }}
     </div>
 </div>
+@endif

@@ -1,6 +1,11 @@
 @extends('backend.layouts.app')
 
 @section('content')
+@php
+    $coremarketSellersEnabled = coremarket_feature_enabled('sellers')
+        && coremarket_feature_enabled('multi_vendor')
+        && get_setting('vendor_system_activation') == 1;
+@endphp
 <div class="aiz-titlebar text-left mt-2 mb-3">
 	<div class=" align-items-center">
        <h1 class="h3">{{translate('Seller Based Selling Report')}}</h1>
@@ -10,6 +15,13 @@
 <div class="row">
     <div class="col-md-8 mx-auto">
         <div class="card">
+            @if (! $coremarketSellersEnabled)
+                <div class="card-body">
+                    <div class="alert alert-info mb-0">
+                        {{ translate('Seller reports are unavailable while marketplace seller features are disabled for this store mode.') }}
+                    </div>
+                </div>
+            @else
             <div class="card-body">
                 <form action="{{ route('seller_sale_report.index') }}" method="GET">
                     <div class="form-group row offset-lg-2">
@@ -63,6 +75,7 @@
                     {{ $sellers->appends(request()->input())->links() }}
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </div>

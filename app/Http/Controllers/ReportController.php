@@ -51,6 +51,8 @@ class ReportController extends Controller
 
     public function seller_sale_report(Request $request)
     {
+        abort_unless($this->sellersEnabled(), 404);
+
         $sort_by = null;
         // $sellers = User::where('user_type', 'seller')->orderBy('created_at', 'desc');
         $sellers = Shop::with('user')->orderBy('created_at', 'desc');
@@ -82,6 +84,8 @@ class ReportController extends Controller
 
     public function commission_history(Request $request)
     {
+        abort_unless($this->sellersEnabled(), 404);
+
         $seller_id = null;
         $date_range = null;
 
@@ -114,6 +118,8 @@ class ReportController extends Controller
 
     public function wallet_transaction_history(Request $request)
     {
+        abort_unless($this->walletEnabled(), 404);
+
         $user_id = null;
         $date_range = null;
 
@@ -140,6 +146,18 @@ class ReportController extends Controller
         $wallets = $wallet_history->paginate(10);
 
         return view('backend.reports.wallet_history_report', compact('wallets', 'users_with_wallet', 'user_id', 'date_range'));
+    }
+
+    protected function sellersEnabled(): bool
+    {
+        return coremarket_feature_enabled('sellers')
+            && coremarket_feature_enabled('multi_vendor')
+            && get_setting('vendor_system_activation') == 1;
+    }
+
+    protected function walletEnabled(): bool
+    {
+        return coremarket_feature_enabled('wallet_enabled') && get_setting('wallet_system') == 1;
     }
 
 }
