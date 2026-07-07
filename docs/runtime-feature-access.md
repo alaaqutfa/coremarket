@@ -99,3 +99,28 @@ This step does not yet:
 - refactor sidebars
 
 The managed instance setup command consumes this matrix to preview and apply runtime plan and store mode values without turning CoreMarket into the commercial plan manager.
+
+## Activation Control Center
+
+`/admin/activation` is an internal CoreMarket control overview for owner/admin support users.
+
+It should be treated as a read-only runtime dashboard that shows:
+
+- license status
+- applied plan
+- store mode
+- enabled runtime features
+- runtime limits
+- domain and support context
+- setup readiness notes
+
+Store admin or client admin users must not access this page.
+
+The page should not be used as a legacy toggle surface for:
+
+- environment writes
+- vendor/demo activation
+- payment activation
+- install/update callbacks
+
+Those changes must flow through managed setup tooling or future CorePilotOS-applied runtime context instead.

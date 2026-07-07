@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CoreMarketFeatureAccessService;
+use App\Services\CoreMarketLicenseService;
 use Illuminate\Http\Request;
 use App\Models\BusinessSetting;
 use App\Models\PaymentMethod;
@@ -41,11 +43,111 @@ class BusinessSettingsController extends Controller
         return view('backend.setup_configurations.general_settings');
     }
 
-    public function activation(Request $request)
+    public function activation(
+        Request $request,
+        CoreMarketLicenseService $licenseService,
+        CoreMarketFeatureAccessService $featureAccess
+    )
     {
-        // CoreComponentRepository::instantiateShopRepository();
-        // CoreComponentRepository::initializeCache();
-        return view('backend.setup_configurations.activation');
+        abort_if(isStoreAdmin(), 403);
+
+        $licenseSnapshot = $licenseService->snapshot();
+        $featureMatrix = $featureAccess->matrixFor();
+        $currentProductCount = $licenseService->currentProductCount();
+        $currentMonthlyOrderCount = $licenseService->currentMonthlyOrderCount();
+
+        $storeInfo = [
+            'store_name' => coremarketStoreName(),
+            'domain' => $licenseSnapshot['domain'] ?: (parse_url(config('app.url', ''), PHP_URL_HOST) ?: config('app.url')),
+            'app_url' => config('app.url'),
+            'instance_id' => $licenseSnapshot['instance_id'],
+            'support_email' => get_setting('contact_email') ?: config('mail.from.address'),
+            'contact_phone' => get_setting('contact_phone') ?: get_setting('helpline_number'),
+            'support_owner_email' => config('mail.from.address'),
+        ];
+
+        $featureRows = collect($featureMatrix['features'])
+            ->map(function ($enabled, string $key) {
+                return [
+                    'key' => $key,
+                    'label' => Str::of($key)->replace('_', ' ')->title()->toString(),
+                    'enabled' => (bool) $enabled,
+                ];
+            })
+            ->sortBy('label')
+            ->values();
+
+        $limitRows = collect($featureMatrix['limits'])
+            ->map(function ($value, string $key) use ($currentProductCount, $currentMonthlyOrderCount) {
+                $usage = null;
+
+                if ($key === 'products_limit') {
+                    $usage = $currentProductCount;
+                } elseif ($key === 'monthly_orders_limit') {
+                    $usage = $currentMonthlyOrderCount;
+                }
+
+                return [
+                    'key' => $key,
+                    'label' => Str::of($key)->replace('_', ' ')->title()->toString(),
+                    'value' => $value,
+                    'usage' => $usage,
+                ];
+            })
+            ->values();
+
+        $setupChecklist = [
+            [
+                'label' => 'License runtime',
+                'state' => $licenseService->isActive() ? 'ok' : 'attention',
+                'summary' => $licenseService->isActive()
+                    ? 'Runtime access is active for store management and orders.'
+                    : 'Runtime access needs owner attention before normal store operations continue.',
+            ],
+            [
+                'label' => 'Store identity',
+                'state' => filled($storeInfo['store_name']) ? 'ok' : 'warning',
+                'summary' => filled($storeInfo['store_name'])
+                    ? 'A storefront name fallback is available for white-label output.'
+                    : 'Storefront name is missing and should be configured before client launch.',
+            ],
+            [
+                'label' => 'Domain and contact',
+                'state' => filled($storeInfo['domain']) && (filled($storeInfo['support_email']) || filled($storeInfo['contact_phone'])) ? 'ok' : 'warning',
+                'summary' => filled($storeInfo['domain'])
+                    ? 'Domain context is present. Support contact can be refined through managed instance setup.'
+                    : 'No domain was resolved from the runtime snapshot or app URL.',
+            ],
+            [
+                'label' => 'Single-store safety defaults',
+                'state' => ! get_setting('vendor_system_activation') && ! get_setting('wallet_system') && ! get_setting('show_website_popup')
+                    ? 'ok'
+                    : 'warning',
+                'summary' => 'Vendor activation, wallet visibility, and popup marketing should stay disabled unless the applied plan explicitly enables them.',
+            ],
+            [
+                'label' => 'Checkout fallback',
+                'state' => get_setting('cash_payment') == 1 || $featureAccess->enabled('payment_gateway_enabled')
+                    ? 'ok'
+                    : 'warning',
+                'summary' => 'Starter instances should retain a safe manual or COD checkout path when online gateways are disabled.',
+            ],
+        ];
+
+        return view('backend.setup_configurations.activation', [
+            'licenseSnapshot' => $licenseSnapshot,
+            'featureMatrix' => $featureMatrix,
+            'featureRows' => $featureRows,
+            'limitRows' => $limitRows,
+            'storeInfo' => $storeInfo,
+            'setupChecklist' => $setupChecklist,
+            'currentProductCount' => $currentProductCount,
+            'currentMonthlyOrderCount' => $currentMonthlyOrderCount,
+            'isLicenseActive' => $licenseService->isActive(),
+            'isLicenseSuspended' => $licenseService->isSuspended(),
+            'isLicenseExpired' => $licenseService->isExpired(),
+            'isInGracePeriod' => $licenseService->isInGracePeriod(),
+        ]);
     }
 
     public function social_login(Request $request)

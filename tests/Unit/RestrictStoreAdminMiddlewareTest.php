@@ -51,6 +51,11 @@ class RestrictStoreAdminMiddlewareTest extends TestCase
         $this->assertStoreAdminRouteBlocked('roles.index', 'admin/roles');
     }
 
+    public function test_store_admin_cannot_access_activation_control_center(): void
+    {
+        $this->assertStoreAdminRouteBlocked('activation.index', 'admin/activation');
+    }
+
     private function assertStoreAdminRouteBlocked(string $routeName, string $routeUri): void
     {
         $middleware = new RestrictStoreAdmin();

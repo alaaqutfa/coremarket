@@ -1,415 +1,260 @@
 @extends('backend.layouts.app')
 
+@php
+    $statusVariant = 'success';
+    $statusText = 'Active';
+
+    if ($isLicenseSuspended) {
+        $statusVariant = 'danger';
+        $statusText = 'Suspended';
+    } elseif ($isLicenseExpired && ! $isInGracePeriod) {
+        $statusVariant = 'danger';
+        $statusText = 'Expired';
+    } elseif ($isInGracePeriod) {
+        $statusVariant = 'warning';
+        $statusText = 'Grace period';
+    }
+@endphp
+
 @section('content')
-    <h4 class="text-center text-muted">{{ translate('System') }}</h4>
     <div class="row">
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0 h6 text-center">{{ translate('HTTPS Activation') }}</h5>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'FORCE_HTTPS')" <?php if (env('FORCE_HTTPS') == 'On') {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Maintenance Mode Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'maintenance_mode')" <?php if (get_setting('maintenance_mode') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Disable image encoding?') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'disable_image_optimization')"
-                            <?php if (get_setting('disable_image_optimization') == 1) {
-                                echo 'checked';
-                            } ?>>
-                        <span class="slider round"></span>
-                    </label>
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-start justify-content-between">
+                        <div class="pr-3">
+                            <h1 class="h3 mb-2">{{ translate('Activation control center') }}</h1>
+                            <p class="text-muted mb-0">
+                                {{ translate('Internal owner/admin support overview for CoreMarket runtime access.') }}
+                            </p>
+                        </div>
+                        <span class="badge badge-{{ $statusVariant }} badge-inline px-3 py-2 mt-2 mt-md-0">
+                            {{ translate('License status') }}: {{ translate($statusText) }}
+                        </span>
+                    </div>
+
+                    <div class="alert alert-info mt-4 mb-0">
+                        <strong>{{ translate('CorePilotOS source of truth') }}:</strong>
+                        {{ translate('Commercial plans, pricing, subscriptions, renewals, and activation decisions stay in CorePilotOS. CoreMarket only enforces the applied runtime access snapshot shown here.') }}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-
-    <h4 class="text-center text-muted mt-4">{{ translate('Business Related') }}</h4>
-    <div class="row">
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Vendor System Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'vendor_system_activation')"
-                            <?php if (get_setting('vendor_system_activation') == 1) {
-                                echo 'checked';
-                            } ?>>
-                        <span class="slider round"></span>
-                    </label>
+    <div class="row mt-3">
+        <div class="col-lg-3 col-sm-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted fs-12 text-uppercase">{{ translate('Applied plan') }}</div>
+                    <div class="h4 mb-0">{{ strtoupper((string) ($featureMatrix['applied_plan'] ?? 'starter')) }}</div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Classified Product') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'classified_product')" <?php if (get_setting('classified_product') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted fs-12 text-uppercase">{{ translate('Store mode') }}</div>
+                    <div class="h4 mb-0">{{ str_replace('_', ' ', (string) ($featureMatrix['store_mode'] ?? 'single_store')) }}</div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Wallet System Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'wallet_system')" <?php if (get_setting('wallet_system') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Coupon System Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'coupon_system')" <?php if (get_setting('coupon_system') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Pickup Point Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'pickup_point')" <?php if (get_setting('pickup_point') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Conversation Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'conversation_system')" <?php if (get_setting('conversation_system') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Seller Product Manage By Admin') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'product_manage_by_admin')"
-                            <?php if (\App\Models\BusinessSetting::where('type', 'product_manage_by_admin')->first() && get_setting('product_manage_by_admin') == 1) {
-                                echo 'checked';
-                            } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('After activate this option Cash On Delivery of Seller product will be managed by Admin') }}.
+        <div class="col-lg-3 col-sm-6 mt-3 mt-lg-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted fs-12 text-uppercase">{{ translate('Products usage') }}</div>
+                    <div class="h4 mb-0">
+                        {{ $currentProductCount }}
+                        <span class="text-muted fs-14">/ {{ $licenseSnapshot['limits']['products_limit'] ?? '-' }}</span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Admin Approval On Seller Product') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'product_approve_by_admin')"
-                            <?php if (\App\Models\BusinessSetting::where('type', 'product_approve_by_admin')->first() && get_setting('product_approve_by_admin') == 1) {
-                                echo 'checked';
-                            } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('After activate this option, Admin approval need to seller product') }}.
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Email Verification') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'email_verification')" <?php if (get_setting('email_verification') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('You need to configure SMTP correctly to enable this feature.') }} <a
-                            href="{{ route('smtp_settings.index') }}">{{ translate('Configure Now') }}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Product Query Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'product_query_activation')"
-                            <?php if (get_setting('product_query_activation') == 1) {
-                                echo 'checked';
-                            } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Last Viewed Products Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'last_viewed_product_activation')"
-                            <?php if (get_setting('last_viewed_product_activation') == 1) {
-                                echo 'checked';
-                            } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Guest Checkout Activation') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'guest_checkout_activation')"
-                            <?php if (get_setting('guest_checkout_activation') == 1) {
-                                echo 'checked';
-                            } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('You need to configure SMTP correctly to enable this feature.') }}
-                        <a href="{{ route('smtp_settings.index') }}">{{ translate('Configure Now') }}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @if (addon_is_activated('wholesale'))
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0 h6 text-center">{{ translate('Wholesale Product for Seller') }}</h3>
-                    </div>
-                    <div class="card-body text-center">
-                        <label class="aiz-switch aiz-switch-success mb-0">
-                            <input type="checkbox" onchange="updateSettings(this, 'seller_wholesale_product')"
-                                <?php if (get_setting('seller_wholesale_product') == 1) {
-                                    echo 'checked';
-                                } ?>>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        @endif
-        @if (addon_is_activated('auction'))
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="mb-0 h6 text-center">{{ translate('Auction Product for Seller') }}</h3>
-                    </div>
-                    <div class="card-body text-center">
-                        <label class="aiz-switch aiz-switch-success mb-0">
-                            <input type="checkbox" onchange="updateSettings(this, 'seller_auction_product')"
-                                <?php if (get_setting('seller_auction_product') == 1) {
-                                    echo 'checked';
-                                } ?>>
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-        @endif
-    </div>
-
-    <h4 class="text-center text-muted mt-4">{{ translate('Social Media Login') }}</h4>
-    <div class="row">
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Facebook login') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'facebook_login')" <?php if (get_setting('facebook_login') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('You need to configure Facebook Client correctly to enable this feature') }}. <a
-                            href="{{ route('social_login.index') }}">{{ translate('Configure Now') }}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Google login') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'google_login')" <?php if (get_setting('google_login') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('You need to configure Google Client correctly to enable this feature') }}. <a
-                            href="{{ route('social_login.index') }}">{{ translate('Configure Now') }}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Twitter login') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'twitter_login')" <?php if (get_setting('twitter_login') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('You need to configure Twitter Client correctly to enable this feature') }}. <a
-                            href="{{ route('social_login.index') }}">{{ translate('Configure Now') }}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="mb-0 h6 text-center">{{ translate('Apple login') }}</h3>
-                </div>
-                <div class="card-body text-center">
-                    <label class="aiz-switch aiz-switch-success mb-0">
-                        <input type="checkbox" onchange="updateSettings(this, 'apple_login')" <?php if (get_setting('apple_login') == 1) {
-                            echo 'checked';
-                        } ?>>
-                        <span class="slider round"></span>
-                    </label>
-                    <div class="alert"
-                        style="color: #004085;background-color: #cce5ff;border-color: #b8daff;margin-bottom:0;margin-top:10px;">
-                        {{ translate('You need to configure Apple Client correctly to enable this feature') }}. <a
-                            href="{{ route('social_login.index') }}">{{ translate('Configure Now') }}</a>
+        <div class="col-lg-3 col-sm-6 mt-3 mt-lg-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted fs-12 text-uppercase">{{ translate('Monthly orders') }}</div>
+                    <div class="h4 mb-0">
+                        {{ $currentMonthlyOrderCount }}
+                        <span class="text-muted fs-14">/ {{ $licenseSnapshot['limits']['monthly_orders_limit'] ?? '-' }}</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-@endsection
 
-@section('script')
-    <script type="text/javascript">
-        function updateSettings(el, type) {
+    <div class="row mt-3">
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 h6">{{ translate('License snapshot') }}</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('License enabled') }}</span>
+                            <span>{{ $licenseSnapshot['license_enabled'] ? translate('Yes') : translate('No') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Instance ID') }}</span>
+                            <span>{{ $storeInfo['instance_id'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Domain') }}</span>
+                            <span>{{ $storeInfo['domain'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Starts at') }}</span>
+                            <span>{{ $licenseSnapshot['starts_at'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Expires at') }}</span>
+                            <span>{{ $licenseSnapshot['expires_at'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Grace until') }}</span>
+                            <span>{{ $licenseSnapshot['grace_until'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0">
+                            <span class="text-muted d-block">{{ translate('Suspension reason') }}</span>
+                            <span>{{ $licenseSnapshot['suspension_reason'] ?: translate('None') }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-            if('{{env('DEMO_MODE')}}' == 'On'){
-                AIZ.plugins.notify('info', '{{ translate('Data can not change in demo mode.') }}');
-                return;
-            }
+        <div class="col-lg-4 mt-3 mt-lg-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 h6">{{ translate('Store and support info') }}</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Store name') }}</span>
+                            <span>{{ $storeInfo['store_name'] }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('App URL') }}</span>
+                            <span>{{ $storeInfo['app_url'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Support email') }}</span>
+                            <span>{{ $storeInfo['support_email'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Contact phone') }}</span>
+                            <span>{{ $storeInfo['contact_phone'] ?: translate('Not set') }}</span>
+                        </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between">
+                            <span class="text-muted">{{ translate('Owner support email') }}</span>
+                            <span>{{ $storeInfo['support_owner_email'] ?: translate('Not set') }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-            if ($(el).is(':checked')) {
-                var value = 1;
-            } else {
-                var value = 0;
-            }
+        <div class="col-lg-4 mt-3 mt-lg-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 h6">{{ translate('Setup checklist status') }}</h5>
+                </div>
+                <div class="card-body">
+                    @foreach ($setupChecklist as $item)
+                        @php
+                            $itemVariant = $item['state'] === 'ok' ? 'success' : ($item['state'] === 'attention' ? 'danger' : 'warning');
+                            $itemText = $item['state'] === 'ok' ? 'PASS' : ($item['state'] === 'attention' ? 'FAIL' : 'WARN');
+                        @endphp
+                        <div class="border rounded px-3 py-2 mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>{{ translate($item['label']) }}</strong>
+                                <span class="badge badge-{{ $itemVariant }}">{{ $itemText }}</span>
+                            </div>
+                            <div class="text-muted fs-13 mt-1">{{ translate($item['summary']) }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
 
-            $.post('{{ route('business_settings.update.activation') }}', {
-                _token: '{{ csrf_token() }}',
-                type: type,
-                value: value
-            }, function(data) {
-                if (data == 1) {
-                    AIZ.plugins.notify('success', '{{ translate('Settings updated successfully') }}');
-                } else {
-                    AIZ.plugins.notify('danger', 'Something went wrong');
-                }
-            });
-        }
-    </script>
+    <div class="row mt-3">
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 h6">{{ translate('Enabled runtime features') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach ($featureRows as $feature)
+                            <div class="col-sm-6 mb-2">
+                                <div class="d-flex justify-content-between border rounded px-3 py-2">
+                                    <span>{{ translate($feature['label']) }}</span>
+                                    <span class="badge badge-{{ $feature['enabled'] ? 'success' : 'secondary' }}">
+                                        {{ $feature['enabled'] ? translate('Enabled') : translate('Disabled') }}
+                                    </span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mt-3 mt-lg-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <h5 class="mb-0 h6">{{ translate('Runtime limits') }}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>{{ translate('Limit') }}</th>
+                                    <th>{{ translate('Configured value') }}</th>
+                                    <th>{{ translate('Current usage') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($limitRows as $limit)
+                                    <tr>
+                                        <td>{{ translate($limit['label']) }}</td>
+                                        <td>{{ $limit['value'] ?? translate('Unlimited') }}</td>
+                                        <td>
+                                            @if ($limit['usage'] === null)
+                                                <span class="text-muted">{{ translate('Not tracked here') }}</span>
+                                            @else
+                                                {{ $limit['usage'] }}
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0 h6">{{ translate('Legacy activation controls') }}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        {{ translate('Unsafe legacy vendor and environment toggles are intentionally hidden from this page.') }}
+                    </p>
+                    <p class="text-muted mb-0">
+                        {{ translate('Use managed instance setup, configuration review, and CorePilotOS-applied runtime inputs to make controlled changes instead of direct activation toggles.') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
