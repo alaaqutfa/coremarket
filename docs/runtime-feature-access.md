@@ -97,3 +97,5 @@ This step does not yet:
 - implement payment gateways
 - implement loyalty behavior
 - refactor sidebars
+
+The managed instance setup command consumes this matrix to preview and apply runtime plan and store mode values without turning CoreMarket into the commercial plan manager.

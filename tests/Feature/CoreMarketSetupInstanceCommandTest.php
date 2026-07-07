@@ -24,6 +24,25 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
         $this->assertSame($before, BusinessSetting::count());
     }
 
+    public function test_dry_run_outputs_runtime_plan_and_store_mode_summary(): void
+    {
+        $this->artisan('coremarket:setup-instance', [
+            'instance_id' => 'client-store',
+            '--dry-run' => true,
+            '--store-name' => 'Client Store',
+            '--domain' => 'example-store.com',
+            '--plan' => 'starter',
+            '--store-mode' => 'single_store',
+            '--admin-email' => 'owner@example-store.com',
+            '--support-email' => 'support@example-store.com',
+            '--currency' => 'USD',
+            '--language' => 'en',
+        ])
+            ->expectsOutput('CoreMarket managed instance setup plan')
+            ->expectsOutput('Runtime access preview')
+            ->assertExitCode(0);
+    }
+
     public function test_apply_without_confirmation_does_not_write_business_settings(): void
     {
         DB::beginTransaction();
@@ -73,8 +92,8 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
             '--footer-text' => 'Client Store',
             '--timezone' => 'Asia/Beirut',
         ])
-            ->expectsOutput('Applying allowed business_settings only...')
-            ->expectsOutput('Apply complete. Only the allowed business_settings were updated.')
+            ->expectsOutput('Applying allowed business_settings and optional Store Admin changes...')
+            ->expectsOutput('Apply complete. Only the allowed business_settings and explicit Store Admin changes were updated.')
             ->assertExitCode(0);
 
         $this->assertSame(
@@ -86,8 +105,37 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
             (string) BusinessSetting::query()->where('type', 'vendor_system_activation')->whereNull('lang')->value('value')
         );
         $this->assertSame(
+            '0',
+            (string) BusinessSetting::query()->where('type', 'show_website_popup')->whereNull('lang')->value('value')
+        );
+        $this->assertSame(
             'Asia/Beirut',
             BusinessSetting::query()->where('type', 'timezone')->whereNull('lang')->value('value')
+        );
+
+        DB::rollBack();
+    }
+
+    public function test_marketplace_mode_only_enables_vendor_activation_when_plan_allows_it(): void
+    {
+        DB::beginTransaction();
+
+        $this->artisan('coremarket:setup-instance', [
+            'instance_id' => 'client-store',
+            '--apply' => true,
+            '--confirm-instance-setup' => true,
+            '--store-name' => 'Client Store',
+            '--domain' => 'example-store.com',
+            '--admin-email' => 'owner@example-store.com',
+            '--plan' => 'starter',
+            '--store-mode' => 'marketplace',
+            '--currency' => 'USD',
+            '--language' => 'en',
+        ])->assertExitCode(0);
+
+        $this->assertSame(
+            '0',
+            (string) BusinessSetting::query()->where('type', 'vendor_system_activation')->whereNull('lang')->value('value')
         );
 
         DB::rollBack();
@@ -153,11 +201,47 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
             '--domain' => 'example-store.com',
             '--admin-name' => 'Store Manager',
             '--admin-email' => 'owner@example-store.com',
+            '--currency' => 'USD',
+            '--language' => 'en',
         ])
             ->expectsOutput('Apply mode was requested, but the safety requirements were not met.')
             ->assertExitCode(0);
 
         $this->assertSame($before, DB::table('users')->count());
+
+        DB::rollBack();
+    }
+
+    public function test_apply_can_create_store_admin_when_role_exists_and_password_is_provided(): void
+    {
+        DB::beginTransaction();
+
+        $role = DB::table('roles')->where('name', config('coremarket.access.store_admin_role', 'store_admin'))->first();
+        if (! $role) {
+            $this->markTestSkipped('store_admin role is missing in the current database.');
+        }
+
+        $email = 'managed.instance.storeadmin@example.test';
+        DB::table('users')->where('email', $email)->delete();
+
+        $before = DB::table('users')->count();
+
+        $this->artisan('coremarket:setup-instance', [
+            'instance_id' => 'client-store',
+            '--apply' => true,
+            '--confirm-instance-setup' => true,
+            '--create-store-admin' => true,
+            '--store-name' => 'Client Store',
+            '--domain' => 'example-store.com',
+            '--admin-name' => 'Store Manager',
+            '--admin-email' => $email,
+            '--store-admin-password' => 'Temporary123!',
+            '--currency' => 'USD',
+            '--language' => 'en',
+        ])->assertExitCode(0);
+
+        $this->assertSame($before + 1, DB::table('users')->count());
+        $this->assertSame(1, DB::table('users')->where('email', $email)->where('user_type', 'staff')->count());
 
         DB::rollBack();
     }

@@ -271,20 +271,41 @@ return [
 
     'instance_setup' => [
         'default_plan' => 'starter',
+        'default_store_mode' => 'single_store',
+        'default_currency_code' => 'USD',
+        'default_language_code' => 'en',
 
         'business_settings_map' => [
             'website_name' => 'store_name',
+            'site_name' => 'store_name',
             'site_motto' => 'site_motto',
             'meta_title' => 'meta_title',
             'meta_description' => 'meta_description',
+            'contact_address' => 'contact_address',
             'contact_phone' => 'contact_phone',
-            'contact_email' => 'contact_email',
+            'contact_email' => 'support_email',
             'helpline_number' => 'whatsapp',
             'frontend_copyright_text' => 'footer_text',
-            'vendor_system_activation' => 0,
-            'wallet_system' => 0,
+            'vendor_system_activation' => 'vendor_system_activation',
+            'wallet_system' => 'wallet_system',
             'cash_payment' => 1,
+            'show_website_popup' => 0,
             'timezone' => 'timezone',
+            'system_default_currency' => 'system_default_currency',
+        ],
+
+        'safe_setting_defaults' => [
+            'topbar_banner_link' => '',
+            'watermark_text' => '',
+            'seller_app_link' => '',
+            'delivery_boy_app_link' => '',
+            'play_store_link' => '',
+            'app_store_link' => '',
+        ],
+
+        'runtime_feature_to_legacy_setting_map' => [
+            'multi_vendor' => 'vendor_system_activation',
+            'wallet_enabled' => 'wallet_system',
         ],
 
         'media_notes' => [

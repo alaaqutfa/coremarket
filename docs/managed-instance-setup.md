@@ -118,17 +118,35 @@ Current behavior:
 - builds a setup plan only
 - does not write to the database
 - does not modify `.env`
-- does not create users
+- does not create users unless `--apply --confirm-instance-setup --create-store-admin` is explicitly used
 - does not upload media
 
 ## Safe Apply Command
 
-`--apply` can now update only the allowed `business_settings`, but only when all safety conditions are met.
+`--apply` can now update only the allowed `business_settings` and optionally create/update the Store Admin, but only when all safety conditions are met.
 
 Example:
 
 ```bash
 php artisan coremarket:setup-instance client-store --apply --confirm-instance-setup --store-name="Client Store" --domain=example-store.com --admin-email=owner@example-store.com --site-motto="Managed Store" --contact-phone="+10000000000"
+```
+
+Example single-store starter dry-run:
+
+```bash
+php artisan coremarket:setup-instance client-store --dry-run --store-name="Client Store" --domain=example-store.com --plan=starter --store-mode=single_store --admin-name="Store Admin" --admin-email=admin@example-store.com --support-email=support@example-store.com --currency=USD --language=en --whatsapp="+10000000000"
+```
+
+Example marketplace dry-run:
+
+```bash
+php artisan coremarket:setup-instance client-market --dry-run --store-name="Client Market" --domain=market.example.com --plan=marketplace --store-mode=marketplace --admin-name="Marketplace Admin" --admin-email=admin@market.example.com --support-email=support@market.example.com --currency=USD --language=en
+```
+
+Example owned CoreMarket store dry-run:
+
+```bash
+php artisan coremarket:setup-instance owned-coremarket --dry-run --store-name="CoreMarket Store" --domain=store.coremarket.local --plan=enterprise --store-mode=owned_coremarket_store --admin-name="Store Admin" --admin-email=admin@coremarket.local --support-email=support@coremarket.local --currency=USD --language=en
 ```
 
 Apply safety rules:
@@ -137,11 +155,14 @@ Apply safety rules:
 - `--confirm-instance-setup` must be present
 - `instance_id` must be provided
 - `--store-name`, `--domain`, and `--admin-email` must be provided
+- `--store-mode`, `--currency`, and `--language` are resolved and validated
 - the command prints the full summary before writing
+- creating a Store Admin requires `--create-store-admin` and a password for new users
 
 What the command writes in apply mode:
 
 - only the safe `business_settings` from the setup map
+- optional Store Admin create/update when explicitly requested
 - no destructive deletes
 - no logo upload IDs
 - no payment credentials
@@ -153,6 +174,14 @@ What the command does not write:
 - products
 - orders
 - payment gateway secrets
+
+Plan and mode behavior:
+
+- `single_store` disables seller and multi-vendor storefront activation
+- `marketplace` enables seller and multi-vendor only when the applied plan allows them
+- `owned_coremarket_store` stays single-operator even under higher plans unless later changed intentionally
+- popup marketing is disabled by default through setup-safe settings
+- wallet remains disabled unless a runtime feature explicitly enables it later
 
 ## Storefront Cleanup Audit Command
 
