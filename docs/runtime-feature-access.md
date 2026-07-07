@@ -132,3 +132,25 @@ The page should not be used as a legacy toggle surface for:
 - install/update callbacks
 
 Those changes must flow through managed setup tooling or future CorePilotOS-applied runtime context instead.
+
+## Client Subscription Overview
+
+`/admin/my-subscription` is the client-visible runtime overview for store admins and owner/admin support users.
+
+It should stay read-only and should not become a billing console inside CoreMarket.
+
+The page may show:
+
+- applied plan
+- store mode
+- license status
+- enabled features
+- disabled features
+- runtime limits
+- safe usage counters such as products, monthly orders, and uploads count
+
+The page should also remind client users that:
+
+- CorePilotOS manages subscriptions, pricing, activation, and upgrades
+- CoreMarket only reflects the applied runtime access snapshot
+- upgrade or activation requests should go through support

@@ -237,6 +237,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::post('/payment-activation', 'updatePaymentActivationSettings')->name('payment.activation');
         Route::get('/general-setting', 'general_setting')->name('general_setting.index');
         Route::get('/activation', 'activation')->name('activation.index');
+        Route::get('/my-subscription', 'subscriptionOverview')->name('subscription.index')->middleware('coremarket_feature:subscription_page,0');
         Route::get('/payment-method', 'payment_method')->name('payment_method.index');
         Route::get('/file_system', 'file_system')->name('file_system.index');
         Route::get('/social-login', 'social_login')->name('social_login.index');

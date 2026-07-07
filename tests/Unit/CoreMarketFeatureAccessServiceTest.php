@@ -64,4 +64,18 @@ class CoreMarketFeatureAccessServiceTest extends TestCase
         $this->assertTrue($service->enabled('sellers'));
         $this->assertSame(1000, $service->limit('sellers_limit'));
     }
+
+    public function test_matrix_for_without_explicit_arguments_uses_current_runtime_plan_and_mode(): void
+    {
+        config()->set('coremarket.runtime.applied_plan_code', 'marketplace');
+        config()->set('coremarket.runtime.store_mode', 'marketplace');
+
+        $service = app(CoreMarketFeatureAccessService::class);
+        $matrix = $service->matrixFor();
+
+        $this->assertSame('marketplace', $matrix['applied_plan']);
+        $this->assertSame('marketplace', $matrix['store_mode']);
+        $this->assertTrue($matrix['features']['multi_vendor']);
+        $this->assertSame(1000, $matrix['limits']['sellers_limit']);
+    }
 }

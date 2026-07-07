@@ -68,8 +68,13 @@ class CoreMarketFeatureAccessService
 
     public function matrixFor(?string $planCode = null, ?string $storeMode = null): array
     {
-        $resolvedPlan = $this->resolveAppliedPlan($planCode);
-        $resolvedStoreMode = $this->resolveStoreMode($resolvedPlan, $storeMode);
+        $resolvedPlan = $planCode === null
+            ? $this->appliedPlan()
+            : $this->resolveAppliedPlan($planCode);
+
+        $resolvedStoreMode = $storeMode === null
+            ? $this->storeMode()
+            : $this->resolveStoreMode($resolvedPlan, $storeMode);
 
         return [
             'applied_plan' => $resolvedPlan,

@@ -55,7 +55,7 @@ return [
             'translations_limited' => ['default' => true],
             'currencies_limited' => ['default' => true],
             'addon_requests' => ['default' => false],
-            'subscription_page' => ['default' => false],
+            'subscription_page' => ['default' => true],
         ],
 
         'limit_definitions' => [
@@ -88,7 +88,7 @@ return [
                     'translations_limited' => true,
                     'currencies_limited' => true,
                     'addon_requests' => false,
-                    'subscription_page' => false,
+                    'subscription_page' => true,
                 ],
                 'limits' => [
                     'products_limit' => 50,

@@ -42,6 +42,7 @@ class AdminRuntimeNavigationTest extends TestCase
             $this->assertStringContainsString('Products', $html);
             $this->assertStringContainsString('Customers', $html);
             $this->assertStringContainsString('Website Setup', $html);
+            $this->assertStringContainsString('My Subscription', $html);
             $this->assertStringNotContainsString('Seller Product', $html);
             $this->assertStringNotContainsString('Seller Orders', $html);
             $this->assertStringNotContainsString('Seller Verification Form', $html);
@@ -84,6 +85,7 @@ class AdminRuntimeNavigationTest extends TestCase
             $html = view('backend.inc.admin_sidenav')->render();
 
             $this->assertStringContainsString('Sellers', $html);
+            $this->assertStringContainsString('My Subscription', $html);
             $this->assertStringContainsString('Setup & Configurations', $html);
             $this->assertStringContainsString('System', $html);
             $this->assertStringContainsString('Uploaded Files', $html);

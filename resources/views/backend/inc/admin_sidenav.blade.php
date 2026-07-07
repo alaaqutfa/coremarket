@@ -15,6 +15,7 @@
         $coremarketUploadsManagerEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('uploads_manager');
         $coremarketStaffManagementEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('staff_management');
         $coremarketAddonRequestsEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('addon_requests');
+        $coremarketSubscriptionPageEnabled = coremarket_feature_enabled('subscription_page', true);
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
     <div class="aiz-sidebar left c-scrollbar">
@@ -61,6 +62,19 @@
                     </a>
                 </li>
                 @endcan
+
+                @if ($coremarketSubscriptionPageEnabled)
+                <li class="aiz-side-nav-item">
+                    <a href="{{ route('subscription.index') }}" class="aiz-side-nav-link {{ areActiveRoutes(['subscription.index']) }}">
+                        <div class="aiz-side-nav-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+                                <path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v9A1.5 1.5 0 0 0 2.5 14h11a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 13.5 2h-11Zm0 1h11a.5.5 0 0 1 .5.5V5H2V3.5a.5.5 0 0 1 .5-.5Zm-.5 3h12v6.5a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5V6Zm2 2a.5.5 0 0 0 0 1h2.5a.5.5 0 0 0 0-1H4Zm0 2a.5.5 0 0 0 0 1h5.5a.5.5 0 0 0 0-1H4Z" fill="#575b6a"/>
+                            </svg>
+                        </div>
+                        <span class="aiz-side-nav-text">{{ translate('My Subscription') }}</span>
+                    </a>
+                </li>
+                @endif
 
                 <!-- POS Addon-->
                 @if ($coremarketPosEnabled && (auth()->user()->can('pos_manager') ||
