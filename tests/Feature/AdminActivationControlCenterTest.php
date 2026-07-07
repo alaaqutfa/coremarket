@@ -53,6 +53,27 @@ class AdminActivationControlCenterTest extends TestCase
         }
     }
 
+    public function test_forbidden_activation_page_uses_neutral_error_layout(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $user = $this->makeStoreAdminUserWithActivationPermission();
+
+            $response = $this->actingAs($user)->get(route('activation.index'));
+
+            $response
+                ->assertForbidden()
+                ->assertSee('Access denied')
+                ->assertSee('Return to dashboard')
+                ->assertDontSee('Subscribe to our newsletter')
+                ->assertDontSee('Categories')
+                ->assertDontSee('Flash deals');
+        } finally {
+            DB::rollBack();
+        }
+    }
+
     public function test_activation_page_hides_legacy_unsafe_activation_controls(): void
     {
         DB::beginTransaction();

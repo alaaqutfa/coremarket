@@ -93,6 +93,9 @@ For the full managed client launch checklist after the clean baseline exists, us
 For runtime plan, store mode, feature, and limit resolution, use
 [docs/runtime-feature-access.md](/C:/xampp/htdocs/coremarket/docs/runtime-feature-access.md).
 
+For the current runtime readiness summary and remaining blockers, use
+[docs/runtime-stabilization-readiness.md](/C:/xampp/htdocs/coremarket/docs/runtime-stabilization-readiness.md).
+
 For a read-only preflight against the current local database, run:
 
 ```bash
