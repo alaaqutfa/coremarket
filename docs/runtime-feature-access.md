@@ -100,6 +100,15 @@ This step does not yet:
 
 The managed instance setup command consumes this matrix to preview and apply runtime plan and store mode values without turning CoreMarket into the commercial plan manager.
 
+## Limited Localization Controls
+
+Client-facing localization controls should stay intentionally narrow.
+
+- `translations_limited` enables a safe admin page for editing translation values only for languages already enabled by owner/admin users.
+- `currencies_limited` enables a safe admin page for updating exchange rates only for currencies already enabled by owner/admin users.
+- Store admin users must not add, delete, activate, or deactivate languages or currencies from these limited pages.
+- Default language and default currency remain owner/admin responsibilities through the existing full setup pages.
+
 ## Admin Navigation Gating
 
 Admin navigation should reuse the same runtime feature matrix instead of hardcoded client-specific menu forks.

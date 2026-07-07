@@ -58,17 +58,46 @@ class LanguageController extends Controller
 
     public function show(Request $request, $id)
     {
-        $sort_search = null;
         $language = Language::findOrFail($id);
-        $lang_keys = Translation::where('lang', 'en');
-        
-        if ($request->has('search')){
+
+        return $this->renderTranslationView(
+            $request,
+            $language,
+            'backend.setup_configurations.languages.language_view',
+            route('languages.key_value_store')
+        );
+    }
+
+    public function limitedIndex(Request $request)
+    {
+        $sort_search = null;
+        $languages = Language::query()
+            ->where('status', 1)
+            ->orderBy('name');
+
+        if ($request->has('search')) {
             $sort_search = $request->search;
-            $lang_keys = $lang_keys->where('lang_key', 'like', '%'.preg_replace('/[^A-Za-z0-9\_]/', '', str_replace(' ', '_', strtolower($sort_search))).'%');
+            $languages->where('name', 'like', '%' . $sort_search . '%');
         }
-        $lang_keys = $lang_keys->paginate(50);
-        
-        return view('backend.setup_configurations.languages.language_view', compact('language','lang_keys','sort_search'));
+
+        return view('backend.website_settings.translations.index', [
+            'languages' => $languages->paginate(15),
+            'sort_search' => $sort_search,
+        ]);
+    }
+
+    public function limitedShow(Request $request, $id)
+    {
+        $language = Language::query()
+            ->where('status', 1)
+            ->findOrFail($id);
+
+        return $this->renderTranslationView(
+            $request,
+            $language,
+            'backend.setup_configurations.languages.language_view',
+            route('website.translations.update')
+        );
     }
 
     public function edit($id)
@@ -106,21 +135,20 @@ class LanguageController extends Controller
     public function key_value_store(Request $request)
     {
         $language = Language::findOrFail($request->id);
-        foreach ($request->values as $key => $value) {
-            $translation_def = Translation::where('lang_key', $key)->where('lang', $language->code)->latest()->first();
-            if($translation_def == null){
-                $translation_def = new Translation;
-                $translation_def->lang = $language->code;
-                $translation_def->lang_key = $key;
-                $translation_def->lang_value = $value;
-                $translation_def->save();
-            }
-            else {
-                $translation_def->lang_value = $value;
-                $translation_def->save();
-            }
-        }
-        Cache::forget('translations-'.$language->code);
+        $this->persistTranslations($language, (array) $request->values);
+
+        flash(translate('Translations updated for').' '.$language->name)->success();
+        return back();
+    }
+
+    public function limitedKeyValueStore(Request $request)
+    {
+        $language = Language::query()
+            ->where('status', 1)
+            ->findOrFail($request->id);
+
+        $this->persistTranslations($language, (array) $request->values);
+
         flash(translate('Translations updated for').' '.$language->name)->success();
         return back();
     }
@@ -234,5 +262,40 @@ class LanguageController extends Controller
     public function get_translation($unique_identifier)
     {
         return redirect()->route('home');
+    }
+
+    protected function renderTranslationView(Request $request, Language $language, string $view, string $formAction)
+    {
+        $sort_search = null;
+        $lang_keys = Translation::where('lang', 'en');
+
+        if ($request->has('search')){
+            $sort_search = $request->search;
+            $lang_keys = $lang_keys->where('lang_key', 'like', '%'.preg_replace('/[^A-Za-z0-9\_]/', '', str_replace(' ', '_', strtolower($sort_search))).'%');
+        }
+
+        return view($view, [
+            'language' => $language,
+            'lang_keys' => $lang_keys->paginate(50),
+            'sort_search' => $sort_search,
+            'formAction' => $formAction,
+        ]);
+    }
+
+    protected function persistTranslations(Language $language, array $values): void
+    {
+        foreach ($values as $key => $value) {
+            $translation_def = Translation::where('lang_key', $key)->where('lang', $language->code)->latest()->first();
+            if($translation_def == null){
+                $translation_def = new Translation;
+                $translation_def->lang = $language->code;
+                $translation_def->lang_key = $key;
+            }
+
+            $translation_def->lang_value = $value;
+            $translation_def->save();
+        }
+
+        Cache::forget('translations-'.$language->code);
     }
 }

@@ -1627,6 +1627,22 @@
                             </a>
                         </li>
                         @endcan
+                        @if (coremarket_feature_enabled('translations_limited'))
+                        <li class="aiz-side-nav-item">
+                            <a href="{{ route('website.translations.index') }}"
+                                class="aiz-side-nav-link {{ areActiveRoutes(['website.translations.index', 'website.translations.show'])}}">
+                                <span class="aiz-side-nav-text">{{translate('Translations')}}</span>
+                            </a>
+                        </li>
+                        @endif
+                        @if (coremarket_feature_enabled('currencies_limited'))
+                        <li class="aiz-side-nav-item">
+                            <a href="{{ route('website.currency-rates.index') }}"
+                                class="aiz-side-nav-link {{ areActiveRoutes(['website.currency-rates.index'])}}">
+                                <span class="aiz-side-nav-text">{{translate('Currency Rates')}}</span>
+                            </a>
+                        </li>
+                        @endif
                         @if ($coremarketOwnerNavigationEnabled)
                         @can('website_appearance')
                         <li class="aiz-side-nav-item">

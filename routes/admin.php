@@ -322,6 +322,17 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
             Route::get('/pages', 'pages')->name('website.pages');
         });
 
+        Route::controller(LanguageController::class)->middleware('coremarket_feature:translations_limited,0')->group(function () {
+            Route::get('/translations', 'limitedIndex')->name('website.translations.index');
+            Route::get('/translations/{language}', 'limitedShow')->name('website.translations.show');
+            Route::post('/translations/update', 'limitedKeyValueStore')->name('website.translations.update');
+        });
+
+        Route::controller(CurrencyController::class)->middleware('coremarket_feature:currencies_limited,0')->group(function () {
+            Route::get('/currency-rates', 'limitedIndex')->name('website.currency-rates.index');
+            Route::post('/currency-rates/update', 'limitedUpdate')->name('website.currency-rates.update');
+        });
+
         // Custom Page
         Route::resource('custom-pages', PageController::class);
         Route::controller(PageController::class)->group(function () {

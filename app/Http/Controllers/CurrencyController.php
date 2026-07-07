@@ -35,6 +35,27 @@ class CurrencyController extends Controller
         return view('backend.setup_configurations.currencies.index', compact('currencies', 'active_currencies','sort_search'));
     }
 
+    public function limitedIndex(Request $request)
+    {
+        $sort_search = null;
+        $currencies = Currency::query()
+            ->where('status', 1)
+            ->orderBy('name');
+
+        if ($request->has('search')) {
+            $sort_search = $request->search;
+            $currencies->where(function ($query) use ($sort_search) {
+                $query->where('name', 'like', '%' . $sort_search . '%')
+                    ->orWhere('code', 'like', '%' . $sort_search . '%');
+            });
+        }
+
+        return view('backend.website_settings.currencies.index', [
+            'currencies' => $currencies->paginate(15),
+            'sort_search' => $sort_search,
+        ]);
+    }
+
     public function updateYourCurrency(Request $request)
     {
         $currency = Currency::findOrFail($request->id);
@@ -93,5 +114,27 @@ class CurrencyController extends Controller
         $currency->status = $request->status;
         $currency->save();
         return 1;
+    }
+
+    public function limitedUpdate(Request $request)
+    {
+        $request->validate([
+            'id' => ['required', 'integer'],
+            'exchange_rate' => ['required', 'numeric', 'gt:0'],
+        ]);
+
+        $currency = Currency::query()
+            ->where('status', 1)
+            ->findOrFail($request->id);
+
+        $currency->exchange_rate = $request->exchange_rate;
+
+        if ($currency->save()) {
+            flash(translate('Currency rate updated successfully'))->success();
+        } else {
+            flash(translate('Something went wrong'))->error();
+        }
+
+        return redirect()->route('website.currency-rates.index');
     }
 }
