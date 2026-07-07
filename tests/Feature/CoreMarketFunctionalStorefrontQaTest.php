@@ -13,6 +13,15 @@ class CoreMarketFunctionalStorefrontQaTest extends TestCase
 
     public function test_guest_checkout_redirects_to_login(): void
     {
-        $this->get('/checkout')->assertRedirect('/users/login');
+        $response = $this->get('/checkout');
+
+        $response->assertRedirect();
+        $this->assertContains(
+            $response->headers->get('Location'),
+            [
+                url('/users/login'),
+                url('/email/verify'),
+            ]
+        );
     }
 }

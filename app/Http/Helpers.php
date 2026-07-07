@@ -107,24 +107,38 @@ if (! function_exists('coremarket_plan_code')) {
     }
 }
 
+if (! function_exists('coremarket_applied_plan')) {
+    function coremarket_applied_plan($default = null)
+    {
+        return app(\App\Services\CoreMarketFeatureAccessService::class)->appliedPlan($default);
+    }
+}
+
+if (! function_exists('coremarket_store_mode')) {
+    function coremarket_store_mode($default = null)
+    {
+        return app(\App\Services\CoreMarketFeatureAccessService::class)->storeMode($default);
+    }
+}
+
 if (! function_exists('coremarket_feature_enabled')) {
     function coremarket_feature_enabled(string $feature, bool $default = false): bool
     {
-        return app(\App\Services\CoreMarketFeatureService::class)->enabled($feature, $default);
+        return app(\App\Services\CoreMarketFeatureAccessService::class)->enabled($feature, $default);
     }
 }
 
 if (! function_exists('coremarket_feature_value')) {
     function coremarket_feature_value(string $feature, $default = null)
     {
-        return app(\App\Services\CoreMarketFeatureService::class)->value($feature, $default);
+        return app(\App\Services\CoreMarketFeatureAccessService::class)->value($feature, $default);
     }
 }
 
 if (! function_exists('coremarket_limit')) {
     function coremarket_limit(string $limit, $default = null)
     {
-        return app(\App\Services\CoreMarketFeatureService::class)->limit($limit, $default);
+        return app(\App\Services\CoreMarketFeatureAccessService::class)->limit($limit, $default);
     }
 }
 

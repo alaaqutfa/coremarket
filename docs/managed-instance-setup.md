@@ -4,6 +4,9 @@
 
 This project supports managed white-label instances without hardcoding client data into the core codebase.
 
+CorePilotOS remains the source of truth for commercial plans, pricing, subscriptions, and activation.
+CoreMarket only enforces runtime feature access, store modes, and limits from the values it receives.
+
 ## Core Code vs Instance Config
 
 - Core code:
@@ -40,7 +43,8 @@ APP_URL=https://example-store.com
 COREMARKET_LICENSE_ENABLED=true
 COREMARKET_INSTANCE_ID=client-store
 COREMARKET_LICENSE_DOMAIN=example-store.com
-COREMARKET_PLAN_CODE=ecommerce_starter
+COREMARKET_APPLIED_PLAN_CODE=starter
+COREMARKET_PLAN_CODE=starter
 COREMARKET_LICENSE_STATUS=active
 ```
 
@@ -85,6 +89,9 @@ Use that document when deciding how a new managed instance database is created b
 
 For the full managed client launch checklist after the clean baseline exists, use
 [docs/managed-client-instance-launch.md](/C:/xampp/htdocs/coremarket/docs/managed-client-instance-launch.md).
+
+For runtime plan, store mode, feature, and limit resolution, use
+[docs/runtime-feature-access.md](/C:/xampp/htdocs/coremarket/docs/runtime-feature-access.md).
 
 For a read-only preflight against the current local database, run:
 

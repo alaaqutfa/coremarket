@@ -10,6 +10,8 @@ use Illuminate\Support\Arr;
 
 class CoreMarketLicenseService
 {
+    protected ?CoreMarketFeatureAccessService $featureAccess = null;
+
     public function isEnabled(): bool
     {
         return (bool) config('coremarket.license.license_enabled', false);
@@ -100,17 +102,22 @@ class CoreMarketLicenseService
 
     public function currentPlan(): ?string
     {
-        return config('coremarket.license.plan_code', config('coremarket.plan.code'));
+        return $this->featureAccess()->appliedPlan();
+    }
+
+    public function currentStoreMode(): string
+    {
+        return $this->featureAccess()->storeMode();
     }
 
     public function limit(string $key, $default = null)
     {
-        return config("coremarket.limits.{$key}", $default);
+        return $this->featureAccess()->limit($key, $default);
     }
 
     public function feature(string $key, $default = null)
     {
-        return config("coremarket.features.{$key}", $default);
+        return $this->featureAccess()->value($key, $default);
     }
 
     public function snapshot(): array
@@ -121,6 +128,7 @@ class CoreMarketLicenseService
             'license_key' => config('coremarket.license.license_key'),
             'domain' => config('coremarket.license.domain'),
             'plan_code' => $this->currentPlan(),
+            'store_mode' => $this->currentStoreMode(),
             'status' => $this->status(),
             'starts_at' => config('coremarket.license.starts_at'),
             'expires_at' => config('coremarket.license.expires_at'),
@@ -334,5 +342,10 @@ class CoreMarketLicenseService
     protected function resolveNow(?CarbonInterface $now = null): CarbonInterface
     {
         return $now ? Carbon::instance($now) : now();
+    }
+
+    protected function featureAccess(): CoreMarketFeatureAccessService
+    {
+        return $this->featureAccess ??= app(CoreMarketFeatureAccessService::class);
     }
 }

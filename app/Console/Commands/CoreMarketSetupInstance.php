@@ -15,7 +15,7 @@ class CoreMarketSetupInstance extends Command
                             {--create-store-admin : Preview a Store Admin creation action after apply validation}
                             {--store-name= : Public store name}
                             {--domain= : Public domain without secrets}
-                            {--plan=ecommerce_starter : CoreMarket plan code}
+                            {--plan=starter : CoreMarket applied plan code}
                             {--admin-name= : Store admin display name}
                             {--admin-email= : Store admin email address}
                             {--site-motto= : Public site motto}

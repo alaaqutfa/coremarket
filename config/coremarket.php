@@ -2,7 +2,220 @@
 
 return [
     'plan' => [
-        'code' => env('COREMARKET_PLAN_CODE', 'ecommerce_starter'),
+        'code' => env('COREMARKET_PLAN_CODE', env('COREMARKET_APPLIED_PLAN_CODE', 'starter')),
+    ],
+
+    'runtime' => [
+        'default_applied_plan' => 'starter',
+        'applied_plan_code' => env('COREMARKET_APPLIED_PLAN_CODE', env('COREMARKET_PLAN_CODE', 'starter')),
+        'default_store_mode' => 'single_store',
+        'store_mode' => env('COREMARKET_STORE_MODE', env('COREMARKET_LICENSE_STORE_MODE', 'single_store')),
+
+        'plan_aliases' => [
+            'ecommerce_starter' => 'starter',
+            'starter' => 'starter',
+            'business' => 'business',
+            'marketplace' => 'marketplace',
+            'enterprise' => 'enterprise',
+        ],
+
+        'store_mode_aliases' => [
+            'single_store' => 'single_store',
+            'single-store' => 'single_store',
+            'marketplace' => 'marketplace',
+            'owned_coremarket_store' => 'owned_coremarket_store',
+            'owned-coremarket-store' => 'owned_coremarket_store',
+        ],
+
+        'feature_aliases' => [
+            'vendor_mode_enabled' => 'multi_vendor',
+            'seller_registration_enabled' => 'sellers',
+            'seller_panel_enabled' => 'sellers',
+            'pos_enabled' => 'pos',
+            'advanced_reports_enabled' => 'reports_advanced',
+            'basic_loyalty_enabled' => 'loyalty_points',
+        ],
+
+        'feature_definitions' => [
+            'multi_vendor' => ['default' => false],
+            'sellers' => ['default' => false],
+            'pos' => ['default' => false],
+            'blog' => ['default' => false],
+            'marketing_basic' => ['default' => true],
+            'marketing_advanced' => ['default' => false],
+            'support_basic' => ['default' => true],
+            'support_advanced' => ['default' => false],
+            'staff_management' => ['default' => true],
+            'reports_basic' => ['default' => true],
+            'reports_advanced' => ['default' => false],
+            'uploads_manager' => ['default' => true],
+            'loyalty_points' => ['default' => true],
+            'website_appearance' => ['default' => true],
+            'website_pages_limited' => ['default' => true],
+            'translations_limited' => ['default' => true],
+            'currencies_limited' => ['default' => true],
+            'addon_requests' => ['default' => false],
+            'subscription_page' => ['default' => false],
+        ],
+
+        'limit_definitions' => [
+            'products_limit' => ['default' => 50],
+            'monthly_orders_limit' => ['default' => 300],
+            'staff_limit' => ['default' => 3],
+            'sellers_limit' => ['default' => 0],
+            'storage_mb_limit' => ['default' => 1024],
+        ],
+
+        'plans' => [
+            'starter' => [
+                'default_store_mode' => 'single_store',
+                'features' => [
+                    'multi_vendor' => false,
+                    'sellers' => false,
+                    'pos' => false,
+                    'blog' => true,
+                    'marketing_basic' => true,
+                    'marketing_advanced' => false,
+                    'support_basic' => true,
+                    'support_advanced' => false,
+                    'staff_management' => true,
+                    'reports_basic' => true,
+                    'reports_advanced' => false,
+                    'uploads_manager' => true,
+                    'loyalty_points' => true,
+                    'website_appearance' => true,
+                    'website_pages_limited' => true,
+                    'translations_limited' => true,
+                    'currencies_limited' => true,
+                    'addon_requests' => false,
+                    'subscription_page' => false,
+                ],
+                'limits' => [
+                    'products_limit' => 50,
+                    'monthly_orders_limit' => 300,
+                    'staff_limit' => 3,
+                    'sellers_limit' => 0,
+                    'storage_mb_limit' => 1024,
+                ],
+            ],
+            'business' => [
+                'default_store_mode' => 'single_store',
+                'features' => [
+                    'multi_vendor' => false,
+                    'sellers' => false,
+                    'pos' => true,
+                    'blog' => true,
+                    'marketing_basic' => true,
+                    'marketing_advanced' => true,
+                    'support_basic' => true,
+                    'support_advanced' => true,
+                    'staff_management' => true,
+                    'reports_basic' => true,
+                    'reports_advanced' => true,
+                    'uploads_manager' => true,
+                    'loyalty_points' => true,
+                    'website_appearance' => true,
+                    'website_pages_limited' => true,
+                    'translations_limited' => true,
+                    'currencies_limited' => true,
+                    'addon_requests' => true,
+                    'subscription_page' => true,
+                ],
+                'limits' => [
+                    'products_limit' => 500,
+                    'monthly_orders_limit' => 5000,
+                    'staff_limit' => 15,
+                    'sellers_limit' => 0,
+                    'storage_mb_limit' => 5120,
+                ],
+            ],
+            'marketplace' => [
+                'default_store_mode' => 'marketplace',
+                'features' => [
+                    'multi_vendor' => true,
+                    'sellers' => true,
+                    'pos' => true,
+                    'blog' => true,
+                    'marketing_basic' => true,
+                    'marketing_advanced' => true,
+                    'support_basic' => true,
+                    'support_advanced' => true,
+                    'staff_management' => true,
+                    'reports_basic' => true,
+                    'reports_advanced' => true,
+                    'uploads_manager' => true,
+                    'loyalty_points' => true,
+                    'website_appearance' => true,
+                    'website_pages_limited' => true,
+                    'translations_limited' => true,
+                    'currencies_limited' => true,
+                    'addon_requests' => true,
+                    'subscription_page' => true,
+                ],
+                'limits' => [
+                    'products_limit' => 5000,
+                    'monthly_orders_limit' => 25000,
+                    'staff_limit' => 50,
+                    'sellers_limit' => 1000,
+                    'storage_mb_limit' => 20480,
+                ],
+            ],
+            'enterprise' => [
+                'default_store_mode' => 'owned_coremarket_store',
+                'features' => [
+                    'multi_vendor' => true,
+                    'sellers' => true,
+                    'pos' => true,
+                    'blog' => true,
+                    'marketing_basic' => true,
+                    'marketing_advanced' => true,
+                    'support_basic' => true,
+                    'support_advanced' => true,
+                    'staff_management' => true,
+                    'reports_basic' => true,
+                    'reports_advanced' => true,
+                    'uploads_manager' => true,
+                    'loyalty_points' => true,
+                    'website_appearance' => true,
+                    'website_pages_limited' => true,
+                    'translations_limited' => true,
+                    'currencies_limited' => true,
+                    'addon_requests' => true,
+                    'subscription_page' => true,
+                ],
+                'limits' => [
+                    'products_limit' => null,
+                    'monthly_orders_limit' => null,
+                    'staff_limit' => null,
+                    'sellers_limit' => null,
+                    'storage_mb_limit' => null,
+                ],
+            ],
+        ],
+
+        'store_modes' => [
+            'single_store' => [
+                'feature_overrides' => [
+                    'multi_vendor' => false,
+                    'sellers' => false,
+                ],
+                'limit_overrides' => [],
+            ],
+            'marketplace' => [
+                'feature_overrides' => [
+                    'multi_vendor' => true,
+                    'sellers' => true,
+                ],
+                'limit_overrides' => [],
+            ],
+            'owned_coremarket_store' => [
+                'feature_overrides' => [
+                    'multi_vendor' => false,
+                    'sellers' => false,
+                ],
+                'limit_overrides' => [],
+            ],
+        ],
     ],
 
     'license' => [
@@ -13,12 +226,16 @@ return [
             'COREMARKET_LICENSE_DOMAIN',
             parse_url(env('APP_URL', ''), PHP_URL_HOST) ?: env('APP_URL')
         ),
-        'plan_code' => env('COREMARKET_PLAN_CODE', 'ecommerce_starter'),
+        'applied_plan_code' => env('COREMARKET_APPLIED_PLAN_CODE', env('COREMARKET_PLAN_CODE', 'starter')),
+        'plan_code' => env('COREMARKET_PLAN_CODE', env('COREMARKET_APPLIED_PLAN_CODE', 'starter')),
+        'store_mode' => env('COREMARKET_LICENSE_STORE_MODE', env('COREMARKET_STORE_MODE', 'single_store')),
         'status' => env('COREMARKET_LICENSE_STATUS', 'active'),
         'starts_at' => env('COREMARKET_LICENSE_STARTS_AT'),
         'expires_at' => env('COREMARKET_LICENSE_EXPIRES_AT'),
         'grace_until' => env('COREMARKET_LICENSE_GRACE_UNTIL'),
         'suspension_reason' => env('COREMARKET_LICENSE_SUSPENSION_REASON'),
+        'feature_overrides' => [],
+        'limit_overrides' => [],
     ],
 
     'features' => [
@@ -40,6 +257,9 @@ return [
     'limits' => [
         'products_limit' => 50,
         'monthly_orders_limit' => 300,
+        'staff_limit' => 3,
+        'sellers_limit' => 0,
+        'storage_mb_limit' => 1024,
     ],
 
     'contact' => [
@@ -50,7 +270,7 @@ return [
     ],
 
     'instance_setup' => [
-        'default_plan' => 'ecommerce_starter',
+        'default_plan' => 'starter',
 
         'business_settings_map' => [
             'website_name' => 'store_name',

@@ -192,12 +192,16 @@ class CoreMarketLicenseServiceTest extends TestCase
             'instance_id' => null,
             'license_key' => null,
             'domain' => 'localhost',
-            'plan_code' => 'ecommerce_starter',
+            'applied_plan_code' => 'starter',
+            'plan_code' => 'starter',
+            'store_mode' => 'single_store',
             'status' => 'active',
             'starts_at' => null,
             'expires_at' => null,
             'grace_until' => null,
             'suspension_reason' => null,
+            'feature_overrides' => [],
+            'limit_overrides' => [],
         ], $licenseOverrides);
 
         $limits = $overrides['limits'] ?? [

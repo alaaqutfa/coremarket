@@ -9,7 +9,7 @@ class CoreMarketInstanceSetupService
 {
     public function buildPlan(string $instanceId, array $options = []): array
     {
-        $planCode = $options['plan'] ?? config('coremarket.instance_setup.default_plan', 'ecommerce_starter');
+        $planCode = $options['plan'] ?? config('coremarket.instance_setup.default_plan', 'starter');
         $storeName = $options['store_name'] ?? null;
         $domain = $options['domain'] ?? null;
         $adminName = $options['admin_name'] ?? null;

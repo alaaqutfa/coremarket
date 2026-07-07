@@ -37,9 +37,10 @@ class CoreMarketFeatureServiceTest extends TestCase
         /** @var CoreMarketFeatureService $service */
         $service = app(CoreMarketFeatureService::class);
 
-        $this->assertSame('ecommerce_starter', $service->planCode());
+        $this->assertSame('starter', $service->planCode());
         $this->assertSame(50, $service->limit('products_limit'));
         $this->assertSame(300, $service->limit('monthly_orders_limit'));
+        $this->assertSame('single_store', $service->storeMode());
     }
 
     public function test_disabled_feature_blocks_route_without_bypass(): void

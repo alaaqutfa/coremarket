@@ -14,7 +14,7 @@ class CoreMarketInstanceSetupServiceTest extends TestCase
         $plan = $service->buildPlan('client-store', [
             'store_name' => 'Client Store',
             'domain' => 'example-store.com',
-            'plan' => 'ecommerce_starter',
+            'plan' => 'starter',
             'admin_email' => 'owner@example-store.com',
             'dry_run' => true,
         ]);
@@ -22,7 +22,7 @@ class CoreMarketInstanceSetupServiceTest extends TestCase
         $this->assertSame('client-store', $plan['instance_id']);
         $this->assertSame('Client Store', $plan['store_name']);
         $this->assertSame('example-store.com', $plan['domain']);
-        $this->assertSame('ecommerce_starter', $plan['plan_code']);
+        $this->assertSame('starter', $plan['plan_code']);
         $this->assertTrue($plan['dry_run']);
     }
 

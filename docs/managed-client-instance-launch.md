@@ -59,7 +59,7 @@ Prepare the following before launch:
 - default currency
 - Store Admin name
 - Store Admin email
-- plan code: `ecommerce_starter`
+- applied plan code: `starter`
 - product limit: `50`
 - monthly order limit: `300`
 - COD/manual order preference
@@ -91,7 +91,8 @@ The baseline should provide:
    - `COREMARKET_LICENSE_ENABLED=true`
    - `COREMARKET_INSTANCE_ID`
    - `COREMARKET_LICENSE_DOMAIN`
-   - `COREMARKET_PLAN_CODE=ecommerce_starter`
+   - `COREMARKET_APPLIED_PLAN_CODE=starter`
+   - `COREMARKET_PLAN_CODE=starter`
    - `COREMARKET_LICENSE_STATUS=active`
    - `COREMARKET_LICENSE_EXPIRES_AT` if contract dates are already defined
 5. Point the instance to its own uploads/media storage path.
@@ -117,6 +118,7 @@ At minimum:
 - `COREMARKET_INSTANCE_ID`
 - `COREMARKET_LICENSE_KEY`
 - `COREMARKET_LICENSE_DOMAIN`
+- `COREMARKET_APPLIED_PLAN_CODE`
 - `COREMARKET_PLAN_CODE`
 - `COREMARKET_LICENSE_STATUS`
 - `COREMARKET_LICENSE_STARTS_AT`
@@ -176,7 +178,7 @@ The client Store Admin must not receive:
 
 For the managed starter offer, keep:
 
-- `plan_code = ecommerce_starter`
+- `applied_plan_code = starter`
 - products limit = `50`
 - monthly orders limit = `300`
 - vendor mode disabled
