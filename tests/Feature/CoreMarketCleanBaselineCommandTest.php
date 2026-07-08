@@ -23,9 +23,21 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
 
     public function test_clean_baseline_dry_run_does_not_write_database(): void
     {
+        DB::beginTransaction();
+
+        DB::table('translations')->updateOrInsert(
+            ['id' => 5079],
+            [
+                'lang' => 'en',
+                'lang_key' => 'dry_run_brand_message',
+                'lang_value' => 'Dry-run Syrian Souq check for :name',
+            ]
+        );
+
         $before = [
             'website_name' => BusinessSetting::query()->where('type', 'website_name')->whereNull('lang')->value('value'),
             'shop_name' => optional(Shop::query()->first())->name,
+            'translation_value' => DB::table('translations')->where('id', 5079)->value('lang_value'),
         ];
 
         $this->artisan('coremarket:clean-baseline', [
@@ -38,9 +50,12 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
         $after = [
             'website_name' => BusinessSetting::query()->where('type', 'website_name')->whereNull('lang')->value('value'),
             'shop_name' => optional(Shop::query()->first())->name,
+            'translation_value' => DB::table('translations')->where('id', 5079)->value('lang_value'),
         ];
 
         $this->assertSame($before, $after);
+
+        DB::rollBack();
     }
 
     public function test_clean_baseline_apply_requires_confirmation(): void
@@ -63,6 +78,16 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
     public function test_clean_baseline_apply_neutralizes_shop_branding_safely(): void
     {
         DB::beginTransaction();
+
+        $translationsBeforeCount = DB::table('translations')->count();
+        $pageTranslationsBeforeCount = DB::table('page_translations')->count();
+        $expectedTranslationCountDelta = 0;
+
+        foreach ([78, 79, 1741] as $translationId) {
+            if (! DB::table('translations')->where('id', $translationId)->exists()) {
+                $expectedTranslationCountDelta++;
+            }
+        }
 
         DB::table('business_settings')->updateOrInsert(
             ['type' => 'website_name', 'lang' => null],
@@ -88,6 +113,24 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
                 'lang' => 'en',
                 'lang_key' => 'inhouse_product',
                 'lang_value' => 'Syrian Souq products',
+            ]
+        );
+
+        DB::table('translations')->updateOrInsert(
+            ['id' => 79],
+            [
+                'lang' => 'en',
+                'lang_key' => 'welcome_brand_message',
+                'lang_value' => 'Welcome to Syrian Souq, :name!',
+            ]
+        );
+
+        DB::table('translations')->updateOrInsert(
+            ['id' => 1741],
+            [
+                'lang' => 'sy',
+                'lang_key' => 'inhouse_product',
+                'lang_value' => 'منتجات سوق سوريا',
             ]
         );
 
@@ -139,9 +182,15 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
         $this->assertSame('', (string) $shop->twitter);
         $this->assertSame('', (string) $shop->youtube);
         $this->assertSame('', (string) $shop->google);
-        $this->assertSame('In-house products', DB::table('translations')->where('id', 78)->value('lang_value'));
+        $this->assertSame('CoreMarket Store products', DB::table('translations')->where('id', 78)->value('lang_value'));
+        $this->assertSame('Welcome to CoreMarket Store, :name!', DB::table('translations')->where('id', 79)->value('lang_value'));
+        $this->assertSame('منتجات CoreMarket Store', DB::table('translations')->where('id', 1741)->value('lang_value'));
         $this->assertSame('CoreMarket Store', DB::table('page_translations')->where('id', 2)->value('title'));
         $this->assertSame('https://example.com/product/sample', DB::table('messages')->where('id', 1)->value('message'));
+        $this->assertSame('welcome_brand_message', DB::table('translations')->where('id', 79)->value('lang_key'));
+        $this->assertSame('en', DB::table('translations')->where('id', 79)->value('lang'));
+        $this->assertSame($translationsBeforeCount + $expectedTranslationCountDelta, DB::table('translations')->count());
+        $this->assertSame($pageTranslationsBeforeCount, DB::table('page_translations')->count());
 
         $afterCounts = [
             'products' => DB::table('products')->count(),

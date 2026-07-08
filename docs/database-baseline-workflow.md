@@ -6,6 +6,11 @@ The official local baseline SQL reference is:
 
 - `database/base/coremarket.sql`
 
+Planned split:
+
+- `database/base/coremarket.sql`: clean client-neutral baseline
+- `database/base/coremarket_test.sql`: future fake demo/testing baseline derived from the clean baseline, not from legacy client data
+
 This file is a private operational baseline reference for local recovery and baseline rebuild work.
 
 It must not be treated as a Git-native schema system, and it must not be used as a reason to skip runtime database guards.
@@ -80,6 +85,7 @@ It:
 - ensures the minimal `store_admin` role exists for runtime setup and testing workflows
 - disables unsafe starter-incompatible baseline flags such as popup and vendor mode
 - keeps the baseline generic for later client setup
+- preserves translation rows, keys, locales, placeholders, and HTML while neutralizing only explicit old branding inside translation values
 
 It does not:
 

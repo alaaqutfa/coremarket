@@ -454,16 +454,18 @@ return [
         ],
 
         'translation_replacements' => [
-            'Syrian souq products' => 'In-house products',
-            'Syrian Souq products' => 'In-house products',
-            'Syrian Souq Products' => 'In-house products',
-            'Syrian Souq Products sale report' => 'In-house products sale report',
-            'Syrian marketplace' => 'managed marketplace',
-            'منتجات سوق سوريا' => 'منتجات المتجر',
-            'تقرير بيع منتجات سوق سوريا' => 'تقرير بيع منتجات المتجر',
-            'المنتجات (سوق سوريا)' => 'المنتجات الداخلية',
-            'عرض المنتجات (سوق سوريا)' => 'عرض المنتجات الداخلية',
-            'منتج سوق سوريا' => 'منتج المتجر',
+            'Syrian Souq' => 'CoreMarket Store',
+            'Syrian souq' => 'CoreMarket Store',
+            'syrian_souq' => 'CoreMarket Store',
+            'syriansouq' => 'CoreMarket Store',
+            'سوق سوريا' => 'CoreMarket Store',
+            'Shaheen' => 'CoreMarket Store',
+            'shaheen' => 'CoreMarket Store',
+            'الشاهين' => 'CoreMarket Store',
+            'Coin Market' => 'CoreMarket Store',
+            'coin-market' => 'CoreMarket Store',
+            'demo.coin-market.store' => 'example.com',
+            'https://syriansouq.com' => 'example.com',
         ],
 
         'message_replacements' => [

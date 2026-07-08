@@ -48,6 +48,11 @@ The official local SQL baseline reference now lives at:
 
 Treat it as a private operational reference, not as a tracked migration replacement.
 
+Baseline split preparation:
+
+- `database/base/coremarket.sql` remains the clean client-neutral baseline
+- `database/base/coremarket_test.sql` is reserved for a future fake demo/testing baseline derived from the clean baseline, not from contaminated legacy client data
+
 ## Baseline Strategy Options
 
 ### Option A: Migrations Only
@@ -162,6 +167,16 @@ These tables should exist in a clean managed baseline schema, even when many of 
 - `currencies`
 - `app_translations`
 - `translations`
+
+Translation policy for the clean baseline:
+
+- preserve all translation rows
+- preserve all translation keys
+- preserve all locales/languages
+- preserve Arabic and English content
+- preserve placeholders such as `:name`, `:count`, `{value}`, and `%s`
+- preserve safe HTML in translation values
+- neutralize only explicit old client/project branding terms and legacy URLs inside translation values
 
 ### Geography and Addressing
 
