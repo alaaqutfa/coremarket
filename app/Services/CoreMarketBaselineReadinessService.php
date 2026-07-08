@@ -11,14 +11,16 @@ class CoreMarketBaselineReadinessService
     {
         $tableCounts = $this->buildTableCounts();
         $requiredSettings = $this->buildRequiredSettingsStatus();
-        $oldBrandingWarnings = $this->buildOldBrandingWarnings();
+        $oldBrandingFindings = $this->legacyBrandingFindings();
+        $oldBrandingWarnings = $this->summarizeLegacyBrandingFindings($oldBrandingFindings);
         $statusFlags = $this->buildStatusFlags();
         $schemaDrift = $this->buildSchemaDriftStatus();
-        $baselineDataCounts = $this->buildBaselineDataCounts();
+        $baselineDataCounts = $this->baselineInventoryCounts();
 
         return [
             'table_counts' => $tableCounts,
             'required_settings' => $requiredSettings,
+            'old_branding_findings' => $oldBrandingFindings,
             'old_branding_warnings' => $oldBrandingWarnings,
             'status_flags' => $statusFlags,
             'schema_drift' => $schemaDrift,
@@ -108,69 +110,57 @@ class CoreMarketBaselineReadinessService
         return $rows->all();
     }
 
-    protected function buildOldBrandingWarnings(): array
+    public function legacyBrandingFindings(): array
     {
-        $terms = [
-            'Coin Market',
-            'Coin Markert',
-            'coin-market',
-            'demo.coin-market.store',
-            'Group Coin',
-            'Syrian Souq',
-            'syriansouq',
-            'syrian_souq',
-            'الشاهين',
-            'shaheen',
-            'activeitzone',
-            'codecanyon',
-            'Active eCommerce',
-            'http://localhost/syrian-souq',
-            'https://syriansouq.com',
-        ];
-
         $warnings = collect();
 
-        foreach ($terms as $term) {
-            $businessSettingsCount = DB::table('business_settings')
-                ->where('value', 'like', '%' . $term . '%')
-                ->count();
+        foreach (config('coremarket.clean_baseline.legacy_terms', []) as $term) {
+            foreach (config('coremarket.clean_baseline.audit_targets', []) as $table => $columns) {
+                if (! Schema::hasTable($table)) {
+                    continue;
+                }
 
-            $shopsCount = Schema::hasTable('shops')
-                ? DB::table('shops')
-                    ->where(function ($query) use ($term) {
-                        $query->where('name', 'like', '%' . $term . '%')
-                            ->orWhere('slug', 'like', '%' . $term . '%')
-                            ->orWhere('meta_title', 'like', '%' . $term . '%');
-                    })
-                    ->count()
-                : 0;
+                foreach ($columns as $column) {
+                    if (! Schema::hasColumn($table, $column)) {
+                        continue;
+                    }
 
-            $productsCount = Schema::hasTable('products')
-                ? DB::table('products')
-                    ->where(function ($query) use ($term) {
-                        $query->where('name', 'like', '%' . $term . '%')
-                            ->orWhere('meta_title', 'like', '%' . $term . '%')
-                            ->orWhere('meta_description', 'like', '%' . $term . '%');
-                    })
-                    ->count()
-                : 0;
+                    $count = DB::table($table)->where($column, 'like', '%' . $term . '%')->count();
 
-            $total = $businessSettingsCount + $shopsCount + $productsCount;
+                    if ($count < 1) {
+                        continue;
+                    }
 
-            if ($total === 0) {
-                continue;
+                    $warnings->push([
+                        'status' => 'WARN',
+                        'term' => $term,
+                        'table' => $table,
+                        'column' => $column,
+                        'count' => $count,
+                    ]);
+                }
             }
-
-            $warnings->push([
-                'term' => $term,
-                'status' => 'WARN',
-                'business_settings' => $businessSettingsCount,
-                'shops' => $shopsCount,
-                'products' => $productsCount,
-            ]);
         }
 
         return $warnings->all();
+    }
+
+    public function summarizeLegacyBrandingFindings(array $findings): array
+    {
+        return collect($findings)
+            ->groupBy('term')
+            ->map(function ($rows, $term) {
+                return [
+                    'term' => $term,
+                    'status' => 'WARN',
+                    'business_settings' => $rows->where('table', 'business_settings')->sum('count'),
+                    'shops' => $rows->where('table', 'shops')->sum('count'),
+                    'products' => $rows->where('table', 'products')->sum('count'),
+                    'other' => $rows->reject(fn (array $row) => in_array($row['table'], ['business_settings', 'shops', 'products'], true))->sum('count'),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     protected function buildStatusFlags(): array
@@ -201,21 +191,30 @@ class CoreMarketBaselineReadinessService
         ];
     }
 
-    protected function buildBaselineDataCounts(): array
+    public function baselineInventoryCounts(): array
     {
-        $tables = [
-            'products',
-            'uploads',
-            'orders',
+        $inventory = [
+            ['label' => 'shops', 'count' => $this->tableCount('shops')],
+            ['label' => 'sellers', 'count' => $this->tableCount('sellers')],
+            ['label' => 'users_total', 'count' => $this->tableCount('users')],
+            ['label' => 'users_admin', 'count' => $this->usersCountByType('admin')],
+            ['label' => 'users_staff', 'count' => $this->usersCountByType('staff')],
+            ['label' => 'users_customer', 'count' => $this->usersCountByType('customer')],
+            ['label' => 'staff', 'count' => $this->tableCount('staff')],
+            ['label' => 'products', 'count' => $this->tableCount('products')],
+            ['label' => 'orders', 'count' => $this->tableCount('orders')],
+            ['label' => 'uploads', 'count' => $this->tableCount('uploads')],
+            ['label' => 'categories', 'count' => $this->tableCount('categories')],
+            ['label' => 'brands', 'count' => $this->tableCount('brands')],
+            ['label' => 'pages', 'count' => $this->tableCount('pages')],
+            ['label' => 'blogs', 'count' => $this->tableCount('blogs')],
         ];
 
-        return collect($tables)->map(function (string $table) {
-            return [
-                'table' => $table,
-                'count' => Schema::hasTable($table) ? DB::table($table)->count() : null,
-                'status' => Schema::hasTable($table) ? 'INFO' : 'FAIL',
-            ];
-        })->all();
+        return collect($inventory)->map(fn (array $row) => [
+            'table' => $row['label'],
+            'count' => $row['count'],
+            'status' => $row['count'] === null ? 'FAIL' : 'INFO',
+        ])->all();
     }
 
     protected function buildSummary(
@@ -319,5 +318,19 @@ class CoreMarketBaselineReadinessService
         return mb_strlen($normalized) > 70
             ? mb_substr($normalized, 0, 67) . '...'
             : $normalized;
+    }
+
+    protected function tableCount(string $table): ?int
+    {
+        return Schema::hasTable($table) ? DB::table($table)->count() : null;
+    }
+
+    protected function usersCountByType(string $type): ?int
+    {
+        if (! Schema::hasTable('users') || ! Schema::hasColumn('users', 'user_type')) {
+            return null;
+        }
+
+        return DB::table('users')->where('user_type', $type)->count();
     }
 }

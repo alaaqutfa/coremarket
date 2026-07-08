@@ -7,9 +7,12 @@ use App\Models\Currency;
 use App\Models\Language;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CoreMarketCleanBaselineService
 {
+    protected ?CoreMarketBaselineReadinessService $readinessService = null;
+
     public function buildPlan(array $options = []): array
     {
         return [
@@ -21,10 +24,12 @@ class CoreMarketCleanBaselineService
             'target_language' => $this->targetLanguage(),
             'target_currency' => $this->targetCurrency(),
             'settings' => $this->buildSettingsPreview(),
-            'product_count' => DB::table('products')->count(),
-            'order_count' => DB::table('orders')->count(),
-            'upload_count' => DB::table('uploads')->count(),
-            'remaining_branding_warnings' => $this->remainingBrandingWarnings(),
+            'shops' => $this->buildShopPreview(),
+            'product_count' => Schema::hasTable('products') ? DB::table('products')->count() : 0,
+            'order_count' => Schema::hasTable('orders') ? DB::table('orders')->count() : 0,
+            'upload_count' => Schema::hasTable('uploads') ? DB::table('uploads')->count() : 0,
+            'inventory' => $this->readiness()->baselineInventoryCounts(),
+            'remaining_branding_warnings' => $this->readiness()->legacyBrandingFindings(),
             'notes' => config('coremarket.clean_baseline.notes', []),
         ];
     }
@@ -54,9 +59,132 @@ class CoreMarketCleanBaselineService
 
     public function applyPlan(array $plan): array
     {
+        $applied = $this->applyBusinessSettings($plan['settings']);
+        $appliedShops = $this->applyShopDefaults($plan['shops']);
+
+        Cache::forget('business_settings');
+        Cache::forget('system_default_currency');
+
+        return [
+            'settings' => $applied,
+            'shops' => $appliedShops,
+            'target_currency' => $plan['target_currency'],
+            'target_language' => $plan['target_language'],
+        ];
+    }
+
+    protected function buildSettingsPreview(): array
+    {
+        $preview = collect();
+        $targetCurrency = $this->targetCurrency();
+
+        foreach ($this->settingDefaults($targetCurrency['id']) as $type => $targetValue) {
+            if (! Schema::hasTable('business_settings')) {
+                $preview->push($this->formatPreviewRow($type, null, null, $targetValue));
+                continue;
+            }
+
+            $rows = BusinessSetting::query()
+                ->where('type', $type)
+                ->orderByRaw('lang is null desc')
+                ->get();
+
+            if ($rows->isEmpty()) {
+                $preview->push($this->formatPreviewRow($type, null, null, $targetValue));
+                continue;
+            }
+
+            $rows->each(function (BusinessSetting $row) use ($preview, $targetValue) {
+                $preview->push($this->formatPreviewRow($row->type, $row->lang, $row->value, $targetValue));
+            });
+        }
+
+        return $preview
+            ->unique(fn (array $row) => $row['type'] . '|' . ($row['lang'] ?? 'null'))
+            ->values()
+            ->all();
+    }
+
+    protected function settingDefaults(?int $currencyId): array
+    {
+        $defaults = config('coremarket.clean_baseline.setting_defaults', []);
+
+        if ($currencyId !== null) {
+            $defaults['system_default_currency'] = (string) $currencyId;
+            $defaults['home_default_currency'] = (string) $currencyId;
+        }
+
+        return $defaults;
+    }
+
+    protected function targetCurrency(): array
+    {
+        $currency = Schema::hasTable('currencies')
+            ? Currency::query()->where('code', 'USD')->first()
+            : null;
+
+        return [
+            'code' => 'USD',
+            'id' => $currency?->id,
+            'exists' => $currency !== null,
+        ];
+    }
+
+    protected function targetLanguage(): array
+    {
+        $language = Schema::hasTable('languages')
+            ? Language::query()->where('code', 'en')->first()
+            : null;
+
+        return [
+            'code' => 'en',
+            'id' => $language?->id,
+            'exists' => $language !== null,
+        ];
+    }
+
+    protected function buildShopPreview(): array
+    {
+        if (! Schema::hasTable('shops')) {
+            return [];
+        }
+
+        $defaults = config('coremarket.clean_baseline.shop_defaults', []);
+        $preview = [];
+
+        foreach (DB::table('shops')->get() as $shop) {
+            foreach ($defaults as $field => $targetValue) {
+                if (! property_exists($shop, $field)) {
+                    continue;
+                }
+
+                $preview[] = [
+                    'id' => $shop->id,
+                    'field' => $field,
+                    'current_value' => $shop->{$field},
+                    'target_value' => $targetValue,
+                ];
+            }
+        }
+
+        return $preview;
+    }
+
+    protected function formatPreviewRow(string $type, ?string $lang, $currentValue, $targetValue): array
+    {
+        return [
+            'type' => $type,
+            'lang' => $lang,
+            'current_value' => $currentValue,
+            'target_value' => $targetValue,
+        ];
+    }
+
+    protected function applyBusinessSettings(array $settings): array
+    {
         $applied = [];
 
-        foreach ($plan['settings'] as $setting) {
+        foreach ($settings as $setting) {
             $query = DB::table('business_settings')->where('type', $setting['type']);
 
             if ($setting['lang'] === null) {
@@ -96,106 +224,42 @@ class CoreMarketCleanBaselineService
             ];
         }
 
-        Cache::forget('business_settings');
-        Cache::forget('system_default_currency');
-
-        return [
-            'settings' => $applied,
-            'target_currency' => $plan['target_currency'],
-            'target_language' => $plan['target_language'],
-        ];
+        return $applied;
     }
 
-    protected function buildSettingsPreview(): array
+    protected function applyShopDefaults(array $shops): array
     {
-        $preview = collect();
-        $targetCurrency = $this->targetCurrency();
+        $applied = [];
 
-        foreach ($this->settingDefaults($targetCurrency['id']) as $type => $targetValue) {
-            $rows = BusinessSetting::query()
-                ->where('type', $type)
-                ->orderByRaw('lang is null desc')
-                ->get();
+        foreach ($shops as $row) {
+            $shop = DB::table('shops')->where('id', $row['id'])->first();
 
-            if ($rows->isEmpty()) {
-                $preview->push($this->formatPreviewRow($type, null, null, $targetValue));
+            if (! $shop) {
                 continue;
             }
 
-            $rows->each(function (BusinessSetting $row) use ($preview, $targetValue) {
-                $preview->push($this->formatPreviewRow($row->type, $row->lang, $row->value, $targetValue));
-            });
-        }
+            $previous = $shop->{$row['field']};
+            DB::table('shops')
+                ->where('id', $row['id'])
+                ->update([
+                    $row['field'] => $row['target_value'],
+                    'updated_at' => now(),
+                ]);
 
-        return $preview
-            ->unique(fn (array $row) => $row['type'] . '|' . ($row['lang'] ?? 'null'))
-            ->values()
-            ->all();
-    }
-
-    protected function settingDefaults(?int $currencyId): array
-    {
-        $defaults = config('coremarket.clean_baseline.setting_defaults', []);
-
-        if ($currencyId !== null) {
-            $defaults['system_default_currency'] = (string) $currencyId;
-            $defaults['home_default_currency'] = (string) $currencyId;
-        }
-
-        return $defaults;
-    }
-
-    protected function targetCurrency(): array
-    {
-        $currency = Currency::query()->where('code', 'USD')->first();
-
-        return [
-            'code' => 'USD',
-            'id' => $currency?->id,
-            'exists' => $currency !== null,
-        ];
-    }
-
-    protected function targetLanguage(): array
-    {
-        $language = Language::query()->where('code', 'en')->first();
-
-        return [
-            'code' => 'en',
-            'id' => $language?->id,
-            'exists' => $language !== null,
-        ];
-    }
-
-    protected function remainingBrandingWarnings(): array
-    {
-        $warnings = [];
-
-        foreach (config('coremarket.clean_baseline.legacy_terms', []) as $term) {
-            $matches = DB::table('business_settings')
-                ->where('value', 'like', '%' . $term . '%')
-                ->count();
-
-            if ($matches < 1) {
-                continue;
-            }
-
-            $warnings[] = [
-                'term' => $term,
-                'business_settings' => $matches,
+            $applied[] = [
+                'id' => $row['id'],
+                'field' => $row['field'],
+                'previous' => $previous,
+                'value' => $row['target_value'],
+                'status' => 'updated',
             ];
         }
 
-        return $warnings;
+        return $applied;
     }
 
-    protected function formatPreviewRow(string $type, ?string $lang, $currentValue, $targetValue): array
+    protected function readiness(): CoreMarketBaselineReadinessService
     {
-        return [
-            'type' => $type,
-            'lang' => $lang,
-            'current_value' => $currentValue,
-            'target_value' => $targetValue,
-        ];
+        return $this->readinessService ??= app(CoreMarketBaselineReadinessService::class);
     }
 }

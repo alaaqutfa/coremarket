@@ -3,11 +3,24 @@
 namespace Tests\Feature;
 
 use App\Models\BusinessSetting;
+use App\Models\Shop;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class CoreMarketSetupInstanceCommandTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        foreach (['business_settings', 'currencies', 'languages', 'users'] as $table) {
+            if (! Schema::hasTable($table)) {
+                $this->markTestSkipped("The {$table} table is not available in the testing database.");
+            }
+        }
+    }
+
     public function test_command_dry_run_does_not_write_to_database(): void
     {
         $before = BusinessSetting::count();
@@ -137,6 +150,45 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
             '0',
             (string) BusinessSetting::query()->where('type', 'vendor_system_activation')->whereNull('lang')->value('value')
         );
+
+        DB::rollBack();
+    }
+
+    public function test_apply_updates_existing_shop_branding_preview_fields(): void
+    {
+        DB::beginTransaction();
+
+        DB::table('shops')->where('id', 1)->update([
+            'name' => 'Legacy Shop',
+            'slug' => 'legacy-shop',
+            'phone' => '111',
+            'address' => 'Legacy Address',
+            'meta_title' => 'Legacy Shop',
+            'meta_description' => 'Legacy Description',
+        ]);
+
+        $this->artisan('coremarket:setup-instance', [
+            'instance_id' => 'client-store',
+            '--apply' => true,
+            '--confirm-instance-setup' => true,
+            '--store-name' => 'Client Store',
+            '--domain' => 'example-store.com',
+            '--admin-email' => 'owner@example-store.com',
+            '--meta-description' => 'Client store description',
+            '--contact-phone' => '+10000000000',
+            '--contact-address' => 'Managed Address',
+        ])
+            ->expectsOutput('Shop branding apply result')
+            ->assertExitCode(0);
+
+        $shop = Shop::query()->find(1);
+
+        $this->assertSame('Client Store', $shop->name);
+        $this->assertSame('example-store-com', $shop->slug);
+        $this->assertSame('+10000000000', $shop->phone);
+        $this->assertSame('Managed Address', $shop->address);
+        $this->assertSame('Client Store', $shop->meta_title);
+        $this->assertSame('Client store description', $shop->meta_description);
 
         DB::rollBack();
     }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class CoreMarketBaselineReadinessCommandTest extends TestCase
@@ -10,10 +11,10 @@ class CoreMarketBaselineReadinessCommandTest extends TestCase
     public function test_baseline_readiness_command_runs_in_read_only_mode(): void
     {
         $before = [
-            'users' => DB::table('users')->count(),
-            'business_settings' => DB::table('business_settings')->count(),
-            'products' => DB::table('products')->count(),
-            'uploads' => DB::table('uploads')->count(),
+            'users' => Schema::hasTable('users') ? DB::table('users')->count() : null,
+            'business_settings' => Schema::hasTable('business_settings') ? DB::table('business_settings')->count() : null,
+            'products' => Schema::hasTable('products') ? DB::table('products')->count() : null,
+            'uploads' => Schema::hasTable('uploads') ? DB::table('uploads')->count() : null,
         ];
 
         $this->artisan('coremarket:audit-baseline-readiness')
@@ -22,10 +23,10 @@ class CoreMarketBaselineReadinessCommandTest extends TestCase
             ->assertExitCode(0);
 
         $after = [
-            'users' => DB::table('users')->count(),
-            'business_settings' => DB::table('business_settings')->count(),
-            'products' => DB::table('products')->count(),
-            'uploads' => DB::table('uploads')->count(),
+            'users' => Schema::hasTable('users') ? DB::table('users')->count() : null,
+            'business_settings' => Schema::hasTable('business_settings') ? DB::table('business_settings')->count() : null,
+            'products' => Schema::hasTable('products') ? DB::table('products')->count() : null,
+            'uploads' => Schema::hasTable('uploads') ? DB::table('uploads')->count() : null,
         ];
 
         $this->assertSame($before, $after);
@@ -39,8 +40,9 @@ class CoreMarketBaselineReadinessCommandTest extends TestCase
             ->expectsOutput('Table counts')
             ->expectsOutput('Required baseline settings')
             ->expectsOutput('Managed baseline flags')
-            ->expectsOutput('Legacy branding warnings')
+            ->expectsOutput('Legacy branding findings')
             ->expectsOutput('Schema drift')
+            ->expectsOutput('Client/demo runtime data')
             ->assertExitCode(0);
     }
 

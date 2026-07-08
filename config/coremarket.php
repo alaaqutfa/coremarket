@@ -332,6 +332,20 @@ return [
             'app_store_link' => '',
         ],
 
+        'shop_field_map' => [
+            'name' => 'store_name',
+            'slug' => 'shop_slug',
+            'phone' => 'contact_phone',
+            'address' => 'contact_address',
+            'meta_title' => 'meta_title',
+            'meta_description' => 'meta_description',
+            'facebook' => 'facebook',
+            'instagram' => 'instagram',
+            'google' => 'google',
+            'twitter' => 'twitter',
+            'youtube' => 'youtube',
+        ],
+
         'runtime_feature_to_legacy_setting_map' => [
             'multi_vendor' => 'vendor_system_activation',
             'wallet_enabled' => 'wallet_system',
@@ -413,6 +427,20 @@ return [
             'app_store_link' => '',
         ],
 
+        'shop_defaults' => [
+            'name' => 'CoreMarket Store',
+            'slug' => 'coremarket-store',
+            'phone' => '',
+            'address' => '',
+            'meta_title' => 'CoreMarket Store',
+            'meta_description' => 'Managed ecommerce store powered by CoreMarket',
+            'facebook' => '',
+            'instagram' => '',
+            'google' => '',
+            'twitter' => '',
+            'youtube' => '',
+        ],
+
         'legacy_terms' => [
             'Syrian Souq',
             'syriansouq',
@@ -426,13 +454,23 @@ return [
             'https://syriansouq.com',
         ],
 
+        'audit_targets' => [
+            'business_settings' => ['value'],
+            'shops' => ['name', 'slug', 'phone', 'address', 'meta_title', 'meta_description', 'facebook', 'instagram', 'google', 'twitter', 'youtube'],
+            'users' => ['name', 'email', 'phone', 'address'],
+            'pages' => ['title', 'slug', 'content', 'meta_title', 'meta_description', 'keywords'],
+            'categories' => ['name', 'slug', 'meta_title', 'meta_description'],
+            'brands' => ['name', 'slug', 'meta_title', 'meta_description'],
+            'products' => ['name', 'tags', 'description', 'meta_title', 'meta_description', 'slug'],
+        ],
+
         'notes' => [
-            'This workflow updates business_settings only and never deletes tables.',
-            'It does not delete products, orders, uploads, shops, or other client/demo data.',
+            'This workflow updates business_settings and safe shop branding fields only. It never deletes tables.',
+            'It does not delete products, orders, uploads, users, or other client/demo data.',
             'Logo and media upload IDs are left unchanged and should be replaced later through instance-specific setup.',
             'DEFAULT_LANGUAGE remains an environment/runtime setting and should be kept at English for the clean baseline runtime.',
             'Use coremarket:setup-instance to apply real client store name, domain, support contacts, and runtime plan values later.',
-            'If you need catalog or upload cleanup later, implement it as a separate reset command rather than extending this safe baseline workflow.',
+            'If you need catalog, uploads, or order cleanup later, implement it as a separate reset command rather than extending this safe baseline workflow.',
         ],
     ],
 

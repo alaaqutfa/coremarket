@@ -62,19 +62,19 @@ class CoreMarketAuditBaselineReadiness extends Command
             })->all()
         );
 
-        $this->line('Legacy branding warnings');
-        if (empty($report['old_branding_warnings'])) {
+        $this->line('Legacy branding findings');
+        if (empty($report['old_branding_findings'])) {
             $this->line('[PASS] No legacy branding references were detected in audited surfaces.');
         } else {
             $this->table(
-                ['Status', 'Term', 'business_settings', 'shops', 'products'],
-                collect($report['old_branding_warnings'])->map(function (array $row) {
+                ['Status', 'Term', 'Table', 'Column', 'Count'],
+                collect($report['old_branding_findings'])->map(function (array $row) {
                     return [
                         $row['status'],
                         $row['term'],
-                        $row['business_settings'],
-                        $row['shops'],
-                        $row['products'],
+                        $row['table'],
+                        $row['column'],
+                        $row['count'],
                     ];
                 })->all()
             );

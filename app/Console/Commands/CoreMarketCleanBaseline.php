@@ -56,15 +56,46 @@ class CoreMarketCleanBaseline extends Command
             })->all()
         );
 
-        $this->line('Remaining legacy branding warnings');
-        if (empty($plan['remaining_branding_warnings'])) {
-            $this->line('[PASS] No configured legacy branding terms remain in business_settings.');
+        $this->line('Shop branding preview');
+        if (empty($plan['shops'])) {
+            $this->line('[INFO] No shop rows were found for baseline-neutral branding updates.');
         } else {
             $this->table(
-                ['Term', 'business_settings'],
+                ['Shop ID', 'Field', 'Current Value', 'Target Value'],
+                collect($plan['shops'])->map(function (array $shop) {
+                    return [
+                        $shop['id'],
+                        $shop['field'],
+                        $this->formatValue($shop['current_value']),
+                        $this->formatValue($shop['target_value']),
+                    ];
+                })->all()
+            );
+        }
+
+        $this->line('Client/demo data inventory');
+        $this->table(
+            ['Status', 'Item', 'Count'],
+            collect($plan['inventory'])->map(function (array $row) {
+                return [
+                    $row['status'],
+                    $row['table'],
+                    $row['count'] === null ? '[missing]' : $row['count'],
+                ];
+            })->all()
+        );
+
+        $this->line('Remaining legacy branding warnings');
+        if (empty($plan['remaining_branding_warnings'])) {
+            $this->line('[PASS] No configured legacy branding terms remain in the audited baseline surfaces.');
+        } else {
+            $this->table(
+                ['Term', 'Table', 'Column', 'Count'],
                 collect($plan['remaining_branding_warnings'])->map(fn (array $warning) => [
                     $warning['term'],
-                    $warning['business_settings'],
+                    $warning['table'],
+                    $warning['column'],
+                    $warning['count'],
                 ])->all()
             );
         }
@@ -88,7 +119,7 @@ class CoreMarketCleanBaseline extends Command
             return self::SUCCESS;
         }
 
-        $this->info('Applying clean baseline business_settings only...');
+        $this->info('Applying clean baseline business_settings and safe shop branding fields...');
         $applied = $service->applyPlan($plan);
 
         $this->table(
@@ -104,7 +135,23 @@ class CoreMarketCleanBaseline extends Command
             })->all()
         );
 
-        $this->info('Apply complete. Only the allowed baseline business_settings were updated.');
+        if (! empty($applied['shops'])) {
+            $this->line('Shop branding apply result');
+            $this->table(
+                ['Shop ID', 'Field', 'Status', 'Previous Value', 'Applied Value'],
+                collect($applied['shops'])->map(function (array $shop) {
+                    return [
+                        $shop['id'],
+                        $shop['field'],
+                        $shop['status'],
+                        $this->formatValue($shop['previous']),
+                        $this->formatValue($shop['value']),
+                    ];
+                })->all()
+            );
+        }
+
+        $this->info('Apply complete. Only the allowed baseline business_settings and safe shop branding fields were updated.');
 
         return self::SUCCESS;
     }

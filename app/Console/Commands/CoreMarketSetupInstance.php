@@ -105,6 +105,21 @@ class CoreMarketSetupInstance extends Command
             collect($plan['business_settings'])->map(fn ($value, $key) => [$key, $value ?? '[set later]'])->all()
         );
 
+        $this->line('Shop branding preview');
+        if (empty($plan['shops'])) {
+            $this->line('[INFO] No existing shop rows were found to align with the instance branding.');
+        } else {
+            $this->table(
+                ['Shop ID', 'Field', 'Current Value', 'Planned Value'],
+                collect($plan['shops'])->map(fn (array $row) => [
+                    $row['id'],
+                    $row['field'],
+                    $row['current_value'] ?? '[blank]',
+                    $row['target_value'] ?? '[blank]',
+                ])->all()
+            );
+        }
+
         $this->line('Runtime access preview');
         $this->table(
             ['Runtime Key', 'Resolved Value'],
@@ -187,6 +202,22 @@ class CoreMarketSetupInstance extends Command
             })->all()
         );
 
+        if (! empty($applied['shops'])) {
+            $this->line('Shop branding apply result');
+            $this->table(
+                ['Shop ID', 'Field', 'Status', 'Previous Value', 'Applied Value'],
+                collect($applied['shops'])->map(function (array $row) {
+                    return [
+                        $row['id'],
+                        $row['field'],
+                        $row['status'],
+                        $row['previous'] ?? '[blank]',
+                        $row['value'] ?? '[blank]',
+                    ];
+                })->all()
+            );
+        }
+
         if ($applied['store_admin']) {
             $this->line('Store Admin apply result');
             $this->table(
@@ -198,7 +229,7 @@ class CoreMarketSetupInstance extends Command
             );
         }
 
-        $this->info('Apply complete. Only the allowed business_settings and explicit Store Admin changes were updated.');
+        $this->info('Apply complete. Only the allowed business_settings, safe shop branding fields, and explicit Store Admin changes were updated.');
 
         return self::SUCCESS;
     }

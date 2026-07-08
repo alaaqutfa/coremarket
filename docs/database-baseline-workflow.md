@@ -55,11 +55,15 @@ Recommended order:
 
 ## What `clean-baseline` Does
 
-`coremarket:clean-baseline` is a safe baseline-neutralization workflow for `business_settings` only.
+`coremarket:clean-baseline` is a safe baseline-neutralization workflow for:
+
+- `business_settings`
+- existing shop branding fields that still carry legacy client/public identity
 
 It:
 
 - neutralizes old store/client branding in `business_settings`
+- neutralizes safe branding fields in `shops` such as name, slug, phone, address, and meta text
 - disables unsafe starter-incompatible baseline flags such as popup and vendor mode
 - keeps the baseline generic for later client setup
 
@@ -69,9 +73,11 @@ It does not:
 - delete products
 - delete orders
 - delete uploads
-- reset shop/catalog runtime data
+- reset products/orders/uploads
+- delete shop rows
+- reset catalog/content demo data such as categories, pages, or other seeded text content
 
-If catalog or upload cleanup is required later, use a separate dedicated reset workflow.
+If catalog, uploads, or order cleanup is required later, use a separate dedicated reset workflow such as a future `coremarket:reset-client-data` command.
 
 ## Client-Specific Setup Stays In `setup-instance`
 
@@ -89,6 +95,7 @@ That includes:
 - domain
 - support email
 - contact information
+- safe shop branding fields for the existing baseline shop row when present
 - runtime plan
 - store mode
 - client media assignment later

@@ -361,10 +361,34 @@ The command reports:
 - core table counts
 - required baseline setting presence
 - vendor, wallet, popup, and cash/manual payment status
-- legacy branding warnings
+- legacy branding findings by table and column
 - schema drift between tracked migrations and the live database
+- client/demo inventory counts for shops, sellers, users, products, orders, uploads, categories, brands, pages, and blogs
 
 The command is read-only and does not modify the database.
+
+## CM-DB-BASELINE-04 Scope
+
+The current baseline workflow now neutralizes only the safe public identity layer outside `business_settings`, especially:
+
+- `shops.name`
+- `shops.slug`
+- `shops.phone`
+- `shops.address`
+- `shops.meta_title`
+- `shops.meta_description`
+- legacy public social URL fields on the shop row
+
+It intentionally does **not** delete or reset:
+
+- products
+- orders
+- uploads
+- categories
+- pages
+- other catalog/content records that may still contain demo or client-specific text
+
+Those areas require a separate later reset workflow with backups and dependency-aware deletion order.
 
 For the full operational sequence, see:
 

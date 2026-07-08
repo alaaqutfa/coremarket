@@ -8,7 +8,10 @@ use App\Models\Language;
 use App\Models\Staff;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role as SpatieRole;
 
 class CoreMarketInstanceSetupService
@@ -37,9 +40,15 @@ class CoreMarketInstanceSetupService
         $createStoreAdmin = (bool) ($options['create_store_admin'] ?? false);
         $confirmed = (bool) ($options['confirm_instance_setup'] ?? false);
         $runtimeAccess = $this->featureAccess()->matrixFor($planCode, $storeMode);
-        $currency = Currency::query()->where('code', $currencyCode)->first();
-        $language = Language::query()->where('code', $languageCode)->first();
-        $existingStoreAdmin = $adminEmail ? User::query()->where('email', $adminEmail)->first() : null;
+        $currency = Schema::hasTable('currencies')
+            ? Currency::query()->where('code', $currencyCode)->first()
+            : null;
+        $language = Schema::hasTable('languages')
+            ? Language::query()->where('code', $languageCode)->first()
+            : null;
+        $existingStoreAdmin = $adminEmail && Schema::hasTable('users')
+            ? User::query()->where('email', $adminEmail)->first()
+            : null;
 
         return [
             'instance_id' => $instanceId,
@@ -81,6 +90,19 @@ class CoreMarketInstanceSetupService
                 'system_default_currency' => $currency?->id,
                 'vendor_system_activation' => $runtimeAccess['features']['multi_vendor'] ? 1 : 0,
                 'wallet_system' => $this->resolveWalletSettingValue($runtimeAccess['features']),
+            ]),
+            'shops' => $this->buildShopPreview([
+                'store_name' => $storeName,
+                'shop_slug' => $this->resolveShopSlug($domain, $storeName),
+                'contact_address' => $contactAddress,
+                'contact_phone' => $contactPhone,
+                'meta_title' => $options['meta_title'] ?? $storeName,
+                'meta_description' => $options['meta_description'] ?? null,
+                'facebook' => null,
+                'instagram' => null,
+                'google' => null,
+                'twitter' => null,
+                'youtube' => null,
             ]),
             'store_admin' => [
                 'create_requested' => $createStoreAdmin,
@@ -213,6 +235,7 @@ class CoreMarketInstanceSetupService
     {
         $result = [
             'business_settings' => $this->applyBusinessSettings($plan['business_settings']),
+            'shops' => $this->applyShopSettings($plan['shops']),
             'store_admin' => null,
         ];
 
@@ -296,9 +319,46 @@ class CoreMarketInstanceSetupService
         return $settings;
     }
 
+    protected function buildShopPreview(array $input): array
+    {
+        if (! Schema::hasTable('shops')) {
+            return [];
+        }
+
+        $preview = [];
+
+        foreach (DB::table('shops')->get() as $shop) {
+            foreach (config('coremarket.instance_setup.shop_field_map', []) as $field => $source) {
+                if (! property_exists($shop, $field)) {
+                    continue;
+                }
+
+                $preview[] = [
+                    'id' => $shop->id,
+                    'field' => $field,
+                    'current_value' => $shop->{$field},
+                    'target_value' => $input[$source] ?? null,
+                ];
+            }
+        }
+
+        return $preview;
+    }
+
     protected function resolveWalletSettingValue(array $features): int
     {
         return ! empty($features['wallet_enabled']) ? 1 : 0;
+    }
+
+    protected function resolveShopSlug(?string $domain, ?string $storeName): ?string
+    {
+        $source = $domain ?: $storeName;
+
+        if (blank($source)) {
+            return null;
+        }
+
+        return Str::slug((string) $source);
     }
 
     protected function createOrUpdateStoreAdmin(array $plan): User
@@ -328,8 +388,43 @@ class CoreMarketInstanceSetupService
         return $storeAdmin;
     }
 
+    protected function applyShopSettings(array $shops): array
+    {
+        $applied = [];
+
+        foreach ($shops as $shopRow) {
+            $shop = DB::table('shops')->where('id', $shopRow['id'])->first();
+
+            if (! $shop) {
+                continue;
+            }
+
+            $previousValue = $shop->{$shopRow['field']};
+            DB::table('shops')
+                ->where('id', $shopRow['id'])
+                ->update([
+                    $shopRow['field'] => $shopRow['target_value'],
+                    'updated_at' => now(),
+                ]);
+
+            $applied[] = [
+                'id' => $shopRow['id'],
+                'field' => $shopRow['field'],
+                'previous' => $previousValue,
+                'value' => $shopRow['target_value'],
+                'status' => 'updated',
+            ];
+        }
+
+        return $applied;
+    }
+
     protected function storeAdminRole(): ?SpatieRole
     {
+        if (! Schema::hasTable('roles')) {
+            return null;
+        }
+
         return SpatieRole::query()
             ->where('name', config('coremarket.access.store_admin_role', 'store_admin'))
             ->where('guard_name', 'web')
