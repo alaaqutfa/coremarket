@@ -202,7 +202,7 @@
         </div>
 
         <div class="col-lg-5 mt-3 mt-lg-0">
-            <div class="card shadow-sm h-100">
+            <div class="card shadow-sm">
                 <div class="card-header">
                     <h5 class="mb-0 h6">{{ translate('Usage snapshot') }}</h5>
                 </div>
@@ -224,6 +224,23 @@
                     </div>
                 </div>
             </div>
+
+            @if ($quickActions->isNotEmpty())
+                <div class="card shadow-sm mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0 h6">{{ translate('Store Operations') }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach ($quickActions as $action)
+                                <a href="{{ $action['url'] }}" class="btn btn-soft-primary">
+                                    {{ translate($action['label']) }}
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 @endsection

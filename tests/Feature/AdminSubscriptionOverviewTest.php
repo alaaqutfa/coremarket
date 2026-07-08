@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -18,11 +19,18 @@ class AdminSubscriptionOverviewTest extends TestCase
             config()->set('coremarket.runtime.applied_plan_code', 'starter');
             config()->set('coremarket.runtime.store_mode', 'single_store');
 
-            $user = $this->makeUserWithRole(
+            $user = $this->makeUserWithRoleAndPermissions(
                 'Store Admin Subscription QA',
                 'storeadmin.subscription@example.test',
                 'staff',
-                config('coremarket.access.store_admin_role', 'store_admin')
+                config('coremarket.access.store_admin_role', 'store_admin'),
+                [
+                    'show_in_house_products',
+                    'view_product_categories',
+                    'view_inhouse_orders',
+                    'header_setup',
+                    'footer_setup',
+                ]
             );
 
             $this->actingAs($user)
@@ -35,6 +43,11 @@ class AdminSubscriptionOverviewTest extends TestCase
                 ->assertSee('Runtime limits')
                 ->assertSee('Usage snapshot')
                 ->assertSee('Media storage limit (MB)')
+                ->assertSee('Store Operations')
+                ->assertSee('Manage Products')
+                ->assertSee('Manage Categories')
+                ->assertSee('View Orders')
+                ->assertSee('Addon Requests')
                 ->assertSee('256');
         } finally {
             DB::rollBack();
@@ -49,11 +62,12 @@ class AdminSubscriptionOverviewTest extends TestCase
             config()->set('coremarket.runtime.applied_plan_code', 'starter');
             config()->set('coremarket.runtime.store_mode', 'single_store');
 
-            $user = $this->makeUserWithRole(
+            $user = $this->makeUserWithRoleAndPermissions(
                 'Store Admin Starter QA',
                 'storeadmin.starter@example.test',
                 'staff',
-                config('coremarket.access.store_admin_role', 'store_admin')
+                config('coremarket.access.store_admin_role', 'store_admin'),
+                ['show_in_house_products']
             );
 
             $response = $this->actingAs($user)->get(route('subscription.index'));
@@ -78,11 +92,18 @@ class AdminSubscriptionOverviewTest extends TestCase
             config()->set('coremarket.runtime.applied_plan_code', 'marketplace');
             config()->set('coremarket.runtime.store_mode', 'marketplace');
 
-            $user = $this->makeUserWithRole(
+            $user = $this->makeUserWithRoleAndPermissions(
                 'Owner Marketplace QA',
                 'owner.subscription@example.test',
                 'admin',
-                'Marketplace Owner'
+                'Marketplace Owner',
+                [
+                    'show_in_house_products',
+                    'view_product_categories',
+                    'view_inhouse_orders',
+                    'header_setup',
+                    'footer_setup',
+                ]
             );
 
             $response = $this->actingAs($user)->get(route('subscription.index'));
@@ -92,14 +113,22 @@ class AdminSubscriptionOverviewTest extends TestCase
                 ->assertSee('Enabled features')
                 ->assertSee('Multi Vendor')
                 ->assertSee('Sellers')
+                ->assertSee('Manage Translations')
+                ->assertSee('Manage Currency Rates')
                 ->assertSee('Sellers Limit')
-                ->assertSee('1000');
+                ->assertSee('20');
         } finally {
             DB::rollBack();
         }
     }
 
-    private function makeUserWithRole(string $name, string $email, string $userType, string $roleName): User
+    private function makeUserWithRoleAndPermissions(
+        string $name,
+        string $email,
+        string $userType,
+        string $roleName,
+        array $permissions = []
+    ): User
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
@@ -107,6 +136,15 @@ class AdminSubscriptionOverviewTest extends TestCase
             'name' => $roleName,
             'guard_name' => 'web',
         ]);
+
+        foreach ($permissions as $permissionName) {
+            $permission = Permission::query()->firstOrCreate([
+                'name' => $permissionName,
+                'guard_name' => 'web',
+            ]);
+
+            $role->givePermissionTo($permission);
+        }
 
         $user = new User();
         $user->forceFill([

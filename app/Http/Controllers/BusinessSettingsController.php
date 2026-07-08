@@ -246,6 +246,44 @@ class BusinessSettingsController extends Controller
             ],
         ];
 
+        $quickActions = collect([
+            [
+                'label' => 'Manage Products',
+                'route' => 'products.admin',
+                'show' => auth()->user()?->can('show_in_house_products'),
+            ],
+            [
+                'label' => 'Manage Categories',
+                'route' => 'categories.index',
+                'show' => auth()->user()?->can('view_product_categories'),
+            ],
+            [
+                'label' => 'View Orders',
+                'route' => 'inhouse_orders.index',
+                'show' => auth()->user()?->can('view_inhouse_orders'),
+            ],
+            [
+                'label' => 'Manage Translations',
+                'route' => 'website.translations.index',
+                'show' => $featureAccess->enabled('translations_limited') && auth()->user()?->can('header_setup'),
+            ],
+            [
+                'label' => 'Manage Currency Rates',
+                'route' => 'website.currency-rates.index',
+                'show' => $featureAccess->enabled('currencies_limited') && auth()->user()?->can('footer_setup'),
+            ],
+            [
+                'label' => 'Addon Requests',
+                'route' => 'addons.index',
+                'show' => $featureAccess->enabled('addon_requests'),
+            ],
+        ])->filter(fn (array $action) => $action['show'] && app('router')->has($action['route']))
+            ->map(fn (array $action) => [
+                'label' => $action['label'],
+                'url' => route($action['route']),
+            ])
+            ->values();
+
         return [
             'licenseSnapshot' => $licenseSnapshot,
             'featureMatrix' => $featureMatrix,
@@ -258,6 +296,7 @@ class BusinessSettingsController extends Controller
             'currentProductCount' => $currentProductCount,
             'currentMonthlyOrderCount' => $currentMonthlyOrderCount,
             'currentUploadCount' => $currentUploadCount,
+            'quickActions' => $quickActions,
             'isLicenseActive' => $licenseService->isActive(),
             'isLicenseSuspended' => $licenseService->isSuspended(),
             'isLicenseExpired' => $licenseService->isExpired(),

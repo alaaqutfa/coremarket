@@ -538,37 +538,25 @@ return [
             'admin_dashboard',
 
             'add_new_product',
+            'show_all_products',
             'show_in_house_products',
             'product_edit',
-            'product_delete',
             'product_duplicate',
 
             'view_product_categories',
             'add_product_category',
             'edit_product_category',
-            'delete_product_category',
-
-            'view_all_brands',
-            'add_brand',
-            'edit_brand',
-            'delete_brand',
 
             'view_inhouse_orders',
             'view_order_details',
             'update_order_delivery_status',
             'update_order_payment_status',
 
-            'view_all_coupons',
-            'add_coupon',
-            'edit_coupon',
-            'delete_coupon',
-
             'header_setup',
             'footer_setup',
             'view_all_website_pages',
             'add_website_page',
             'edit_website_page',
-            'delete_website_page',
         ],
 
         'store_admin_allowed_business_setting_types' => [

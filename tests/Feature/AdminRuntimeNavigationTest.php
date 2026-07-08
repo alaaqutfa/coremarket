@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BusinessSetting;
 use App\Models\User;
+use Database\Seeders\StoreAdminRoleSeeder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -40,26 +41,118 @@ class AdminRuntimeNavigationTest extends TestCase
             $html = view('backend.inc.admin_sidenav')->render();
 
             $this->assertStringContainsString('Products', $html);
-            $this->assertStringContainsString('Customers', $html);
+            $this->assertStringContainsString('Category', $html);
+            $this->assertStringContainsString('Sales', $html);
             $this->assertStringContainsString('Website Setup', $html);
             $this->assertStringContainsString('My Subscription', $html);
             $this->assertStringContainsString('Addon Requests', $html);
-            $this->assertStringNotContainsString('Seller Product', $html);
-            $this->assertStringNotContainsString('Seller Orders', $html);
-            $this->assertStringNotContainsString('Seller Verification Form', $html);
-            $this->assertStringNotContainsString('POS System', $html);
-            $this->assertStringNotContainsString('Product Queries', $html);
-            $this->assertStringNotContainsString('Notification Types', $html);
-            $this->assertStringNotContainsString('Uploaded Files', $html);
-            $this->assertStringNotContainsString('Features activation', $html);
-            $this->assertStringNotContainsString('Payment Methods', $html);
-            $this->assertStringNotContainsString('Server status', $html);
-            $this->assertStringNotContainsString('Appearance', $html);
-            $this->assertStringNotContainsString('Authentication Layout & Settings', $html);
-            $this->assertStringNotContainsString('Select Homepage', $html);
+            $this->assertStringNotContainsString(route('products.seller', 'physical'), $html);
+            $this->assertStringNotContainsString(route('seller_verification_form.index'), $html);
+            $this->assertStringNotContainsString('/admin/pos', $html);
+            $this->assertStringNotContainsString(route('product_query.index'), $html);
+            $this->assertStringNotContainsString(route('notification.settings'), $html);
+            $this->assertStringNotContainsString(route('uploaded-files.index'), $html);
+            $this->assertStringNotContainsString(route('activation.index'), $html);
+            $this->assertStringNotContainsString(route('payment_method.index'), $html);
+            $this->assertStringNotContainsString(route('system_server'), $html);
+            $this->assertStringNotContainsString(route('website.appearance'), $html);
+            $this->assertStringNotContainsString(route('website.authentication-layout-settings'), $html);
+            $this->assertStringNotContainsString(route('website.select-homepage'), $html);
+            $this->assertStringNotContainsString('Delete', $html);
         } finally {
             DB::rollBack();
             Cache::forget('business_settings');
+        }
+    }
+
+    public function test_marketplace_store_admin_sidebar_shows_localized_safe_operational_sections_when_enabled(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->seedBusinessSetting('vendor_system_activation', 1);
+
+            config()->set('coremarket.runtime.applied_plan_code', 'marketplace');
+            config()->set('coremarket.runtime.store_mode', 'marketplace');
+
+            $user = $this->makeUserWithRoleAndPermissions(
+                'Store Admin Marketplace QA',
+                'storeadmin.marketplace@example.test',
+                'staff',
+                config('coremarket.access.store_admin_role', 'store_admin'),
+                [
+                    'admin_dashboard',
+                    'add_new_product',
+                    'show_all_products',
+                    'show_in_house_products',
+                    'product_edit',
+                    'product_duplicate',
+                    'view_product_categories',
+                    'add_product_category',
+                    'edit_product_category',
+                    'view_inhouse_orders',
+                    'view_order_details',
+                    'update_order_delivery_status',
+                    'update_order_payment_status',
+                    'header_setup',
+                    'footer_setup',
+                    'view_all_website_pages',
+                    'add_website_page',
+                    'edit_website_page',
+                ]
+            );
+
+            $this->actingAs($user);
+
+            $html = view('backend.inc.admin_sidenav')->render();
+
+            $this->assertStringContainsString('Dashboard', $html);
+            $this->assertStringContainsString('Products', $html);
+            $this->assertStringContainsString('Category', $html);
+            $this->assertStringContainsString('Sales', $html);
+            $this->assertStringContainsString('My Subscription', $html);
+            $this->assertStringContainsString('Addon Requests', $html);
+            $this->assertStringContainsString('Translations', $html);
+            $this->assertStringContainsString('Currency Rates', $html);
+            $this->assertStringNotContainsString(route('activation.index'), $html);
+            $this->assertStringNotContainsString(route('payment_method.index'), $html);
+            $this->assertStringNotContainsString(route('uploaded-files.index'), $html);
+        } finally {
+            DB::rollBack();
+            Cache::forget('business_settings');
+        }
+    }
+
+    public function test_store_admin_role_seeder_does_not_grant_destructive_delete_permissions_by_default(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $configuredPermissions = config('coremarket.access.store_admin_permissions', []);
+
+            foreach ($configuredPermissions as $permissionName) {
+                Permission::query()->firstOrCreate([
+                    'name' => $permissionName,
+                    'guard_name' => 'web',
+                ]);
+            }
+
+            $this->seed(StoreAdminRoleSeeder::class);
+
+            $role = Role::query()->where('name', config('coremarket.access.store_admin_role', 'store_admin'))->firstOrFail();
+            $rolePermissions = $role->permissions()->pluck('name')->all();
+
+            $this->assertNotContains('product_delete', $configuredPermissions);
+            $this->assertNotContains('delete_product_category', $configuredPermissions);
+            $this->assertNotContains('delete_website_page', $configuredPermissions);
+            $this->assertNotContains('bulk-product-delete', $configuredPermissions);
+            $this->assertNotContains('bulk-order-delete', $configuredPermissions);
+            $this->assertNotContains('product_delete', $rolePermissions);
+            $this->assertNotContains('delete_product_category', $rolePermissions);
+            $this->assertNotContains('delete_website_page', $rolePermissions);
+            $this->assertEqualsCanonicalizing($configuredPermissions, $rolePermissions);
+        } finally {
+            DB::rollBack();
         }
     }
 
@@ -369,12 +462,14 @@ class AdminRuntimeNavigationTest extends TestCase
     private function navigationPermissions(): array
     {
         return [
+            'admin_dashboard',
             'view_all_orders',
             'view_all_customers',
             'add_new_product',
             'show_all_products',
             'show_in_house_products',
             'show_seller_products',
+            'view_product_categories',
             'view_all_seller',
             'view_seller_orders',
             'view_blogs',
