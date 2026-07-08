@@ -441,6 +441,33 @@ return [
             'youtube' => '',
         ],
 
+        'page_defaults' => [
+            'meta_title' => 'CoreMarket Store',
+            'meta_description' => 'Managed ecommerce store powered by CoreMarket',
+            'keywords' => 'CoreMarket, managed ecommerce, online store, product catalog, shopping, managed storefront',
+        ],
+
+        'category_replacements' => [
+            'سوق سوريا الألكتروني الأول' => 'CoreMarket Store',
+            'سوق سوريا الإلكتروني الأول' => 'CoreMarket Store',
+            'سوق سوريا الالكتروني الاول' => 'CoreMarket Store',
+            "Syria's First Online Marketplace" => 'CoreMarket Store',
+            'Syrian marketplace' => 'CoreMarket Store',
+            'online store Syria' => 'managed online store',
+            'سوريا' => '',
+        ],
+
+        'page_replacements' => [
+            'سوق سوريا الإلكتروني الأول' => 'CoreMarket Store',
+            'سوق سوريا الألكتروني الأول' => 'CoreMarket Store',
+            'سوق سوريا الالكتروني الاول' => 'CoreMarket Store',
+            'Syrian Souq' => 'CoreMarket Store',
+            'Syrian marketplace' => 'managed marketplace',
+            'online store Syria' => 'managed online store',
+            'التجارة الإلكترونية في سوريا' => 'التجارة الإلكترونية',
+            'البيع عبر الإنترنت سوريا' => 'البيع عبر الإنترنت',
+        ],
+
         'legacy_terms' => [
             'Syrian Souq',
             'syriansouq',
@@ -452,6 +479,7 @@ return [
             'demo.coin-market.store',
             'http://localhost/syrian-souq',
             'https://syriansouq.com',
+            'سوق سوريا',
         ],
 
         'audit_targets' => [
@@ -471,6 +499,7 @@ return [
             'DEFAULT_LANGUAGE remains an environment/runtime setting and should be kept at English for the clean baseline runtime.',
             'Use coremarket:setup-instance to apply real client store name, domain, support contacts, and runtime plan values later.',
             'If you need catalog, uploads, or order cleanup later, implement it as a separate reset command rather than extending this safe baseline workflow.',
+            'Pages and categories metadata may be neutralized when obvious legacy branding is detected, but full page content is not rewritten here.',
         ],
     ],
 

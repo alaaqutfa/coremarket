@@ -25,6 +25,8 @@ class CoreMarketCleanBaselineService
             'target_currency' => $this->targetCurrency(),
             'settings' => $this->buildSettingsPreview(),
             'shops' => $this->buildShopPreview(),
+            'pages' => $this->buildPagePreview(),
+            'categories' => $this->buildCategoryPreview(),
             'product_count' => Schema::hasTable('products') ? DB::table('products')->count() : 0,
             'order_count' => Schema::hasTable('orders') ? DB::table('orders')->count() : 0,
             'upload_count' => Schema::hasTable('uploads') ? DB::table('uploads')->count() : 0,
@@ -61,6 +63,8 @@ class CoreMarketCleanBaselineService
     {
         $applied = $this->applyBusinessSettings($plan['settings']);
         $appliedShops = $this->applyShopDefaults($plan['shops']);
+        $appliedPages = $this->applyPageDefaults($plan['pages']);
+        $appliedCategories = $this->applyCategoryDefaults($plan['categories']);
 
         Cache::forget('business_settings');
         Cache::forget('system_default_currency');
@@ -68,6 +72,8 @@ class CoreMarketCleanBaselineService
         return [
             'settings' => $applied,
             'shops' => $appliedShops,
+            'pages' => $appliedPages,
+            'categories' => $appliedCategories,
             'target_currency' => $plan['target_currency'],
             'target_language' => $plan['target_language'],
         ];
@@ -170,6 +176,73 @@ class CoreMarketCleanBaselineService
         return $preview;
     }
 
+    protected function buildPagePreview(): array
+    {
+        if (! Schema::hasTable('pages')) {
+            return [];
+        }
+
+        $defaults = config('coremarket.clean_baseline.page_defaults', []);
+        $preview = [];
+
+        foreach (DB::table('pages')->get() as $page) {
+            foreach (['title', 'meta_title', 'meta_description', 'keywords'] as $field) {
+                if (! property_exists($page, $field)) {
+                    continue;
+                }
+
+                $currentValue = $page->{$field};
+                $targetValue = $this->neutralizedText($currentValue, $field, $defaults[$field] ?? null, config('coremarket.clean_baseline.page_replacements', []));
+
+                if ($targetValue === null || $targetValue === $currentValue) {
+                    continue;
+                }
+
+                $preview[] = [
+                    'id' => $page->id,
+                    'field' => $field,
+                    'current_value' => $currentValue,
+                    'target_value' => $targetValue,
+                ];
+            }
+        }
+
+        return $preview;
+    }
+
+    protected function buildCategoryPreview(): array
+    {
+        if (! Schema::hasTable('categories')) {
+            return [];
+        }
+
+        $preview = [];
+
+        foreach (DB::table('categories')->get() as $category) {
+            foreach (['name', 'slug', 'meta_title', 'meta_description'] as $field) {
+                if (! property_exists($category, $field)) {
+                    continue;
+                }
+
+                $currentValue = $category->{$field};
+                $targetValue = $this->neutralizedText($currentValue, $field, null, config('coremarket.clean_baseline.category_replacements', []));
+
+                if ($targetValue === null || $targetValue === $currentValue) {
+                    continue;
+                }
+
+                $preview[] = [
+                    'id' => $category->id,
+                    'field' => $field,
+                    'current_value' => $currentValue,
+                    'target_value' => $targetValue,
+                ];
+            }
+        }
+
+        return $preview;
+    }
+
     protected function formatPreviewRow(string $type, ?string $lang, $currentValue, $targetValue): array
     {
         return [
@@ -256,6 +329,109 @@ class CoreMarketCleanBaselineService
         }
 
         return $applied;
+    }
+
+    protected function applyPageDefaults(array $pages): array
+    {
+        $applied = [];
+
+        foreach ($pages as $row) {
+            $page = DB::table('pages')->where('id', $row['id'])->first();
+
+            if (! $page) {
+                continue;
+            }
+
+            $previous = $page->{$row['field']};
+            DB::table('pages')
+                ->where('id', $row['id'])
+                ->update([
+                    $row['field'] => $row['target_value'],
+                    'updated_at' => now(),
+                ]);
+
+            $applied[] = [
+                'id' => $row['id'],
+                'field' => $row['field'],
+                'previous' => $previous,
+                'value' => $row['target_value'],
+                'status' => 'updated',
+            ];
+        }
+
+        return $applied;
+    }
+
+    protected function applyCategoryDefaults(array $categories): array
+    {
+        $applied = [];
+
+        foreach ($categories as $row) {
+            $category = DB::table('categories')->where('id', $row['id'])->first();
+
+            if (! $category) {
+                continue;
+            }
+
+            $previous = $category->{$row['field']};
+            DB::table('categories')
+                ->where('id', $row['id'])
+                ->update([
+                    $row['field'] => $row['target_value'],
+                    'updated_at' => now(),
+                ]);
+
+            $applied[] = [
+                'id' => $row['id'],
+                'field' => $row['field'],
+                'previous' => $previous,
+                'value' => $row['target_value'],
+                'status' => 'updated',
+            ];
+        }
+
+        return $applied;
+    }
+
+    protected function neutralizedText($currentValue, string $field, $defaultValue, array $replacements): ?string
+    {
+        if (! is_string($currentValue) || trim($currentValue) === '') {
+            return null;
+        }
+
+        if (! $this->containsLegacyTerm($currentValue)) {
+            return null;
+        }
+
+        $target = $currentValue;
+
+        foreach ($replacements as $search => $replace) {
+            $target = str_replace($search, $replace, $target);
+        }
+
+        $target = preg_replace('/\s+/', ' ', (string) $target);
+        $target = trim((string) $target, " \t\n\r\0\x0B|,-");
+
+        if ($field === 'keywords') {
+            return $defaultValue ?? $target;
+        }
+
+        if ($field === 'title' && $defaultValue !== null && $this->containsLegacyTerm($currentValue)) {
+            return $defaultValue;
+        }
+
+        return $target === '' ? $defaultValue : $target;
+    }
+
+    protected function containsLegacyTerm(string $value): bool
+    {
+        foreach (config('coremarket.clean_baseline.legacy_terms', []) as $term) {
+            if ($term !== '' && stripos($value, $term) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function readiness(): CoreMarketBaselineReadinessService

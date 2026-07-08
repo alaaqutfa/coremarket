@@ -73,6 +73,40 @@ class CoreMarketCleanBaseline extends Command
             );
         }
 
+        $this->line('Page metadata preview');
+        if (empty($plan['pages'])) {
+            $this->line('[INFO] No page metadata rows require baseline-neutral cleanup.');
+        } else {
+            $this->table(
+                ['Page ID', 'Field', 'Current Value', 'Target Value'],
+                collect($plan['pages'])->map(function (array $page) {
+                    return [
+                        $page['id'],
+                        $page['field'],
+                        $this->formatValue($page['current_value']),
+                        $this->formatValue($page['target_value']),
+                    ];
+                })->all()
+            );
+        }
+
+        $this->line('Category metadata preview');
+        if (empty($plan['categories'])) {
+            $this->line('[INFO] No category metadata rows require baseline-neutral cleanup.');
+        } else {
+            $this->table(
+                ['Category ID', 'Field', 'Current Value', 'Target Value'],
+                collect($plan['categories'])->map(function (array $category) {
+                    return [
+                        $category['id'],
+                        $category['field'],
+                        $this->formatValue($category['current_value']),
+                        $this->formatValue($category['target_value']),
+                    ];
+                })->all()
+            );
+        }
+
         $this->line('Client/demo data inventory');
         $this->table(
             ['Status', 'Item', 'Count'],
@@ -151,7 +185,39 @@ class CoreMarketCleanBaseline extends Command
             );
         }
 
-        $this->info('Apply complete. Only the allowed baseline business_settings and safe shop branding fields were updated.');
+        if (! empty($applied['pages'])) {
+            $this->line('Page metadata apply result');
+            $this->table(
+                ['Page ID', 'Field', 'Status', 'Previous Value', 'Applied Value'],
+                collect($applied['pages'])->map(function (array $page) {
+                    return [
+                        $page['id'],
+                        $page['field'],
+                        $page['status'],
+                        $this->formatValue($page['previous']),
+                        $this->formatValue($page['value']),
+                    ];
+                })->all()
+            );
+        }
+
+        if (! empty($applied['categories'])) {
+            $this->line('Category metadata apply result');
+            $this->table(
+                ['Category ID', 'Field', 'Status', 'Previous Value', 'Applied Value'],
+                collect($applied['categories'])->map(function (array $category) {
+                    return [
+                        $category['id'],
+                        $category['field'],
+                        $category['status'],
+                        $this->formatValue($category['previous']),
+                        $this->formatValue($category['value']),
+                    ];
+                })->all()
+            );
+        }
+
+        $this->info('Apply complete. Only the allowed baseline business_settings and safe public metadata fields were updated.');
 
         return self::SUCCESS;
     }

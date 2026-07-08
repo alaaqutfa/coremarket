@@ -378,6 +378,8 @@ The current baseline workflow now neutralizes only the safe public identity laye
 - `shops.meta_title`
 - `shops.meta_description`
 - legacy public social URL fields on the shop row
+- page metadata such as `title`, `meta_title`, `meta_description`, and `keywords` when obvious legacy branding is present
+- category metadata such as `meta_title` and `meta_description` when obvious legacy branding is present
 
 It intentionally does **not** delete or reset:
 
@@ -387,6 +389,24 @@ It intentionally does **not** delete or reset:
 - categories
 - pages
 - other catalog/content records that may still contain demo or client-specific text
+
+Category policy:
+
+- keep generic category names and slugs unless they contain obvious legacy client branding
+- neutralize only obvious branding phrases in category metadata
+- decide later whether the current category tree should remain as demo scaffolding or be reset in a dedicated data step
+
+Page policy:
+
+- keep page rows
+- neutralize metadata and keywords when branding terms are obvious
+- do not rewrite full page content aggressively inside the baseline command
+
+Testing DB reliability:
+
+- `coremarket_testing` is allowed only because it is a testing database, not because it is automatically legacy-ready
+- run `php artisan coremarket:testing-database-status` to confirm whether command-level tests have the required schema
+- if tables such as `shops`, `currencies`, `languages`, or `roles` are missing, import `coremarket_testing` from the private baseline SQL before expecting full legacy command tests to run
 
 Those areas require a separate later reset workflow with backups and dependency-aware deletion order.
 

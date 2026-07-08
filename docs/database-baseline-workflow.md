@@ -40,6 +40,7 @@ After importing the local baseline SQL into a runtime database:
 php artisan coremarket:guard-database
 php artisan coremarket:clean-baseline --dry-run
 php artisan coremarket:audit-baseline-readiness
+php artisan coremarket:testing-database-status
 php artisan route:list
 ```
 
@@ -51,7 +52,8 @@ Recommended order:
 4. run `coremarket:clean-baseline --dry-run`
 5. if the preview is correct, run `coremarket:clean-baseline --apply --confirm-clean-baseline`
 6. rerun `coremarket:audit-baseline-readiness`
-7. use `coremarket:setup-instance` later to make the store client-specific
+7. run `coremarket:testing-database-status` if you need to know whether legacy command tests can run
+8. use `coremarket:setup-instance` later to make the store client-specific
 
 ## What `clean-baseline` Does
 
@@ -64,6 +66,8 @@ It:
 
 - neutralizes old store/client branding in `business_settings`
 - neutralizes safe branding fields in `shops` such as name, slug, phone, address, and meta text
+- neutralizes safe legacy metadata in `pages` when branding terms are obvious
+- neutralizes category metadata only when obvious legacy branding text is present
 - disables unsafe starter-incompatible baseline flags such as popup and vendor mode
 - keeps the baseline generic for later client setup
 
@@ -76,6 +80,7 @@ It does not:
 - reset products/orders/uploads
 - delete shop rows
 - reset catalog/content demo data such as categories, pages, or other seeded text content
+- rewrite full page bodies aggressively
 
 If catalog, uploads, or order cleanup is required later, use a separate dedicated reset workflow such as a future `coremarket:reset-client-data` command.
 
@@ -119,6 +124,14 @@ If tests are pointed at a runtime database such as:
 the test bootstrap must fail with:
 
 - `Refusing to run tests against non-testing CoreMarket database`
+
+If `coremarket_testing` exists but does not contain the legacy schema expected by command-level tests, inspect it with:
+
+```bash
+php artisan coremarket:testing-database-status
+```
+
+If the command reports missing tables like `shops`, `currencies`, `languages`, or `roles`, prepare `coremarket_testing` from the private baseline SQL before expecting full legacy command tests to run.
 
 ## Never Do This On Legacy Runtime Databases
 
