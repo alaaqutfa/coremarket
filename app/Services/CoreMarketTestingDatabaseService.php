@@ -8,6 +8,10 @@ use Symfony\Component\Process\Process;
 
 class CoreMarketTestingDatabaseService
 {
+    protected array $criticalTables = ['business_settings', 'users', 'languages', 'currencies', 'uploads', 'products', 'orders'];
+
+    protected array $legacyCommandTables = ['shops', 'currencies', 'languages', 'roles', 'business_settings'];
+
     public function testingDatabaseConfig(): array
     {
         $config = [
@@ -60,9 +64,21 @@ class CoreMarketTestingDatabaseService
         return config("database.connections.{$defaultConnection}.database");
     }
 
-    public function baselineSqlPath(): string
+    public function cleanBaselineSqlPath(): string
     {
         return base_path('database/base/coremarket.sql');
+    }
+
+    public function demoBaselineSqlPath(): string
+    {
+        return base_path('database/base/coremarket_test.sql');
+    }
+
+    public function baselineSqlPath(bool $fromCleanBaseline = false): string
+    {
+        return $fromCleanBaseline
+            ? $this->cleanBaselineSqlPath()
+            : $this->demoBaselineSqlPath();
     }
 
     public function mysqlBinaryPath(): ?string
@@ -101,33 +117,49 @@ class CoreMarketTestingDatabaseService
 
         DB::purge($connectionName);
         $connection = DB::connection($connectionName);
-
-        $criticalTables = ['business_settings', 'users', 'languages', 'currencies', 'uploads', 'products', 'orders'];
-        $legacyCommandTables = ['shops', 'currencies', 'languages', 'roles', 'business_settings'];
+        $legacyBrandingFindings = $this->legacyBrandingFindingsForConnection($connection);
+        $productsCount = $this->connectionTableCount($connection, 'products');
+        $ordersCount = $this->connectionTableCount($connection, 'orders');
+        $uploadsCount = $this->connectionTableCount($connection, 'uploads');
+        $categoriesCount = $this->connectionTableCount($connection, 'categories');
+        $translationsCount = $this->connectionTableCount($connection, 'translations');
+        $demoData = $this->detectDemoData($connection);
 
         return [
             'table_count' => count($connection->select('SHOW TABLES')),
-            'critical_tables' => collect($criticalTables)->map(function (string $table) use ($connection) {
+            'critical_tables' => collect($this->criticalTables)->map(function (string $table) use ($connection) {
                 return [
                     'table' => $table,
                     'exists' => $this->tableExists($connection, $table),
                 ];
             })->all(),
-            'legacy_command_tables' => collect($legacyCommandTables)->map(function (string $table) use ($connection) {
+            'legacy_command_tables' => collect($this->legacyCommandTables)->map(function (string $table) use ($connection) {
                 return [
                     'table' => $table,
                     'exists' => $this->tableExists($connection, $table),
                 ];
             })->all(),
+            'products_count' => $productsCount,
+            'orders_count' => $ordersCount,
+            'uploads_count' => $uploadsCount,
+            'categories_count' => $categoriesCount,
+            'translations_count' => $translationsCount,
+            'demo_data_present' => $demoData['present'],
+            'detected_dataset' => $demoData['dataset'],
+            'demo_markers' => $demoData['markers'],
+            'legacy_branding_findings_count' => count($legacyBrandingFindings),
+            'legacy_branding_findings' => $legacyBrandingFindings,
         ];
     }
 
-    public function restorePlan(): array
+    public function restorePlan(bool $fromCleanBaseline = false): array
     {
         $testing = $this->testingDatabaseConfig();
         $runtimeDatabase = $this->runtimeDatabaseName();
-        $baselinePath = $this->baselineSqlPath();
+        $baselinePath = $this->baselineSqlPath($fromCleanBaseline);
         $mysqlBinary = $this->mysqlBinaryPath();
+        $source = $fromCleanBaseline ? 'clean_client_baseline' : 'demo_testing_baseline';
+        $sourceLabel = $fromCleanBaseline ? 'clean client baseline' : 'demo/testing baseline';
 
         return [
             'testing_database' => $testing['database'],
@@ -136,6 +168,8 @@ class CoreMarketTestingDatabaseService
             'port' => $testing['port'] ?? config('database.connections.mysql.port'),
             'username' => $testing['username'] ?? config('database.connections.mysql.username'),
             'password' => $testing['password'] ?? config('database.connections.mysql.password'),
+            'baseline_source' => $source,
+            'baseline_source_label' => $sourceLabel,
             'baseline_path' => $baselinePath,
             'baseline_exists' => is_file($baselinePath),
             'baseline_size' => is_file($baselinePath) ? filesize($baselinePath) : null,
@@ -215,5 +249,89 @@ class CoreMarketTestingDatabaseService
         } catch (\Throwable $e) {
             return false;
         }
+    }
+
+    protected function connectionTableCount($connection, string $table): ?int
+    {
+        if (! $this->tableExists($connection, $table)) {
+            return null;
+        }
+
+        return $connection->table($table)->count();
+    }
+
+    protected function connectionHasColumn($connection, string $table, string $column): bool
+    {
+        try {
+            return $connection->getSchemaBuilder()->hasColumn($table, $column);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    protected function detectDemoData($connection): array
+    {
+        $websiteName = null;
+
+        if ($this->tableExists($connection, 'business_settings')) {
+            $websiteName = $connection->table('business_settings')
+                ->where('type', 'website_name')
+                ->whereNull('lang')
+                ->value('value');
+        }
+
+        $demoCategories = $this->tableExists($connection, 'categories') && $this->connectionHasColumn($connection, 'categories', 'name')
+            ? $connection->table('categories')->where('name', 'like', 'Demo %')->count()
+            : 0;
+        $demoProducts = $this->tableExists($connection, 'products') && $this->connectionHasColumn($connection, 'products', 'name')
+            ? $connection->table('products')->where('name', 'like', 'Demo %')->count()
+            : 0;
+
+        $present = $websiteName === 'CoreMarket Demo Store' || $demoCategories > 0 || $demoProducts > 0;
+
+        return [
+            'present' => $present,
+            'dataset' => $present ? 'demo_baseline' : 'clean_or_custom_baseline',
+            'markers' => [
+                'website_name' => $websiteName,
+                'demo_categories' => $demoCategories,
+                'demo_products' => $demoProducts,
+            ],
+        ];
+    }
+
+    protected function legacyBrandingFindingsForConnection($connection): array
+    {
+        $warnings = collect();
+
+        foreach (config('coremarket.clean_baseline.legacy_terms', []) as $term) {
+            foreach (config('coremarket.clean_baseline.audit_targets', []) as $table => $columns) {
+                if (! $this->tableExists($connection, $table)) {
+                    continue;
+                }
+
+                foreach ($columns as $column) {
+                    if (! $this->connectionHasColumn($connection, $table, $column)) {
+                        continue;
+                    }
+
+                    $count = $connection->table($table)->where($column, 'like', '%' . $term . '%')->count();
+
+                    if ($count < 1) {
+                        continue;
+                    }
+
+                    $warnings->push([
+                        'status' => 'WARN',
+                        'term' => $term,
+                        'table' => $table,
+                        'column' => $column,
+                        'count' => $count,
+                    ]);
+                }
+            }
+        }
+
+        return $warnings->all();
     }
 }

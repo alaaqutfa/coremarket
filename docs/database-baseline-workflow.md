@@ -9,7 +9,7 @@ The official local baseline SQL reference is:
 Planned split:
 
 - `database/base/coremarket.sql`: clean client-neutral baseline
-- `database/base/coremarket_test.sql`: future fake demo/testing baseline derived from the clean baseline, not from legacy client data
+- `database/base/coremarket_test.sql`: fake demo/testing baseline derived from the clean baseline, not from legacy client data
 
 This file is a private operational baseline reference for local recovery and baseline rebuild work.
 
@@ -60,13 +60,15 @@ Recommended order:
 7. run `coremarket:testing-database-status` if you need to know whether legacy command tests can run
 8. if needed, run `coremarket:restore-testing-database --dry-run`
 9. restore `coremarket_testing` with `coremarket:restore-testing-database --apply --confirm-testing-db-restore`
-10. use `coremarket:setup-instance` later to make the store client-specific
+10. use `--from-clean-baseline` only when you intentionally want a testing database without fake demo data
+11. use `coremarket:setup-instance` later to make the store client-specific
 
 To refresh the official private baseline SQL after a successful runtime cleanup:
 
 1. back up the current `database/base/coremarket.sql` into an ignored local backup path such as `storage/app/db-backups/`
 2. export the cleaned `coremarket_runtime` database into `database/base/coremarket.sql`
-3. run `coremarket:restore-testing-database --apply --confirm-testing-db-restore` to rebuild `coremarket_testing` from the same clean baseline
+3. prepare `database/base/coremarket_test.sql` from the clean baseline plus fake demo/testing data only
+4. run `coremarket:restore-testing-database --apply --confirm-testing-db-restore` to rebuild `coremarket_testing` from the demo/testing baseline by default
 
 ## What `clean-baseline` Does
 
@@ -154,9 +156,16 @@ Use:
 ```bash
 php artisan coremarket:restore-testing-database --dry-run
 php artisan coremarket:restore-testing-database --apply --confirm-testing-db-restore
+php artisan coremarket:restore-testing-database --dry-run --from-clean-baseline
 ```
 
 This workflow is local-only, targets `_testing` databases only, and must never touch `coremarket_runtime`.
+
+`coremarket:testing-database-status` also reports:
+
+- whether the testing database looks like a demo baseline
+- product, order, upload, and translation counts
+- any remaining legacy branding warnings
 
 ## Never Do This On Legacy Runtime Databases
 

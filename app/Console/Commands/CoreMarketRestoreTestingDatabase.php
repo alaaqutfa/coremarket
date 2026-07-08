@@ -9,15 +9,16 @@ class CoreMarketRestoreTestingDatabase extends Command
 {
     protected $signature = 'coremarket:restore-testing-database
                             {--dry-run : Preview the testing database restore workflow without writing data}
-                            {--apply : Restore the testing database from the private clean baseline SQL}
+                            {--apply : Restore the testing database from the selected private baseline SQL}
+                            {--from-clean-baseline : Use database/base/coremarket.sql instead of the default demo/testing baseline}
                             {--confirm-testing-db-restore : Confirm that the testing database may be dropped and recreated from the private baseline}';
 
-    protected $description = 'Restore the CoreMarket testing database from the private clean baseline SQL file';
+    protected $description = 'Restore the CoreMarket testing database from the private demo/testing or clean baseline SQL file';
 
     public function handle(CoreMarketTestingDatabaseService $service): int
     {
         $applyRequested = (bool) $this->option('apply');
-        $plan = $service->restorePlan();
+        $plan = $service->restorePlan((bool) $this->option('from-clean-baseline'));
         $validationErrors = $service->validateRestorePlan($plan);
 
         $this->info('CoreMarket testing database restore plan');
@@ -30,6 +31,7 @@ class CoreMarketRestoreTestingDatabase extends Command
                 ['Testing DB', $plan['testing_database'] ?? '[unknown]'],
                 ['Host', $plan['host'] ?? '[default]'],
                 ['Port', $plan['port'] ?? '[default]'],
+                ['Baseline source', $plan['baseline_source_label']],
                 ['Baseline SQL', $plan['baseline_path']],
                 ['Baseline exists', $plan['baseline_exists'] ? 'yes' : 'no'],
                 ['Baseline size', $plan['baseline_size'] ?? '[missing]'],
@@ -41,7 +43,7 @@ class CoreMarketRestoreTestingDatabase extends Command
         $this->line('Notes');
         $this->line('- This workflow may drop and recreate only the testing database.');
         $this->line('- It refuses to run if the target database does not contain _testing or matches the runtime database.');
-        $this->line('- It imports the private baseline SQL without touching coremarket_runtime.');
+        $this->line('- It imports the selected private baseline SQL without touching coremarket_runtime.');
 
         if (! $applyRequested) {
             $this->info('Dry-run complete. No database changes were made.');
@@ -61,7 +63,7 @@ class CoreMarketRestoreTestingDatabase extends Command
             return self::SUCCESS;
         }
 
-        $this->info('Restoring the testing database from the private clean baseline SQL...');
+        $this->info('Restoring the testing database from the selected private baseline SQL...');
         $inspection = $service->restoreTestingDatabase($plan);
 
         $this->table(

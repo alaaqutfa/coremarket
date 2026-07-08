@@ -51,7 +51,7 @@ Treat it as a private operational reference, not as a tracked migration replacem
 Baseline split preparation:
 
 - `database/base/coremarket.sql` remains the clean client-neutral baseline
-- `database/base/coremarket_test.sql` is reserved for a future fake demo/testing baseline derived from the clean baseline, not from contaminated legacy client data
+- `database/base/coremarket_test.sql` is the fake demo/testing baseline derived from the clean baseline, not from contaminated legacy client data
 
 ## Baseline Strategy Options
 
@@ -131,6 +131,24 @@ Cons:
 Recommendation:
 
 - recommended now
+
+## Baseline Split
+
+Keep the two private SQL baselines separate:
+
+- `database/base/coremarket.sql`
+  - clean client baseline
+  - neutral branding/settings
+  - preserved translations
+  - no fake demo catalog
+- `database/base/coremarket_test.sql`
+  - fake demo/testing baseline only
+  - safe demo categories/products for local UI and command testing
+  - no real client data
+  - no legacy Syrian Souq, Shaheen, or Coin Market branding
+
+`coremarket:restore-testing-database` now restores from `database/base/coremarket_test.sql` by default.
+Use `--from-clean-baseline` only when you intentionally need a testing database without demo seed data.
 
 ## Recommended Approach
 

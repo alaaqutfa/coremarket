@@ -5,8 +5,14 @@
 This tooling creates or updates a local-only QA storefront dataset for end-to-end order testing.
 
 It is not a client baseline.
+It is not the official demo/testing SQL baseline.
 It is not a production seed.
 It must not be used for any client instance.
+
+For baseline restoration workflows:
+
+- `database/base/coremarket.sql` stays the clean client baseline
+- `database/base/coremarket_test.sql` stays the fake demo/testing baseline
 
 ## Command Usage
 
