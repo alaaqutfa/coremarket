@@ -18,6 +18,7 @@ It does not certify the current local database as a client-ready baseline.
 The following checks are part of the runtime readiness pass:
 
 ```bash
+php artisan coremarket:guard-database
 php artisan coremarket:audit-baseline-readiness
 php artisan coremarket:setup-instance --help
 php artisan coremarket:setup-instance demo-starter --dry-run --store-name="Demo Starter" --domain="starter.example.test" --admin-email="starter@example.test" --admin-name="Starter Admin" --plan=starter --store-mode=single_store --currency=USD --language=English
@@ -96,6 +97,12 @@ The following remain blocked by the current legacy/demo database:
 - clean QA order verification without legacy branding noise
 
 Use the clean baseline database strategy before selling or launching managed client instances from a fresh database.
+
+When switching the local app to another MySQL database, run `coremarket:guard-database` first. If critical tables such as `languages`, `uploads`, `products`, `orders`, `currencies`, `business_settings`, or `users` are missing, stop and restore a full runtime database instead of patching around the incomplete schema.
+
+Keep SQL dumps and local full-runtime recovery databases outside Git. They are operational recovery artifacts, not normal repository content.
+
+If automated tests use `RefreshDatabase`, do not point them at the same database used for local runtime. Keep a separate testing database so schema resets cannot damage the working local storefront database.
 
 ## Requires CorePilotOS Connector Later
 

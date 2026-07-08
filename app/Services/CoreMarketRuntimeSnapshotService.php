@@ -218,10 +218,14 @@ class CoreMarketRuntimeSnapshotService
             return null;
         }
 
-        return BusinessSetting::query()
-            ->where('type', $key)
-            ->whereNull('lang')
-            ->value('value');
+        try {
+            return BusinessSetting::query()
+                ->where('type', $key)
+                ->whereNull('lang')
+                ->value('value');
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 
     protected function decodeJsonSetting(?string $key): array

@@ -17,6 +17,31 @@ The repository and the live database are significantly out of sync:
 
 This means a fresh database built from tracked migrations alone would not match the working application schema.
 
+## Local Runtime Guard
+
+CoreMarket should not be opened against an incomplete database.
+
+After changing `DB_DATABASE`, run:
+
+```bash
+php artisan coremarket:guard-database
+php artisan coremarket:audit-baseline-readiness
+```
+
+The database guard is read-only and fails clearly if critical runtime tables are missing:
+
+- `business_settings`
+- `users`
+- `products`
+- `orders`
+- `uploads`
+- `currencies`
+- `languages`
+
+If the guard fails, do not patch around the missing schema with fake migrations. Point the app to a full working runtime database instead.
+
+In the current local recovery workflow, a full runtime database such as `core_market` may be used as the operational reference database while baseline cleanup and managed-instance sanitation continue separately.
+
 ## Baseline Strategy Options
 
 ### Option A: Migrations Only
@@ -311,12 +336,15 @@ Until a dedicated baseline build step is executed:
 - do not use the current demo/legacy database as a client baseline
 - do not rely on migrations alone to create a new managed instance database
 - prefer a controlled hybrid baseline artifact derived from the live working schema
+- keep SQL backup and recovery artifacts outside Git
+- never run `migrate:fresh`, `db:wipe`, or similar destructive commands against the legacy runtime database
 
 ## Read-Only Readiness Audit
 
 Use the baseline readiness audit command to inspect the current database without writing any data:
 
 ```bash
+php artisan coremarket:guard-database
 php artisan coremarket:audit-baseline-readiness
 ```
 
