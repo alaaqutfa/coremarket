@@ -53,7 +53,15 @@ Recommended order:
 5. if the preview is correct, run `coremarket:clean-baseline --apply --confirm-clean-baseline`
 6. rerun `coremarket:audit-baseline-readiness`
 7. run `coremarket:testing-database-status` if you need to know whether legacy command tests can run
-8. use `coremarket:setup-instance` later to make the store client-specific
+8. if needed, run `coremarket:restore-testing-database --dry-run`
+9. restore `coremarket_testing` with `coremarket:restore-testing-database --apply --confirm-testing-db-restore`
+10. use `coremarket:setup-instance` later to make the store client-specific
+
+To refresh the official private baseline SQL after a successful runtime cleanup:
+
+1. back up the current `database/base/coremarket.sql` into an ignored local backup path such as `storage/app/db-backups/`
+2. export the cleaned `coremarket_runtime` database into `database/base/coremarket.sql`
+3. run `coremarket:restore-testing-database --apply --confirm-testing-db-restore` to rebuild `coremarket_testing` from the same clean baseline
 
 ## What `clean-baseline` Does
 
@@ -132,6 +140,15 @@ php artisan coremarket:testing-database-status
 ```
 
 If the command reports missing tables like `shops`, `currencies`, `languages`, or `roles`, prepare `coremarket_testing` from the private baseline SQL before expecting full legacy command tests to run.
+
+Use:
+
+```bash
+php artisan coremarket:restore-testing-database --dry-run
+php artisan coremarket:restore-testing-database --apply --confirm-testing-db-restore
+```
+
+This workflow is local-only, targets `_testing` databases only, and must never touch `coremarket_runtime`.
 
 ## Never Do This On Legacy Runtime Databases
 

@@ -442,9 +442,31 @@ return [
         ],
 
         'page_defaults' => [
+            'title' => 'CoreMarket Store',
             'meta_title' => 'CoreMarket Store',
             'meta_description' => 'Managed ecommerce store powered by CoreMarket',
             'keywords' => 'CoreMarket, managed ecommerce, online store, product catalog, shopping, managed storefront',
+        ],
+
+        'page_translation_defaults' => [
+            'title' => 'CoreMarket Store',
+        ],
+
+        'translation_replacements' => [
+            'Syrian souq products' => 'In-house products',
+            'Syrian Souq products' => 'In-house products',
+            'Syrian Souq Products' => 'In-house products',
+            'Syrian Souq Products sale report' => 'In-house products sale report',
+            'Syrian marketplace' => 'managed marketplace',
+            'منتجات سوق سوريا' => 'منتجات المتجر',
+            'تقرير بيع منتجات سوق سوريا' => 'تقرير بيع منتجات المتجر',
+            'المنتجات (سوق سوريا)' => 'المنتجات الداخلية',
+            'عرض المنتجات (سوق سوريا)' => 'عرض المنتجات الداخلية',
+            'منتج سوق سوريا' => 'منتج المتجر',
+        ],
+
+        'message_replacements' => [
+            'https://syriansouq.com/product/test' => 'https://example.com/product/sample',
         ],
 
         'category_replacements' => [
@@ -487,9 +509,12 @@ return [
             'shops' => ['name', 'slug', 'phone', 'address', 'meta_title', 'meta_description', 'facebook', 'instagram', 'google', 'twitter', 'youtube'],
             'users' => ['name', 'email', 'phone', 'address'],
             'pages' => ['title', 'slug', 'content', 'meta_title', 'meta_description', 'keywords'],
+            'page_translations' => ['title', 'content'],
             'categories' => ['name', 'slug', 'meta_title', 'meta_description'],
             'brands' => ['name', 'slug', 'meta_title', 'meta_description'],
             'products' => ['name', 'tags', 'description', 'meta_title', 'meta_description', 'slug'],
+            'translations' => ['lang_value'],
+            'messages' => ['message'],
         ],
 
         'notes' => [

@@ -26,7 +26,10 @@ class CoreMarketCleanBaselineService
             'settings' => $this->buildSettingsPreview(),
             'shops' => $this->buildShopPreview(),
             'pages' => $this->buildPagePreview(),
+            'page_translations' => $this->buildPageTranslationPreview(),
             'categories' => $this->buildCategoryPreview(),
+            'translations' => $this->buildTranslationPreview(),
+            'messages' => $this->buildMessagePreview(),
             'product_count' => Schema::hasTable('products') ? DB::table('products')->count() : 0,
             'order_count' => Schema::hasTable('orders') ? DB::table('orders')->count() : 0,
             'upload_count' => Schema::hasTable('uploads') ? DB::table('uploads')->count() : 0,
@@ -64,7 +67,10 @@ class CoreMarketCleanBaselineService
         $applied = $this->applyBusinessSettings($plan['settings']);
         $appliedShops = $this->applyShopDefaults($plan['shops']);
         $appliedPages = $this->applyPageDefaults($plan['pages']);
+        $appliedPageTranslations = $this->applyPageTranslationDefaults($plan['page_translations']);
         $appliedCategories = $this->applyCategoryDefaults($plan['categories']);
+        $appliedTranslations = $this->applyTranslationDefaults($plan['translations']);
+        $appliedMessages = $this->applyMessageDefaults($plan['messages']);
 
         Cache::forget('business_settings');
         Cache::forget('system_default_currency');
@@ -73,7 +79,10 @@ class CoreMarketCleanBaselineService
             'settings' => $applied,
             'shops' => $appliedShops,
             'pages' => $appliedPages,
+            'page_translations' => $appliedPageTranslations,
             'categories' => $appliedCategories,
+            'translations' => $appliedTranslations,
+            'messages' => $appliedMessages,
             'target_currency' => $plan['target_currency'],
             'target_language' => $plan['target_language'],
         ];
@@ -243,6 +252,108 @@ class CoreMarketCleanBaselineService
         return $preview;
     }
 
+    protected function buildPageTranslationPreview(): array
+    {
+        if (! Schema::hasTable('page_translations')) {
+            return [];
+        }
+
+        $defaults = config('coremarket.clean_baseline.page_translation_defaults', []);
+        $preview = [];
+
+        foreach (DB::table('page_translations')->get() as $translation) {
+            foreach (['title', 'content'] as $field) {
+                if (! property_exists($translation, $field)) {
+                    continue;
+                }
+
+                $currentValue = $translation->{$field};
+                $targetValue = $this->neutralizedText(
+                    $currentValue,
+                    $field,
+                    $defaults[$field] ?? null,
+                    config('coremarket.clean_baseline.page_replacements', [])
+                );
+
+                if ($targetValue === null || $targetValue === $currentValue) {
+                    continue;
+                }
+
+                $preview[] = [
+                    'id' => $translation->id,
+                    'lang' => $translation->lang ?? null,
+                    'field' => $field,
+                    'current_value' => $currentValue,
+                    'target_value' => $targetValue,
+                ];
+            }
+        }
+
+        return $preview;
+    }
+
+    protected function buildTranslationPreview(): array
+    {
+        if (! Schema::hasTable('translations')) {
+            return [];
+        }
+
+        $preview = [];
+        $replacements = config('coremarket.clean_baseline.translation_replacements', []);
+
+        foreach (DB::table('translations')->get() as $translation) {
+            if (! property_exists($translation, 'lang_value') || ! is_string($translation->lang_value)) {
+                continue;
+            }
+
+            $targetValue = $this->neutralizedTranslationValue($translation->lang_value, $replacements);
+
+            if ($targetValue === null || $targetValue === $translation->lang_value) {
+                continue;
+            }
+
+            $preview[] = [
+                'id' => $translation->id,
+                'lang' => $translation->lang ?? null,
+                'lang_key' => $translation->lang_key ?? null,
+                'current_value' => $translation->lang_value,
+                'target_value' => $targetValue,
+            ];
+        }
+
+        return $preview;
+    }
+
+    protected function buildMessagePreview(): array
+    {
+        if (! Schema::hasTable('messages')) {
+            return [];
+        }
+
+        $preview = [];
+        $replacements = config('coremarket.clean_baseline.message_replacements', []);
+
+        foreach (DB::table('messages')->get() as $message) {
+            if (! property_exists($message, 'message') || ! is_string($message->message)) {
+                continue;
+            }
+
+            $targetValue = $this->neutralizedTranslationValue($message->message, $replacements);
+
+            if ($targetValue === null || $targetValue === $message->message) {
+                continue;
+            }
+
+            $preview[] = [
+                'id' => $message->id,
+                'current_value' => $message->message,
+                'target_value' => $targetValue,
+            ];
+        }
+
+        return $preview;
+    }
+
     protected function formatPreviewRow(string $type, ?string $lang, $currentValue, $targetValue): array
     {
         return [
@@ -393,6 +504,97 @@ class CoreMarketCleanBaselineService
         return $applied;
     }
 
+    protected function applyPageTranslationDefaults(array $translations): array
+    {
+        $applied = [];
+
+        foreach ($translations as $row) {
+            $translation = DB::table('page_translations')->where('id', $row['id'])->first();
+
+            if (! $translation) {
+                continue;
+            }
+
+            $previous = $translation->{$row['field']};
+            DB::table('page_translations')
+                ->where('id', $row['id'])
+                ->update([
+                    $row['field'] => $row['target_value'],
+                ]);
+
+            $applied[] = [
+                'id' => $row['id'],
+                'lang' => $row['lang'] ?? null,
+                'field' => $row['field'],
+                'previous' => $previous,
+                'value' => $row['target_value'],
+                'status' => 'updated',
+            ];
+        }
+
+        return $applied;
+    }
+
+    protected function applyTranslationDefaults(array $translations): array
+    {
+        $applied = [];
+
+        foreach ($translations as $row) {
+            $translation = DB::table('translations')->where('id', $row['id'])->first();
+
+            if (! $translation) {
+                continue;
+            }
+
+            $previous = $translation->lang_value;
+            DB::table('translations')
+                ->where('id', $row['id'])
+                ->update([
+                    'lang_value' => $row['target_value'],
+                ]);
+
+            $applied[] = [
+                'id' => $row['id'],
+                'lang' => $row['lang'] ?? null,
+                'lang_key' => $row['lang_key'] ?? null,
+                'previous' => $previous,
+                'value' => $row['target_value'],
+                'status' => 'updated',
+            ];
+        }
+
+        return $applied;
+    }
+
+    protected function applyMessageDefaults(array $messages): array
+    {
+        $applied = [];
+
+        foreach ($messages as $row) {
+            $message = DB::table('messages')->where('id', $row['id'])->first();
+
+            if (! $message) {
+                continue;
+            }
+
+            $previous = $message->message;
+            DB::table('messages')
+                ->where('id', $row['id'])
+                ->update([
+                    'message' => $row['target_value'],
+                ]);
+
+            $applied[] = [
+                'id' => $row['id'],
+                'previous' => $previous,
+                'value' => $row['target_value'],
+                'status' => 'updated',
+            ];
+        }
+
+        return $applied;
+    }
+
     protected function neutralizedText($currentValue, string $field, $defaultValue, array $replacements): ?string
     {
         if (! is_string($currentValue) || trim($currentValue) === '') {
@@ -421,6 +623,24 @@ class CoreMarketCleanBaselineService
         }
 
         return $target === '' ? $defaultValue : $target;
+    }
+
+    protected function neutralizedTranslationValue(string $currentValue, array $replacements): ?string
+    {
+        if (trim($currentValue) === '' || ! $this->containsLegacyTerm($currentValue)) {
+            return null;
+        }
+
+        $target = $currentValue;
+
+        foreach ($replacements as $search => $replace) {
+            $target = str_replace($search, $replace, $target);
+        }
+
+        $target = preg_replace('/\s+/', ' ', (string) $target);
+        $target = trim((string) $target);
+
+        return $target === '' ? null : $target;
     }
 
     protected function containsLegacyTerm(string $value): bool

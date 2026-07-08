@@ -14,7 +14,7 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
     {
         parent::setUp();
 
-        foreach (['business_settings', 'shops'] as $table) {
+        foreach (['business_settings', 'shops', 'translations', 'page_translations', 'messages'] as $table) {
             if (! Schema::hasTable($table)) {
                 $this->markTestSkipped("The {$table} table is not available in the testing database.");
             }
@@ -82,6 +82,35 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
             'google' => 'www.google.com',
         ]);
 
+        DB::table('translations')->updateOrInsert(
+            ['id' => 78],
+            [
+                'lang' => 'en',
+                'lang_key' => 'inhouse_product',
+                'lang_value' => 'Syrian Souq products',
+            ]
+        );
+
+        DB::table('page_translations')->updateOrInsert(
+            ['id' => 2],
+            [
+                'lang' => 'en',
+                'title' => 'Seller Policy | Syrian Souq - The First Online Marketplace',
+                'content' => 'Seller policy content for Syrian Souq merchants.',
+            ]
+        );
+
+        DB::table('messages')->updateOrInsert(
+            ['id' => 1],
+            [
+                'conversation_id' => 1,
+                'user_id' => 1,
+                'message' => 'https://syriansouq.com/product/test',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
         $beforeCounts = [
             'products' => DB::table('products')->count(),
             'orders' => DB::table('orders')->count(),
@@ -94,7 +123,7 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
         ])
             ->expectsOutput('Applying clean baseline business_settings and safe shop branding fields...')
             ->expectsOutput('Shop branding apply result')
-            ->expectsOutput('Apply complete. Only the allowed baseline business_settings and safe shop branding fields were updated.')
+            ->expectsOutput('Apply complete. Only the allowed baseline business_settings and safe public metadata fields were updated.')
             ->assertExitCode(0);
 
         $shop = Shop::query()->find(1);
@@ -110,6 +139,9 @@ class CoreMarketCleanBaselineCommandTest extends TestCase
         $this->assertSame('', (string) $shop->twitter);
         $this->assertSame('', (string) $shop->youtube);
         $this->assertSame('', (string) $shop->google);
+        $this->assertSame('In-house products', DB::table('translations')->where('id', 78)->value('lang_value'));
+        $this->assertSame('CoreMarket Store', DB::table('page_translations')->where('id', 2)->value('title'));
+        $this->assertSame('https://example.com/product/sample', DB::table('messages')->where('id', 1)->value('message'));
 
         $afterCounts = [
             'products' => DB::table('products')->count(),

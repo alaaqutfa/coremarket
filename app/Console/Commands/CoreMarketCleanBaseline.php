@@ -90,6 +90,24 @@ class CoreMarketCleanBaseline extends Command
             );
         }
 
+        $this->line('Page translation preview');
+        if (empty($plan['page_translations'])) {
+            $this->line('[INFO] No page translation rows require baseline-neutral cleanup.');
+        } else {
+            $this->table(
+                ['Translation ID', 'Lang', 'Field', 'Current Value', 'Target Value'],
+                collect($plan['page_translations'])->map(function (array $translation) {
+                    return [
+                        $translation['id'],
+                        $translation['lang'] ?? '[default]',
+                        $translation['field'],
+                        $this->formatValue($translation['current_value']),
+                        $this->formatValue($translation['target_value']),
+                    ];
+                })->all()
+            );
+        }
+
         $this->line('Category metadata preview');
         if (empty($plan['categories'])) {
             $this->line('[INFO] No category metadata rows require baseline-neutral cleanup.');
@@ -102,6 +120,40 @@ class CoreMarketCleanBaseline extends Command
                         $category['field'],
                         $this->formatValue($category['current_value']),
                         $this->formatValue($category['target_value']),
+                    ];
+                })->all()
+            );
+        }
+
+        $this->line('Translation preview');
+        if (empty($plan['translations'])) {
+            $this->line('[INFO] No UI translation rows require baseline-neutral cleanup.');
+        } else {
+            $this->table(
+                ['Translation ID', 'Lang', 'Key', 'Current Value', 'Target Value'],
+                collect($plan['translations'])->map(function (array $translation) {
+                    return [
+                        $translation['id'],
+                        $translation['lang'] ?? '[default]',
+                        $translation['lang_key'] ?? '[unknown]',
+                        $this->formatValue($translation['current_value']),
+                        $this->formatValue($translation['target_value']),
+                    ];
+                })->all()
+            );
+        }
+
+        $this->line('Message preview');
+        if (empty($plan['messages'])) {
+            $this->line('[INFO] No message rows require baseline-neutral cleanup.');
+        } else {
+            $this->table(
+                ['Message ID', 'Current Value', 'Target Value'],
+                collect($plan['messages'])->map(function (array $message) {
+                    return [
+                        $message['id'],
+                        $this->formatValue($message['current_value']),
+                        $this->formatValue($message['target_value']),
                     ];
                 })->all()
             );
@@ -201,6 +253,23 @@ class CoreMarketCleanBaseline extends Command
             );
         }
 
+        if (! empty($applied['page_translations'])) {
+            $this->line('Page translation apply result');
+            $this->table(
+                ['Translation ID', 'Lang', 'Field', 'Status', 'Previous Value', 'Applied Value'],
+                collect($applied['page_translations'])->map(function (array $translation) {
+                    return [
+                        $translation['id'],
+                        $translation['lang'] ?? '[default]',
+                        $translation['field'],
+                        $translation['status'],
+                        $this->formatValue($translation['previous']),
+                        $this->formatValue($translation['value']),
+                    ];
+                })->all()
+            );
+        }
+
         if (! empty($applied['categories'])) {
             $this->line('Category metadata apply result');
             $this->table(
@@ -212,6 +281,38 @@ class CoreMarketCleanBaseline extends Command
                         $category['status'],
                         $this->formatValue($category['previous']),
                         $this->formatValue($category['value']),
+                    ];
+                })->all()
+            );
+        }
+
+        if (! empty($applied['translations'])) {
+            $this->line('UI translation apply result');
+            $this->table(
+                ['Translation ID', 'Lang', 'Key', 'Status', 'Previous Value', 'Applied Value'],
+                collect($applied['translations'])->map(function (array $translation) {
+                    return [
+                        $translation['id'],
+                        $translation['lang'] ?? '[default]',
+                        $translation['lang_key'] ?? '[unknown]',
+                        $translation['status'],
+                        $this->formatValue($translation['previous']),
+                        $this->formatValue($translation['value']),
+                    ];
+                })->all()
+            );
+        }
+
+        if (! empty($applied['messages'])) {
+            $this->line('Message apply result');
+            $this->table(
+                ['Message ID', 'Status', 'Previous Value', 'Applied Value'],
+                collect($applied['messages'])->map(function (array $message) {
+                    return [
+                        $message['id'],
+                        $message['status'],
+                        $this->formatValue($message['previous']),
+                        $this->formatValue($message['value']),
                     ];
                 })->all()
             );

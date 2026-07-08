@@ -84,13 +84,15 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
     {
         DB::beginTransaction();
 
-        $websiteName = BusinessSetting::query()->firstOrNew(['type' => 'website_name', 'lang' => null]);
-        $websiteName->value = 'Old Store';
-        $websiteName->save();
+        DB::table('business_settings')->updateOrInsert(
+            ['type' => 'website_name', 'lang' => null],
+            ['value' => 'Old Store']
+        );
 
-        $vendorActivation = BusinessSetting::query()->firstOrNew(['type' => 'vendor_system_activation', 'lang' => null]);
-        $vendorActivation->value = '1';
-        $vendorActivation->save();
+        DB::table('business_settings')->updateOrInsert(
+            ['type' => 'vendor_system_activation', 'lang' => null],
+            ['value' => '1']
+        );
 
         $this->artisan('coremarket:setup-instance', [
             'instance_id' => 'client-store',
@@ -106,7 +108,7 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
             '--timezone' => 'Asia/Beirut',
         ])
             ->expectsOutput('Applying allowed business_settings and optional Store Admin changes...')
-            ->expectsOutput('Apply complete. Only the allowed business_settings and explicit Store Admin changes were updated.')
+            ->expectsOutput('Apply complete. Only the allowed business_settings, safe shop branding fields, and explicit Store Admin changes were updated.')
             ->assertExitCode(0);
 
         $this->assertSame(
@@ -184,7 +186,7 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
         $shop = Shop::query()->find(1);
 
         $this->assertSame('Client Store', $shop->name);
-        $this->assertSame('example-store-com', $shop->slug);
+        $this->assertSame('example-storecom', $shop->slug);
         $this->assertSame('+10000000000', $shop->phone);
         $this->assertSame('Managed Address', $shop->address);
         $this->assertSame('Client Store', $shop->meta_title);
@@ -197,9 +199,10 @@ class CoreMarketSetupInstanceCommandTest extends TestCase
     {
         DB::beginTransaction();
 
-        $setting = BusinessSetting::query()->firstOrNew(['type' => 'system_logo_white', 'lang' => null]);
-        $setting->value = '999';
-        $setting->save();
+        DB::table('business_settings')->updateOrInsert(
+            ['type' => 'system_logo_white', 'lang' => null],
+            ['value' => '999']
+        );
 
         $this->artisan('coremarket:setup-instance', [
             'instance_id' => 'client-store',

@@ -407,6 +407,11 @@ Testing DB reliability:
 - `coremarket_testing` is allowed only because it is a testing database, not because it is automatically legacy-ready
 - run `php artisan coremarket:testing-database-status` to confirm whether command-level tests have the required schema
 - if tables such as `shops`, `currencies`, `languages`, or `roles` are missing, import `coremarket_testing` from the private baseline SQL before expecting full legacy command tests to run
+- the local restore workflow is:
+  - `php artisan coremarket:restore-testing-database --dry-run`
+  - `php artisan coremarket:restore-testing-database --apply --confirm-testing-db-restore`
+- the restore workflow must refuse any database that does not contain `_testing` or that matches the runtime database
+- after runtime cleanup succeeds, refresh `database/base/coremarket.sql` from `coremarket_runtime`, then rebuild `coremarket_testing` from that same private baseline so legacy command tests use the cleaned neutral baseline
 
 Those areas require a separate later reset workflow with backups and dependency-aware deletion order.
 
