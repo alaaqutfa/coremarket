@@ -63,7 +63,7 @@ return [
             'monthly_orders_limit' => ['default' => 300],
             'staff_limit' => ['default' => 3],
             'sellers_limit' => ['default' => 0],
-            'storage_mb_limit' => ['default' => 1024],
+            'storage_mb_limit' => ['default' => 256],
         ],
 
         'plans' => [
@@ -93,9 +93,9 @@ return [
                 'limits' => [
                     'products_limit' => 50,
                     'monthly_orders_limit' => 300,
-                    'staff_limit' => 3,
+                    'staff_limit' => 2,
                     'sellers_limit' => 0,
-                    'storage_mb_limit' => 1024,
+                    'storage_mb_limit' => 256,
                 ],
             ],
             'business' => [
@@ -122,11 +122,11 @@ return [
                     'subscription_page' => true,
                 ],
                 'limits' => [
-                    'products_limit' => 500,
-                    'monthly_orders_limit' => 5000,
-                    'staff_limit' => 15,
+                    'products_limit' => 300,
+                    'monthly_orders_limit' => 1500,
+                    'staff_limit' => 5,
                     'sellers_limit' => 0,
-                    'storage_mb_limit' => 5120,
+                    'storage_mb_limit' => 1024,
                 ],
             ],
             'marketplace' => [
@@ -153,11 +153,11 @@ return [
                     'subscription_page' => true,
                 ],
                 'limits' => [
-                    'products_limit' => 5000,
-                    'monthly_orders_limit' => 25000,
-                    'staff_limit' => 50,
-                    'sellers_limit' => 1000,
-                    'storage_mb_limit' => 20480,
+                    'products_limit' => 1500,
+                    'monthly_orders_limit' => 5000,
+                    'staff_limit' => 10,
+                    'sellers_limit' => 20,
+                    'storage_mb_limit' => 5120,
                 ],
             ],
             'enterprise' => [
@@ -188,7 +188,7 @@ return [
                     'monthly_orders_limit' => null,
                     'staff_limit' => null,
                     'sellers_limit' => null,
-                    'storage_mb_limit' => null,
+                    'storage_mb_limit' => 20480,
                 ],
             ],
         ],
@@ -286,9 +286,9 @@ return [
     'limits' => [
         'products_limit' => 50,
         'monthly_orders_limit' => 300,
-        'staff_limit' => 3,
+        'staff_limit' => 2,
         'sellers_limit' => 0,
-        'storage_mb_limit' => 1024,
+        'storage_mb_limit' => 256,
     ],
 
     'contact' => [

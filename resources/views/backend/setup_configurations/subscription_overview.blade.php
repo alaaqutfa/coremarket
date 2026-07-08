@@ -220,7 +220,7 @@
                         <div class="h5 mb-0">{{ $currentUploadCount }}</div>
                     </div>
                     <div class="alert alert-warning mb-0 mt-3">
-                        {{ translate('Storage usage is shown as a safe uploads placeholder until a reliable storage meter is added.') }}
+                        {{ translate('Media storage usage is shown as a safe uploads placeholder until a reliable file-size meter is added. This limit covers uploaded images, banners, shop assets, and similar media. It is not server RAM.') }}
                     </div>
                 </div>
             </div>

@@ -33,7 +33,9 @@ class AdminSubscriptionOverviewTest extends TestCase
                 ->assertSee('Applied plan')
                 ->assertSee('Store mode')
                 ->assertSee('Runtime limits')
-                ->assertSee('Usage snapshot');
+                ->assertSee('Usage snapshot')
+                ->assertSee('Media storage limit (MB)')
+                ->assertSee('256');
         } finally {
             DB::rollBack();
         }

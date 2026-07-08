@@ -38,8 +38,9 @@ class CoreMarketFeatureAccessServiceTest extends TestCase
 
         $this->assertFalse($service->enabled('multi_vendor'));
         $this->assertTrue($service->enabled('marketing_basic'));
-        $this->assertSame(3, $service->limit('staff_limit'));
+        $this->assertSame(2, $service->limit('staff_limit'));
         $this->assertSame(0, $service->limit('sellers_limit'));
+        $this->assertSame(256, $service->limit('storage_mb_limit'));
     }
 
     public function test_explicit_legacy_feature_override_takes_precedence(): void
@@ -62,7 +63,8 @@ class CoreMarketFeatureAccessServiceTest extends TestCase
 
         $this->assertTrue($service->enabled('multi_vendor'));
         $this->assertTrue($service->enabled('sellers'));
-        $this->assertSame(1000, $service->limit('sellers_limit'));
+        $this->assertSame(20, $service->limit('sellers_limit'));
+        $this->assertSame(5120, $service->limit('storage_mb_limit'));
     }
 
     public function test_matrix_for_without_explicit_arguments_uses_current_runtime_plan_and_mode(): void
@@ -76,6 +78,7 @@ class CoreMarketFeatureAccessServiceTest extends TestCase
         $this->assertSame('marketplace', $matrix['applied_plan']);
         $this->assertSame('marketplace', $matrix['store_mode']);
         $this->assertTrue($matrix['features']['multi_vendor']);
-        $this->assertSame(1000, $matrix['limits']['sellers_limit']);
+        $this->assertSame(20, $matrix['limits']['sellers_limit']);
+        $this->assertSame(5120, $matrix['limits']['storage_mb_limit']);
     }
 }

@@ -52,6 +52,7 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
             ->assertJsonPath('runtime.applied_plan', 'marketplace')
             ->assertJsonPath('runtime.store_mode', 'marketplace')
             ->assertJsonPath('runtime.features.multi_vendor', true)
+            ->assertJsonPath('runtime.limits.storage_mb_limit', 5120)
             ->assertJsonMissingPath('token');
 
         $this->assertSame($before, BusinessSetting::count());
@@ -68,6 +69,7 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
             ->assertJsonPath('mode', 'apply')
             ->assertJsonPath('runtime.runtime.applied_plan', 'marketplace')
             ->assertJsonPath('runtime.runtime.features.multi_vendor', true)
+            ->assertJsonPath('runtime.runtime.limits.storage_mb_limit', 5120)
             ->assertJsonMissingPath('api_token')
             ->assertJsonMissingPath('token');
 
@@ -88,6 +90,7 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
         $this->assertTrue(coremarket_feature_enabled('multi_vendor'));
         $this->assertTrue(coremarket_feature_enabled('sellers'));
         $this->assertSame(1200, coremarket_limit('sellers_limit'));
+        $this->assertSame(5120, coremarket_limit('storage_mb_limit'));
     }
 
     public function test_applied_starter_single_store_snapshot_disables_sellers_and_multi_vendor(): void
@@ -101,6 +104,7 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
         $this->assertFalse(coremarket_feature_enabled('multi_vendor'));
         $this->assertFalse(coremarket_feature_enabled('sellers'));
         $this->assertSame(0, coremarket_limit('sellers_limit'));
+        $this->assertSame(256, coremarket_limit('storage_mb_limit'));
         $this->assertSame('0', (string) BusinessSetting::query()->where('type', 'vendor_system_activation')->whereNull('lang')->value('value'));
     }
 
@@ -120,6 +124,7 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
                 'products_limit' => 5000,
                 'monthly_orders_limit' => 25000,
                 'sellers_limit' => 1200,
+                'storage_mb_limit' => 5120,
             ],
             'store' => [
                 'instance_id' => 'market-001',
@@ -151,6 +156,7 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
                 'products_limit' => 50,
                 'monthly_orders_limit' => 300,
                 'sellers_limit' => 0,
+                'storage_mb_limit' => 256,
             ],
             'store' => [
                 'instance_id' => 'starter-001',

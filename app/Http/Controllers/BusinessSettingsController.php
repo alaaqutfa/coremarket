@@ -184,6 +184,10 @@ class BusinessSettingsController extends Controller
             ->map(function ($value, string $key) use ($currentProductCount, $currentMonthlyOrderCount, $currentUploadCount) {
                 $usage = null;
                 $usageNote = null;
+                $label = match ($key) {
+                    'storage_mb_limit' => 'Media storage limit (MB)',
+                    default => Str::of($key)->replace('_', ' ')->title()->toString(),
+                };
 
                 if ($key === 'products_limit') {
                     $usage = $currentProductCount;
@@ -191,12 +195,12 @@ class BusinessSettingsController extends Controller
                     $usage = $currentMonthlyOrderCount;
                 } elseif ($key === 'storage_mb_limit') {
                     $usage = $currentUploadCount;
-                    $usageNote = 'Uploads count shown as a safe placeholder. Storage size is not tracked reliably here.';
+                    $usageNote = 'Uploads count shown as a safe placeholder. Media file size is not tracked reliably here yet.';
                 }
 
                 return [
                     'key' => $key,
-                    'label' => Str::of($key)->replace('_', ' ')->title()->toString(),
+                    'label' => $label,
                     'value' => $value,
                     'usage' => $usage,
                     'usage_note' => $usageNote,

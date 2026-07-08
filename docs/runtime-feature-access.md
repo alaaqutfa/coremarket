@@ -62,6 +62,9 @@ Legacy compatibility maps `ecommerce_starter` to `starter`.
 - `staff_limit`
 - `sellers_limit`
 - `storage_mb_limit`
+  - uploaded media and images allowance for the store
+  - includes measurable storefront uploads such as product images, banners, shop assets, and similar stored media
+  - does not mean PHP memory limit or server RAM
 
 ## Resolution Order
 
