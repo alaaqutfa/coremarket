@@ -73,9 +73,11 @@ To refresh the official private baseline SQL after a successful runtime cleanup:
 It:
 
 - neutralizes old store/client branding in `business_settings`
+- fills neutral baseline placeholders for `contact_phone`, `contact_address`, and `timezone`
 - neutralizes safe branding fields in `shops` such as name, slug, phone, address, and meta text
 - neutralizes safe legacy metadata in `pages` when branding terms are obvious
 - neutralizes category metadata only when obvious legacy branding text is present
+- ensures the minimal `store_admin` role exists for runtime setup and testing workflows
 - disables unsafe starter-incompatible baseline flags such as popup and vendor mode
 - keeps the baseline generic for later client setup
 

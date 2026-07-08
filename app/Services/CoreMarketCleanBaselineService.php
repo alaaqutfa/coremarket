@@ -8,6 +8,7 @@ use App\Models\Language;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class CoreMarketCleanBaselineService
 {
@@ -30,6 +31,7 @@ class CoreMarketCleanBaselineService
             'categories' => $this->buildCategoryPreview(),
             'translations' => $this->buildTranslationPreview(),
             'messages' => $this->buildMessagePreview(),
+            'roles' => $this->buildRolePreview(),
             'product_count' => Schema::hasTable('products') ? DB::table('products')->count() : 0,
             'order_count' => Schema::hasTable('orders') ? DB::table('orders')->count() : 0,
             'upload_count' => Schema::hasTable('uploads') ? DB::table('uploads')->count() : 0,
@@ -71,6 +73,7 @@ class CoreMarketCleanBaselineService
         $appliedCategories = $this->applyCategoryDefaults($plan['categories']);
         $appliedTranslations = $this->applyTranslationDefaults($plan['translations']);
         $appliedMessages = $this->applyMessageDefaults($plan['messages']);
+        $appliedRoles = $this->applyRoleDefaults($plan['roles']);
 
         Cache::forget('business_settings');
         Cache::forget('system_default_currency');
@@ -83,6 +86,7 @@ class CoreMarketCleanBaselineService
             'categories' => $appliedCategories,
             'translations' => $appliedTranslations,
             'messages' => $appliedMessages,
+            'roles' => $appliedRoles,
             'target_currency' => $plan['target_currency'],
             'target_language' => $plan['target_language'],
         ];
@@ -354,6 +358,26 @@ class CoreMarketCleanBaselineService
         return $preview;
     }
 
+    protected function buildRolePreview(): array
+    {
+        if (! Schema::hasTable('roles')) {
+            return [];
+        }
+
+        $roleName = config('coremarket.access.store_admin_role', 'store_admin');
+        $role = SpatieRole::query()
+            ->where('name', $roleName)
+            ->where('guard_name', 'web')
+            ->first();
+
+        return [[
+            'name' => $roleName,
+            'guard_name' => 'web',
+            'exists' => $role !== null,
+            'current_id' => $role?->id,
+        ]];
+    }
+
     protected function formatPreviewRow(string $type, ?string $lang, $currentValue, $targetValue): array
     {
         return [
@@ -589,6 +613,43 @@ class CoreMarketCleanBaselineService
                 'previous' => $previous,
                 'value' => $row['target_value'],
                 'status' => 'updated',
+            ];
+        }
+
+        return $applied;
+    }
+
+    protected function applyRoleDefaults(array $roles): array
+    {
+        $applied = [];
+
+        foreach ($roles as $row) {
+            $role = SpatieRole::query()
+                ->where('name', $row['name'])
+                ->where('guard_name', $row['guard_name'])
+                ->first();
+
+            if ($role) {
+                $applied[] = [
+                    'name' => $row['name'],
+                    'guard_name' => $row['guard_name'],
+                    'status' => 'existing',
+                    'role_id' => $role->id,
+                ];
+
+                continue;
+            }
+
+            $role = SpatieRole::query()->create([
+                'name' => $row['name'],
+                'guard_name' => $row['guard_name'],
+            ]);
+
+            $applied[] = [
+                'name' => $row['name'],
+                'guard_name' => $row['guard_name'],
+                'status' => 'created',
+                'role_id' => $role->id,
             ];
         }
 

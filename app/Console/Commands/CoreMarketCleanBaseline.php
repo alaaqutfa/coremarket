@@ -159,6 +159,23 @@ class CoreMarketCleanBaseline extends Command
             );
         }
 
+        $this->line('Role preview');
+        if (empty($plan['roles'])) {
+            $this->line('[INFO] No role rows require baseline readiness checks.');
+        } else {
+            $this->table(
+                ['Role', 'Guard', 'Exists', 'Role ID'],
+                collect($plan['roles'])->map(function (array $role) {
+                    return [
+                        $role['name'],
+                        $role['guard_name'],
+                        $role['exists'] ? 'yes' : 'no',
+                        $role['current_id'] ?? '[missing]',
+                    ];
+                })->all()
+            );
+        }
+
         $this->line('Client/demo data inventory');
         $this->table(
             ['Status', 'Item', 'Count'],
@@ -313,6 +330,21 @@ class CoreMarketCleanBaseline extends Command
                         $message['status'],
                         $this->formatValue($message['previous']),
                         $this->formatValue($message['value']),
+                    ];
+                })->all()
+            );
+        }
+
+        if (! empty($applied['roles'])) {
+            $this->line('Role apply result');
+            $this->table(
+                ['Role', 'Guard', 'Status', 'Role ID'],
+                collect($applied['roles'])->map(function (array $role) {
+                    return [
+                        $role['name'],
+                        $role['guard_name'],
+                        $role['status'],
+                        $role['role_id'] ?? '[missing]',
                     ];
                 })->all()
             );

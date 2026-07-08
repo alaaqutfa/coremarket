@@ -271,6 +271,8 @@ The clean baseline should start with data only where it is required for bootstra
   - platform owner access
   - `store_admin` role availability
 
+The clean baseline should include the minimal `store_admin` role row so `coremarket:setup-instance` and local command-level tests can create a Store Admin later without inventing a parallel role system.
+
 ### Business Settings
 
 At minimum:
@@ -291,6 +293,12 @@ At minimum:
 - `show_website_popup = 0`
 - `show_cookies_agreement` set intentionally for the baseline policy
 - empty or neutral values for menu/footer/demo-link settings
+
+Neutral runtime-ready placeholders are acceptable in the clean baseline when no client has been configured yet, for example:
+
+- `contact_phone = +0000000000`
+- `contact_address = Not configured`
+- `timezone = UTC`
 
 ### Currency, Language, and Geography
 
