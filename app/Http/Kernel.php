@@ -93,6 +93,7 @@ class Kernel extends HttpKernel
         'restrict_store_admin' => \App\Http\Middleware\RestrictStoreAdmin::class,
         'coremarket_feature' => \App\Http\Middleware\EnsureCoreMarketFeature::class,
         'coremarket_license' => \App\Http\Middleware\EnsureCoreMarketLicense::class,
+        'corepilot_sync' => \App\Http\Middleware\EnsureCorePilotSyncToken::class,
     ];
 
     /**

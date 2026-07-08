@@ -6,11 +6,14 @@ use Illuminate\Support\Arr;
 
 class CoreMarketFeatureAccessService
 {
+    protected ?CoreMarketRuntimeSnapshotService $runtimeSnapshot = null;
+
     public function appliedPlan(?string $default = null): string
     {
         $default = $default ?? config('coremarket.runtime.default_applied_plan', 'starter');
 
         foreach ([
+            $this->runtimeSnapshot()->persistedPlanCode(),
             config('coremarket.runtime.applied_plan_code'),
             config('coremarket.license.applied_plan_code'),
             config('coremarket.license.plan_code'),
@@ -51,6 +54,7 @@ class CoreMarketFeatureAccessService
     {
         foreach ([
             $storeMode,
+            $this->runtimeSnapshot()->persistedStoreMode(),
             config('coremarket.runtime.store_mode'),
             config('coremarket.license.store_mode'),
             config('coremarket.runtime.plans.' . $appliedPlan . '.default_store_mode'),
@@ -100,12 +104,17 @@ class CoreMarketFeatureAccessService
 
     public function valueFor(string $feature, string $appliedPlan, string $storeMode, $default = null)
     {
+        $featureKey = $this->normalizeFeatureKey($feature);
+        $persisted = $this->runtimeSnapshot()->persistedFeatures();
+
+        if (array_key_exists($featureKey, $persisted)) {
+            return $persisted[$featureKey];
+        }
+
         $explicitOriginalValue = config("coremarket.features.{$feature}");
         if ($explicitOriginalValue !== null) {
             return $explicitOriginalValue;
         }
-
-        $featureKey = $this->normalizeFeatureKey($feature);
 
         foreach ([
             config("coremarket.features.{$featureKey}"),
@@ -145,6 +154,7 @@ class CoreMarketFeatureAccessService
     public function limitFor(string $limit, string $appliedPlan, string $storeMode, $default = null)
     {
         foreach ([
+            Arr::get($this->runtimeSnapshot()->persistedLimits(), $limit),
             Arr::get(config('coremarket.license.limit_overrides', []), $limit),
             Arr::get(config('coremarket.runtime.store_modes.' . $storeMode . '.limit_overrides', []), $limit),
             Arr::get(config('coremarket.runtime.plans.' . $appliedPlan . '.limits', []), $limit),
@@ -194,5 +204,10 @@ class CoreMarketFeatureAccessService
     protected function normalizeFeatureKey(string $feature): string
     {
         return config('coremarket.runtime.feature_aliases.' . $feature, $feature);
+    }
+
+    protected function runtimeSnapshot(): CoreMarketRuntimeSnapshotService
+    {
+        return $this->runtimeSnapshot ??= app(CoreMarketRuntimeSnapshotService::class);
     }
 }

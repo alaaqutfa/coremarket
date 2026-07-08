@@ -218,6 +218,35 @@ return [
         ],
     ],
 
+    'runtime_sync' => [
+        'token' => env('COREPILOT_RUNTIME_SYNC_TOKEN'),
+        'header' => 'X-CorePilot-Sync-Token',
+    ],
+
+    'runtime_snapshot' => [
+        'setting_keys' => [
+            'status' => 'coremarket_runtime_status',
+            'applied_plan' => 'coremarket_runtime_applied_plan',
+            'store_mode' => 'coremarket_runtime_store_mode',
+            'features' => 'coremarket_runtime_features',
+            'limits' => 'coremarket_runtime_limits',
+            'store_metadata' => 'coremarket_runtime_store_metadata',
+            'support_metadata' => 'coremarket_runtime_support_metadata',
+        ],
+        'allowed_store_metadata' => [
+            'instance_id',
+            'store_name',
+            'store_url',
+            'admin_url',
+            'pos_url',
+            'api_base_url',
+        ],
+        'allowed_support_metadata' => [
+            'company_name',
+            'support_email',
+        ],
+    ],
+
     'license' => [
         'license_enabled' => env('COREMARKET_LICENSE_ENABLED', false),
         'instance_id' => env('COREMARKET_INSTANCE_ID'),

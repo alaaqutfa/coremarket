@@ -2,8 +2,16 @@
 
 namespace App\Http\Controllers\Api\V2;
 
+use App\Http\Controllers\Api\CorePilotRuntimeSnapshotController;
 use App\Http\Middleware\EnsureSystemKey;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('corepilot/runtime-snapshot')
+    ->middleware(['api', 'corepilot_sync'])
+    ->group(function () {
+        Route::post('preview', [CorePilotRuntimeSnapshotController::class, 'preview']);
+        Route::post('apply', [CorePilotRuntimeSnapshotController::class, 'apply']);
+    });
 
 Route::group(['prefix' => 'v2/auth', 'middleware' => ['app_language']], function () {
 

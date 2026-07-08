@@ -11,17 +11,19 @@ use Illuminate\Support\Arr;
 class CoreMarketLicenseService
 {
     protected ?CoreMarketFeatureAccessService $featureAccess = null;
+    protected ?CoreMarketRuntimeSnapshotService $runtimeSnapshot = null;
 
     public function isEnabled(): bool
     {
-        return (bool) config('coremarket.license.license_enabled', false);
+        return $this->runtimeSnapshot()->hasAppliedSnapshot()
+            || (bool) config('coremarket.license.license_enabled', false);
     }
 
     public function status(): string
     {
-        $status = strtolower((string) config('coremarket.license.status', 'active'));
+        $status = strtolower((string) ($this->runtimeSnapshot()->persistedStatus() ?? config('coremarket.license.status', 'active')));
 
-        return in_array($status, ['active', 'suspended', 'expired'], true) ? $status : 'active';
+        return in_array($status, ['active', 'inactive', 'suspended', 'expired'], true) ? $status : 'active';
     }
 
     public function isActive(?CarbonInterface $now = null): bool
@@ -51,7 +53,7 @@ class CoreMarketLicenseService
 
     public function isSuspended(): bool
     {
-        return $this->isEnabled() && $this->status() === 'suspended';
+        return $this->isEnabled() && in_array($this->status(), ['suspended', 'inactive'], true);
     }
 
     public function isInGracePeriod(?CarbonInterface $now = null): bool
@@ -122,11 +124,20 @@ class CoreMarketLicenseService
 
     public function snapshot(): array
     {
+        $persistedStore = $this->runtimeSnapshot()->persistedStoreMetadata();
+        $persistedSupport = $this->runtimeSnapshot()->persistedSupportMetadata();
+        $matrix = $this->featureAccess()->matrixFor();
+        $resolvedDomain = $persistedStore['store_url'] ?? config('coremarket.license.domain');
+
+        if (is_string($resolvedDomain) && str_contains($resolvedDomain, '://')) {
+            $resolvedDomain = parse_url($resolvedDomain, PHP_URL_HOST) ?: $resolvedDomain;
+        }
+
         return [
             'license_enabled' => $this->isEnabled(),
             'instance_id' => config('coremarket.license.instance_id'),
             'license_key' => config('coremarket.license.license_key'),
-            'domain' => config('coremarket.license.domain'),
+            'domain' => $resolvedDomain,
             'plan_code' => $this->currentPlan(),
             'store_mode' => $this->currentStoreMode(),
             'status' => $this->status(),
@@ -134,8 +145,10 @@ class CoreMarketLicenseService
             'expires_at' => config('coremarket.license.expires_at'),
             'grace_until' => config('coremarket.license.grace_until'),
             'suspension_reason' => config('coremarket.license.suspension_reason'),
-            'limits' => config('coremarket.limits', []),
-            'features' => config('coremarket.features', []),
+            'limits' => $matrix['limits'],
+            'features' => $matrix['features'],
+            'store' => $persistedStore,
+            'support' => $persistedSupport,
         ];
     }
 
@@ -347,5 +360,10 @@ class CoreMarketLicenseService
     protected function featureAccess(): CoreMarketFeatureAccessService
     {
         return $this->featureAccess ??= app(CoreMarketFeatureAccessService::class);
+    }
+
+    protected function runtimeSnapshot(): CoreMarketRuntimeSnapshotService
+    {
+        return $this->runtimeSnapshot ??= app(CoreMarketRuntimeSnapshotService::class);
     }
 }

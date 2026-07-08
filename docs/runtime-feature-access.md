@@ -100,6 +100,46 @@ This step does not yet:
 
 The managed instance setup command consumes this matrix to preview and apply runtime plan and store mode values without turning CoreMarket into the commercial plan manager.
 
+## CorePilotOS Runtime Snapshot Receiver
+
+CoreMarket can now receive a runtime snapshot from CorePilotOS through dedicated internal API endpoints:
+
+- `POST /api/corepilot/runtime-snapshot/preview`
+- `POST /api/corepilot/runtime-snapshot/apply`
+
+Authentication rules:
+
+- a dedicated sync token is required
+- the token is read from `COREPILOT_RUNTIME_SYNC_TOKEN`
+- requests may send it using `X-CorePilot-Sync-Token`
+- missing token returns `401`
+- invalid token returns `403`
+
+Payload scope:
+
+- `status`
+- `applied_plan`
+- `store_mode`
+- `features`
+- `limits`
+- safe `store` metadata
+- safe `support` metadata
+
+Preview behavior:
+
+- validates and normalizes the payload
+- returns the normalized runtime snapshot
+- writes nothing
+
+Apply behavior:
+
+- validates and normalizes the payload
+- stores runtime-only snapshot keys in `business_settings`
+- updates mapped legacy runtime toggles such as vendor mode and wallet mode when needed
+- does not touch products, orders, payments, or customer data
+
+Runtime resolution now prefers the persisted CorePilotOS-applied snapshot before env/config fallbacks.
+
 ## Limited Localization Controls
 
 Client-facing localization controls should stay intentionally narrow.

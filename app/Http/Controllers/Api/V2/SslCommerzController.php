@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 # IF BROWSE FROM LOCAL HOST, KEEP true
 if (!defined("SSLCZ_IS_LOCAL_HOST")) {
     define("SSLCZ_IS_LOCAL_HOST", true);
@@ -29,7 +30,15 @@ class SslCommerzController extends Controller
     public function __construct()
     {
         # IF SANDBOX TRUE, THEN IT WILL CONNECT WITH SSLCOMMERZ SANDBOX (TEST) SYSTEM
-        if (BusinessSetting::where('type', 'sslcommerz_sandbox')->first()->value == 1) {
+        $sandboxEnabled = false;
+
+        if (Schema::hasTable('business_settings')) {
+            $sandboxEnabled = optional(
+                BusinessSetting::query()->where('type', 'sslcommerz_sandbox')->first()
+            )->value == 1;
+        }
+
+        if ($sandboxEnabled) {
             $this->setSSLCommerzMode(true);
         } else {
             $this->setSSLCommerzMode(false);
