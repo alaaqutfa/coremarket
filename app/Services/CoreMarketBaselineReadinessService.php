@@ -14,6 +14,7 @@ class CoreMarketBaselineReadinessService
         $oldBrandingWarnings = $this->buildOldBrandingWarnings();
         $statusFlags = $this->buildStatusFlags();
         $schemaDrift = $this->buildSchemaDriftStatus();
+        $baselineDataCounts = $this->buildBaselineDataCounts();
 
         return [
             'table_counts' => $tableCounts,
@@ -21,7 +22,8 @@ class CoreMarketBaselineReadinessService
             'old_branding_warnings' => $oldBrandingWarnings,
             'status_flags' => $statusFlags,
             'schema_drift' => $schemaDrift,
-            'summary' => $this->buildSummary($requiredSettings, $oldBrandingWarnings, $statusFlags, $schemaDrift),
+            'baseline_data_counts' => $baselineDataCounts,
+            'summary' => $this->buildSummary($requiredSettings, $oldBrandingWarnings, $statusFlags, $schemaDrift, $baselineDataCounts),
         ];
     }
 
@@ -116,11 +118,14 @@ class CoreMarketBaselineReadinessService
             'Group Coin',
             'Syrian Souq',
             'syriansouq',
+            'syrian_souq',
             'الشاهين',
             'shaheen',
             'activeitzone',
             'codecanyon',
             'Active eCommerce',
+            'http://localhost/syrian-souq',
+            'https://syriansouq.com',
         ];
 
         $warnings = collect();
@@ -196,15 +201,34 @@ class CoreMarketBaselineReadinessService
         ];
     }
 
+    protected function buildBaselineDataCounts(): array
+    {
+        $tables = [
+            'products',
+            'uploads',
+            'orders',
+        ];
+
+        return collect($tables)->map(function (string $table) {
+            return [
+                'table' => $table,
+                'count' => Schema::hasTable($table) ? DB::table($table)->count() : null,
+                'status' => Schema::hasTable($table) ? 'INFO' : 'FAIL',
+            ];
+        })->all();
+    }
+
     protected function buildSummary(
         array $requiredSettings,
         array $oldBrandingWarnings,
         array $statusFlags,
-        array $schemaDrift
+        array $schemaDrift,
+        array $baselineDataCounts
     ): array {
         $hasMissingSettings = collect($requiredSettings)->contains(fn (array $row) => $row['status'] !== 'PASS');
         $hasStatusWarnings = collect($statusFlags)->contains(fn (array $row) => $row['status'] !== 'PASS');
         $hasBrandingWarnings = ! empty($oldBrandingWarnings);
+        $hasRuntimeData = collect($baselineDataCounts)->contains(fn (array $row) => ($row['count'] ?? 0) > 0);
 
         return [
             [
@@ -232,6 +256,13 @@ class CoreMarketBaselineReadinessService
                 'message' => $hasStatusWarnings
                     ? 'One or more managed baseline flags need cleanup.'
                     : 'Managed baseline flags match the intended starter baseline.',
+            ],
+            [
+                'status' => $hasRuntimeData ? 'WARN' : 'PASS',
+                'label' => 'Client/demo runtime data',
+                'message' => $hasRuntimeData
+                    ? 'Products, uploads, or orders still exist and may need a later reset workflow.'
+                    : 'Products, uploads, and orders are empty in the current baseline.',
             ],
         ];
     }

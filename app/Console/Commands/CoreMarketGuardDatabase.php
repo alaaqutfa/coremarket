@@ -25,10 +25,12 @@ class CoreMarketGuardDatabase extends Command
         ];
 
         $databaseName = DB::connection()->getDatabaseName();
+        $tableCount = count(DB::select('SHOW TABLES'));
 
         $this->info('CoreMarket runtime database guard');
         $this->newLine();
         $this->line('Database: ' . ($databaseName ?: '[unknown]'));
+        $this->line('Table count: ' . $tableCount);
 
         $rows = [];
         $hasMissingTables = false;

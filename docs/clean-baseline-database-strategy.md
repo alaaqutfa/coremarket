@@ -42,6 +42,12 @@ If the guard fails, do not patch around the missing schema with fake migrations.
 
 In the current local recovery workflow, a full runtime database such as `core_market` may be used as the operational reference database while baseline cleanup and managed-instance sanitation continue separately.
 
+The official local SQL baseline reference now lives at:
+
+- `database/base/coremarket.sql`
+
+Treat it as a private operational reference, not as a tracked migration replacement.
+
 ## Baseline Strategy Options
 
 ### Option A: Migrations Only
@@ -337,6 +343,7 @@ Until a dedicated baseline build step is executed:
 - do not rely on migrations alone to create a new managed instance database
 - prefer a controlled hybrid baseline artifact derived from the live working schema
 - keep SQL backup and recovery artifacts outside Git
+- keep `database/base/coremarket.sql` private in practice even if it exists locally in the workspace
 - never run `migrate:fresh`, `db:wipe`, or similar destructive commands against the legacy runtime database
 
 ## Read-Only Readiness Audit
@@ -345,6 +352,7 @@ Use the baseline readiness audit command to inspect the current database without
 
 ```bash
 php artisan coremarket:guard-database
+php artisan coremarket:clean-baseline --dry-run
 php artisan coremarket:audit-baseline-readiness
 ```
 
@@ -357,3 +365,7 @@ The command reports:
 - schema drift between tracked migrations and the live database
 
 The command is read-only and does not modify the database.
+
+For the full operational sequence, see:
+
+- `docs/database-baseline-workflow.md`

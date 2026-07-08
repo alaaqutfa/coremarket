@@ -89,6 +89,18 @@ class CoreMarketAuditBaselineReadiness extends Command
         ));
         $this->line($report['schema_drift']['message']);
 
+        $this->line('Client/demo runtime data');
+        $this->table(
+            ['Status', 'Table', 'Count'],
+            collect($report['baseline_data_counts'])->map(function (array $row) {
+                return [
+                    $row['status'],
+                    $row['table'],
+                    $row['count'] === null ? '[missing]' : $row['count'],
+                ];
+            })->all()
+        );
+
         $this->newLine();
         $this->info('Read-only audit complete. No database changes were made.');
 
