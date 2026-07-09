@@ -79,6 +79,57 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
         $this->assertSame('1', (string) BusinessSetting::query()->where('type', 'vendor_system_activation')->whereNull('lang')->value('value'));
     }
 
+    public function test_invalid_plan_returns_422_not_500(): void
+    {
+        $payload = $this->marketplacePayload();
+        $payload['applied_plan'] = 'broken-plan';
+
+        $this->withHeaders(['X-CorePilot-Sync-Token' => 'sync-secret'])
+            ->postJson('/api/corepilot/runtime-snapshot/apply', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('applied_plan');
+    }
+
+    public function test_invalid_store_mode_returns_422_not_500(): void
+    {
+        $payload = $this->marketplacePayload();
+        $payload['store_mode'] = 'broken-mode';
+
+        $this->withHeaders(['X-CorePilot-Sync-Token' => 'sync-secret'])
+            ->postJson('/api/corepilot/runtime-snapshot/apply', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('store_mode');
+    }
+
+    public function test_missing_limits_payload_is_handled_safely_with_runtime_defaults(): void
+    {
+        $payload = $this->starterPayload();
+        unset($payload['limits']);
+
+        $response = $this->withHeaders(['X-CorePilot-Sync-Token' => 'sync-secret'])
+            ->postJson('/api/corepilot/runtime-snapshot/apply', $payload);
+
+        $response->assertOk()
+            ->assertJsonPath('runtime.runtime.applied_plan', 'starter')
+            ->assertJsonPath('runtime.runtime.store_mode', 'single_store')
+            ->assertJsonPath('runtime.runtime.limits.products_limit', 50)
+            ->assertJsonPath('runtime.runtime.limits.storage_mb_limit', 256);
+    }
+
+    public function test_runtime_storage_failure_returns_generic_500_without_exposing_token(): void
+    {
+        Schema::drop('business_settings');
+
+        $this->withHeaders(['X-CorePilot-Sync-Token' => 'sync-secret'])
+            ->postJson('/api/corepilot/runtime-snapshot/apply', $this->marketplacePayload())
+            ->assertStatus(500)
+            ->assertJson([
+                'message' => 'CoreMarket runtime receiver failed. Check CoreMarket logs.',
+            ])
+            ->assertJsonMissingPath('token')
+            ->assertJsonMissingPath('api_token');
+    }
+
     public function test_applied_marketplace_snapshot_enables_sellers_and_multi_vendor(): void
     {
         $this->withHeaders(['X-CorePilot-Sync-Token' => 'sync-secret'])
@@ -144,7 +195,7 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
     {
         return [
             'status' => 'inactive',
-            'applied_plan' => 'ecommerce_starter',
+            'applied_plan' => 'starter',
             'store_mode' => 'single_store',
             'features' => [
                 'multi_vendor' => false,

@@ -6,6 +6,7 @@ use App\Models\BusinessSetting;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class CoreMarketRuntimeSnapshotService
 {
@@ -18,6 +19,8 @@ class CoreMarketRuntimeSnapshotService
 
     public function apply(array $payload): array
     {
+        $this->ensureSettingsTableAvailable();
+
         $normalized = $this->normalizePayload($payload);
 
         $applied = [];
@@ -246,6 +249,13 @@ class CoreMarketRuntimeSnapshotService
             return $this->settingsTableExists = Schema::hasTable('business_settings');
         } catch (\Throwable $exception) {
             return $this->settingsTableExists = false;
+        }
+    }
+
+    protected function ensureSettingsTableAvailable(): void
+    {
+        if (! $this->hasSettingsTable()) {
+            throw new RuntimeException('CoreMarket runtime snapshot storage is unavailable.');
         }
     }
 }

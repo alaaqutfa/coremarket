@@ -179,6 +179,22 @@ class CoreMarketFeatureAccessService
         return array_keys(config('coremarket.runtime.limit_definitions', []));
     }
 
+    public function acceptedPlanCodes(): array
+    {
+        return array_values(array_unique(array_merge(
+            array_keys(config('coremarket.runtime.plans', [])),
+            array_keys(config('coremarket.runtime.plan_aliases', []))
+        )));
+    }
+
+    public function acceptedStoreModes(): array
+    {
+        return array_values(array_unique(array_merge(
+            array_keys(config('coremarket.runtime.store_modes', [])),
+            array_keys(config('coremarket.runtime.store_mode_aliases', []))
+        )));
+    }
+
     public function normalizePlanCode(?string $code): ?string
     {
         if ($code === null || trim($code) === '') {

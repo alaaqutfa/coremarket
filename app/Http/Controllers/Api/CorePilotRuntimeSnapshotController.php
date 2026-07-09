@@ -6,30 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Services\CoreMarketRuntimeSnapshotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class CorePilotRuntimeSnapshotController extends Controller
 {
     public function preview(Request $request, CoreMarketRuntimeSnapshotService $runtimeSnapshotService): JsonResponse
     {
-        $payload = $this->validatedPayload($request);
-
-        return response()->json([
-            'result' => true,
-            'mode' => 'preview',
-            'runtime' => $runtimeSnapshotService->preview($payload),
-        ]);
+        return $this->handleSnapshotRequest($request, $runtimeSnapshotService, 'preview');
     }
 
     public function apply(Request $request, CoreMarketRuntimeSnapshotService $runtimeSnapshotService): JsonResponse
     {
-        $payload = $this->validatedPayload($request);
-
-        return response()->json([
-            'result' => true,
-            'mode' => 'apply',
-            'runtime' => $runtimeSnapshotService->apply($payload),
-        ]);
+        return $this->handleSnapshotRequest($request, $runtimeSnapshotService, 'apply');
     }
 
     protected function validatedPayload(Request $request): array
@@ -46,8 +37,8 @@ class CorePilotRuntimeSnapshotController extends Controller
 
         return $request->validate(array_merge([
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended', 'expired'])],
-            'applied_plan' => ['required', 'string'],
-            'store_mode' => ['nullable', 'string'],
+            'applied_plan' => ['required', 'string', Rule::in($featureAccess->acceptedPlanCodes())],
+            'store_mode' => ['nullable', 'string', Rule::in($featureAccess->acceptedStoreModes())],
             'features' => ['nullable', 'array'],
             'limits' => ['nullable', 'array'],
             'store' => ['nullable', 'array'],
@@ -61,5 +52,41 @@ class CorePilotRuntimeSnapshotController extends Controller
             'support.company_name' => ['nullable', 'string', 'max:255'],
             'support.support_email' => ['nullable', 'email', 'max:255'],
         ], $featureRules, $limitRules));
+    }
+
+    protected function handleSnapshotRequest(
+        Request $request,
+        CoreMarketRuntimeSnapshotService $runtimeSnapshotService,
+        string $mode
+    ): JsonResponse {
+        try {
+            $payload = $this->validatedPayload($request);
+            $runtime = $mode === 'apply'
+                ? $runtimeSnapshotService->apply($payload)
+                : $runtimeSnapshotService->preview($payload);
+
+            return response()->json([
+                'result' => true,
+                'mode' => $mode,
+                'runtime' => $runtime,
+            ]);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            Log::error('CoreMarket runtime snapshot receiver failed.', [
+                'mode' => $mode,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+                'store_mode' => $request->input('store_mode'),
+                'applied_plan' => $request->input('applied_plan'),
+                'status' => $request->input('status'),
+                'feature_keys' => array_keys((array) $request->input('features', [])),
+                'limit_keys' => array_keys((array) $request->input('limits', [])),
+            ]);
+
+            return response()->json([
+                'message' => 'CoreMarket runtime receiver failed. Check CoreMarket logs.',
+            ], 500);
+        }
     }
 }
