@@ -4,29 +4,23 @@ namespace Tests\Feature;
 
 use App\Models\BusinessSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
+use Tests\Support\InteractsWithCoreMarketTestSchema;
 
 class CorePilotRuntimeSnapshotReceiverTest extends TestCase
 {
     use RefreshDatabase;
+    use InteractsWithCoreMarketTestSchema;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         config()->set('coremarket.runtime_sync.token', 'sync-secret');
+        config()->set('coremarket.runtime_snapshot.connection', 'mysql');
 
-        if (! Schema::hasTable('business_settings')) {
-            Schema::create('business_settings', function (Blueprint $table) {
-                $table->id();
-                $table->string('type')->nullable();
-                $table->string('lang')->nullable();
-                $table->longText('value')->nullable();
-                $table->timestamps();
-            });
-        }
+        $this->ensureBusinessSettingsTable();
     }
 
     public function test_invalid_token_is_rejected(): void

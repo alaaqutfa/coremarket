@@ -4,26 +4,21 @@ namespace Tests\Unit;
 
 use App\Models\BusinessSetting;
 use App\Services\CoreMarketFeatureAccessService;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
+use Tests\Support\InteractsWithCoreMarketTestSchema;
 
 class CoreMarketFeatureAccessServiceTest extends TestCase
 {
+    use InteractsWithCoreMarketTestSchema;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        if (! Schema::hasTable('business_settings')) {
-            Schema::create('business_settings', function (Blueprint $table) {
-                $table->id();
-                $table->string('type')->nullable();
-                $table->string('lang')->nullable();
-                $table->longText('value')->nullable();
-                $table->timestamps();
-            });
-        }
+        config()->set('coremarket.runtime_snapshot.connection', 'mysql');
+
+        $this->ensureBusinessSettingsTable();
 
         $this->clearPersistedRuntimeSnapshot();
     }
@@ -131,10 +126,6 @@ class CoreMarketFeatureAccessServiceTest extends TestCase
 
     private function clearPersistedRuntimeSnapshot(): void
     {
-        if (! Schema::hasTable('business_settings')) {
-            return;
-        }
-
         BusinessSetting::query()
             ->whereIn('type', [
                 'coremarket_runtime_status',

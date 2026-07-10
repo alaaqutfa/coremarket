@@ -8,9 +8,24 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
+use Tests\Support\InteractsWithCoreMarketTestSchema;
 
 class AdminSubscriptionOverviewTest extends TestCase
 {
+    use InteractsWithCoreMarketTestSchema;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('coremarket.runtime_snapshot.connection', 'mysql');
+
+        $this->ensureBusinessSettingsTable();
+        $this->ensurePermissionTables();
+        $this->ensureLegacyUserColumns();
+        $this->ensureAdminSupportTables();
+    }
+
     public function test_store_admin_can_access_my_subscription_page(): void
     {
         DB::beginTransaction();

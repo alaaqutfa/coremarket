@@ -13,9 +13,24 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
+use Tests\Support\InteractsWithCoreMarketTestSchema;
 
 class AdminRuntimeNavigationTest extends TestCase
 {
+    use InteractsWithCoreMarketTestSchema;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('coremarket.runtime_snapshot.connection', 'mysql');
+
+        $this->ensureBusinessSettingsTable();
+        $this->ensurePermissionTables();
+        $this->ensureLegacyUserColumns();
+        $this->ensureAdminSupportTables();
+    }
+
     public function test_starter_single_store_sidebar_hides_marketplace_and_owner_only_sections_for_store_admin(): void
     {
         DB::beginTransaction();
@@ -450,7 +465,7 @@ class AdminRuntimeNavigationTest extends TestCase
 
     private function seedBusinessSetting(string $type, $value): void
     {
-        $setting = BusinessSetting::query()->firstOrNew(['type' => $type]);
+        $setting = BusinessSetting::query()->where('type', $type)->first() ?: new BusinessSetting();
         $setting->forceFill([
             'type' => $type,
             'value' => $value,

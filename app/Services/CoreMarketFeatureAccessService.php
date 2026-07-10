@@ -70,7 +70,7 @@ class CoreMarketFeatureAccessService
         return config('coremarket.runtime.default_store_mode', 'single_store');
     }
 
-    public function matrixFor(?string $planCode = null, ?string $storeMode = null): array
+    public function matrixFor(?string $planCode = null, ?string $storeMode = null, bool $usePersistedSnapshot = true): array
     {
         $resolvedPlan = $planCode === null
             ? $this->appliedPlan()
@@ -84,10 +84,10 @@ class CoreMarketFeatureAccessService
             'applied_plan' => $resolvedPlan,
             'store_mode' => $resolvedStoreMode,
             'features' => collect($this->featureKeys())
-                ->mapWithKeys(fn (string $key) => [$key => $this->valueFor($key, $resolvedPlan, $resolvedStoreMode)])
+                ->mapWithKeys(fn (string $key) => [$key => $this->valueFor($key, $resolvedPlan, $resolvedStoreMode, null, $usePersistedSnapshot)])
                 ->all(),
             'limits' => collect($this->limitKeys())
-                ->mapWithKeys(fn (string $key) => [$key => $this->limitFor($key, $resolvedPlan, $resolvedStoreMode)])
+                ->mapWithKeys(fn (string $key) => [$key => $this->limitFor($key, $resolvedPlan, $resolvedStoreMode, null, $usePersistedSnapshot)])
                 ->all(),
         ];
     }
@@ -102,13 +102,15 @@ class CoreMarketFeatureAccessService
         return $this->valueFor($feature, $this->appliedPlan(), $this->storeMode(), $default);
     }
 
-    public function valueFor(string $feature, string $appliedPlan, string $storeMode, $default = null)
+    public function valueFor(string $feature, string $appliedPlan, string $storeMode, $default = null, bool $usePersistedSnapshot = true)
     {
         $featureKey = $this->normalizeFeatureKey($feature);
-        $persisted = $this->runtimeSnapshot()->persistedFeatures();
+        if ($usePersistedSnapshot) {
+            $persisted = $this->runtimeSnapshot()->persistedFeatures();
 
-        if (array_key_exists($featureKey, $persisted)) {
-            return $persisted[$featureKey];
+            if (array_key_exists($featureKey, $persisted)) {
+                return $persisted[$featureKey];
+            }
         }
 
         $explicitOriginalValue = config("coremarket.features.{$feature}");
@@ -151,16 +153,21 @@ class CoreMarketFeatureAccessService
         return $this->limitFor($limit, $this->appliedPlan(), $this->storeMode(), $default);
     }
 
-    public function limitFor(string $limit, string $appliedPlan, string $storeMode, $default = null)
+    public function limitFor(string $limit, string $appliedPlan, string $storeMode, $default = null, bool $usePersistedSnapshot = true)
     {
-        foreach ([
-            Arr::get($this->runtimeSnapshot()->persistedLimits(), $limit),
+        $candidates = [
             Arr::get(config('coremarket.license.limit_overrides', []), $limit),
             Arr::get(config('coremarket.runtime.store_modes.' . $storeMode . '.limit_overrides', []), $limit),
             Arr::get(config('coremarket.runtime.plans.' . $appliedPlan . '.limits', []), $limit),
             config("coremarket.limits.{$limit}"),
             Arr::get(config('coremarket.runtime.limit_definitions', []), $limit . '.default'),
-        ] as $candidate) {
+        ];
+
+        if ($usePersistedSnapshot) {
+            array_unshift($candidates, Arr::get($this->runtimeSnapshot()->persistedLimits(), $limit));
+        }
+
+        foreach ($candidates as $candidate) {
             if ($candidate !== null) {
                 return $candidate;
             }

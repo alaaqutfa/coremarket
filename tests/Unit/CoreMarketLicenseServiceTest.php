@@ -2,12 +2,27 @@
 
 namespace Tests\Unit;
 
+use App\Models\BusinessSetting;
 use App\Services\CoreMarketLicenseService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
+use Tests\Support\InteractsWithCoreMarketTestSchema;
 
 class CoreMarketLicenseServiceTest extends TestCase
 {
+    use InteractsWithCoreMarketTestSchema;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('coremarket.runtime_snapshot.connection', 'mysql');
+
+        $this->ensureBusinessSettingsTable();
+        $this->clearPersistedRuntimeSnapshot();
+    }
+
     public function test_license_service_active_status_works(): void
     {
         $service = $this->makeService([
@@ -184,6 +199,8 @@ class CoreMarketLicenseServiceTest extends TestCase
 
     private function makeService(array $overrides = []): CoreMarketLicenseService
     {
+        $this->clearPersistedRuntimeSnapshot();
+
         $licenseOverrides = $overrides;
         unset($licenseOverrides['limits'], $licenseOverrides['features']);
 
@@ -216,5 +233,26 @@ class CoreMarketLicenseServiceTest extends TestCase
         config()->set('coremarket.features', $features);
 
         return app(CoreMarketLicenseService::class);
+    }
+
+    private function clearPersistedRuntimeSnapshot(): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('business_settings')) {
+            return;
+        }
+
+        BusinessSetting::query()
+            ->whereIn('type', [
+                'coremarket_runtime_status',
+                'coremarket_runtime_applied_plan',
+                'coremarket_runtime_store_mode',
+                'coremarket_runtime_features',
+                'coremarket_runtime_limits',
+                'coremarket_runtime_store_metadata',
+                'coremarket_runtime_support_metadata',
+            ])
+            ->delete();
+
+        Cache::forget('business_settings');
     }
 }

@@ -2,16 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\BusinessSetting;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class CoreMarketRuntimeSnapshotService
 {
-    protected ?bool $settingsTableExists = null;
+    protected ?array $runtimeDiagnostics = null;
 
     public function preview(array $payload): array
     {
@@ -20,37 +18,20 @@ class CoreMarketRuntimeSnapshotService
 
     public function apply(array $payload): array
     {
-        $this->ensureSettingsTableAvailable();
+        $diagnostics = $this->ensureSettingsTableAvailable();
+        $connectionName = $diagnostics['runtime_connection_name'];
 
         $normalized = $this->normalizePayload($payload);
 
         $applied = [];
 
         foreach ($this->persistedSettings($normalized) as $key => $value) {
-            $setting = $this->settingsQuery()
-                ->where('type', $key)
-                ->whereNull('lang')
-                ->first() ?: $this->newBusinessSetting();
-
-            $setting->type = $key;
-            $setting->lang = null;
-            $setting->value = $value;
-            $setting->save();
-
+            $this->writeSetting($connectionName, $key, $value);
             $applied[$key] = $value;
         }
 
         foreach ($this->legacyRuntimeSettingMap($normalized['features']) as $key => $value) {
-            $setting = $this->settingsQuery()
-                ->where('type', $key)
-                ->whereNull('lang')
-                ->first() ?: $this->newBusinessSetting();
-
-            $setting->type = $key;
-            $setting->lang = null;
-            $setting->value = (string) $value;
-            $setting->save();
-
+            $this->writeSetting($connectionName, $key, (string) $value);
             $applied[$key] = (string) $value;
         }
 
@@ -134,7 +115,7 @@ class CoreMarketRuntimeSnapshotService
             $payload['store_mode'] ?? null
         );
 
-        $matrix = $featureAccess->matrixFor($appliedPlan, $storeMode);
+        $matrix = $featureAccess->matrixFor($appliedPlan, $storeMode, false);
 
         $features = $matrix['features'];
         foreach ($featureAccess->featureKeys() as $featureKey) {
@@ -218,12 +199,22 @@ class CoreMarketRuntimeSnapshotService
 
     protected function settingValue(?string $key): ?string
     {
-        if (! $key || ! $this->hasSettingsTable()) {
+        if (! $key) {
             return null;
         }
 
         try {
-            return $this->settingsQuery()
+            $diagnostics = $this->runtimeDiagnostics();
+
+            if (
+                ! ($diagnostics['has_business_settings_table'] ?? false)
+                || ($diagnostics['forbidden_database_detected'] ?? false)
+                || empty($diagnostics['runtime_database_name'])
+            ) {
+                return null;
+            }
+
+            return $this->settingsQuery($diagnostics['runtime_connection_name'])
                 ->where('type', $key)
                 ->whereNull('lang')
                 ->value('value');
@@ -242,69 +233,60 @@ class CoreMarketRuntimeSnapshotService
 
     protected function hasSettingsTable(): bool
     {
-        if ($this->settingsTableExists !== null) {
-            return $this->settingsTableExists;
-        }
-
-        try {
-            return $this->settingsTableExists = Schema::connection($this->databaseConnectionName())->hasTable('business_settings');
-        } catch (\Throwable $exception) {
-            return $this->settingsTableExists = false;
-        }
+        return (bool) ($this->runtimeDiagnostics()['has_business_settings_table'] ?? false);
     }
 
-    protected function ensureSettingsTableAvailable(): void
+    protected function ensureSettingsTableAvailable(): array
     {
-        if (! $this->hasSettingsTable()) {
-            throw new RuntimeException(sprintf(
-                'CoreMarket runtime snapshot storage is unavailable. Connection [%s], database [%s], has_table=%s.',
-                $this->databaseConnectionName(),
-                $this->databaseName(),
-                $this->hasSettingsTable() ? 'yes' : 'no'
-            ));
-        }
+        return $this->runtimeResolver()->requireWritableRuntimeConnection();
     }
 
     public function storageDiagnostics(): array
     {
-        $databaseName = $this->databaseName();
-        $hasTable = $this->hasSettingsTable();
-
-        return [
-            'default_connection' => $this->databaseConnectionName(),
-            'database_name' => $databaseName,
-            'has_business_settings_table' => $hasTable,
-            'business_settings_count' => $hasTable
-                ? DB::connection($this->databaseConnectionName())->table('business_settings')->count()
-                : null,
-            'model_connection' => $this->newBusinessSetting()->getConnectionName() ?: $this->databaseConnectionName(),
-        ];
+        return $this->runtimeDiagnostics();
     }
 
-    protected function databaseConnectionName(): string
+    protected function runtimeDiagnostics(): array
     {
-        return (string) config('database.default', 'mysql');
+        return $this->runtimeDiagnostics ??= $this->runtimeResolver()->resolve();
     }
 
-    protected function databaseName(): ?string
+    protected function settingsQuery(string $connectionName)
     {
-        try {
-            return DB::connection($this->databaseConnectionName())->getDatabaseName();
-        } catch (\Throwable $exception) {
-            return null;
+        return DB::connection($connectionName)->table('business_settings');
+    }
+
+    protected function writeSetting(string $connectionName, string $key, ?string $value): void
+    {
+        $existing = $this->settingsQuery($connectionName)
+            ->where('type', $key)
+            ->whereNull('lang')
+            ->first();
+
+        $timestamp = now();
+
+        if ($existing) {
+            $this->settingsQuery($connectionName)
+                ->where('id', $existing->id)
+                ->update([
+                    'value' => $value,
+                    'updated_at' => $timestamp,
+                ]);
+
+            return;
         }
+
+        $this->settingsQuery($connectionName)->insert([
+            'type' => $key,
+            'lang' => null,
+            'value' => $value,
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
+        ]);
     }
 
-    protected function settingsQuery()
+    protected function runtimeResolver(): CoreMarketRuntimeDatabaseResolver
     {
-        return $this->newBusinessSetting()->newQuery();
-    }
-
-    protected function newBusinessSetting(): BusinessSetting
-    {
-        $model = new BusinessSetting();
-        $model->setConnection($this->databaseConnectionName());
-
-        return $model;
+        return app(CoreMarketRuntimeDatabaseResolver::class);
     }
 }

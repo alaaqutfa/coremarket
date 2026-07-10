@@ -54,6 +54,21 @@ return [
             'engine' => null,
         ],
 
+        'coremarket_runtime' => [
+            'driver' => 'mysql',
+            'host' => env('COREMARKET_RUNTIME_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('COREMARKET_RUNTIME_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('COREMARKET_RUNTIME_DB_DATABASE', env('DB_DATABASE', 'forge')),
+            'username' => env('COREMARKET_RUNTIME_DB_USERNAME', env('DB_USERNAME', 'forge')),
+            'password' => env('COREMARKET_RUNTIME_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('COREMARKET_RUNTIME_DB_SOCKET', env('DB_SOCKET', '')),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => false,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'host' => env('DB_HOST', '127.0.0.1'),

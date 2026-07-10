@@ -224,6 +224,10 @@ return [
     ],
 
     'runtime_snapshot' => [
+        'connection' => env('COREMARKET_RUNTIME_SNAPSHOT_CONNECTION', 'coremarket_runtime'),
+        'forbidden_databases' => [
+            'corepilotos',
+        ],
         'setting_keys' => [
             'status' => 'coremarket_runtime_status',
             'applied_plan' => 'coremarket_runtime_applied_plan',
