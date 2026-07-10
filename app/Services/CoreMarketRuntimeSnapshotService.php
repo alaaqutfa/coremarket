@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BusinessSetting;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -26,10 +27,10 @@ class CoreMarketRuntimeSnapshotService
         $applied = [];
 
         foreach ($this->persistedSettings($normalized) as $key => $value) {
-            $setting = BusinessSetting::query()
+            $setting = $this->settingsQuery()
                 ->where('type', $key)
                 ->whereNull('lang')
-                ->first() ?: new BusinessSetting();
+                ->first() ?: $this->newBusinessSetting();
 
             $setting->type = $key;
             $setting->lang = null;
@@ -40,10 +41,10 @@ class CoreMarketRuntimeSnapshotService
         }
 
         foreach ($this->legacyRuntimeSettingMap($normalized['features']) as $key => $value) {
-            $setting = BusinessSetting::query()
+            $setting = $this->settingsQuery()
                 ->where('type', $key)
                 ->whereNull('lang')
-                ->first() ?: new BusinessSetting();
+                ->first() ?: $this->newBusinessSetting();
 
             $setting->type = $key;
             $setting->lang = null;
@@ -222,7 +223,7 @@ class CoreMarketRuntimeSnapshotService
         }
 
         try {
-            return BusinessSetting::query()
+            return $this->settingsQuery()
                 ->where('type', $key)
                 ->whereNull('lang')
                 ->value('value');
@@ -246,7 +247,7 @@ class CoreMarketRuntimeSnapshotService
         }
 
         try {
-            return $this->settingsTableExists = Schema::hasTable('business_settings');
+            return $this->settingsTableExists = Schema::connection($this->databaseConnectionName())->hasTable('business_settings');
         } catch (\Throwable $exception) {
             return $this->settingsTableExists = false;
         }
@@ -255,7 +256,55 @@ class CoreMarketRuntimeSnapshotService
     protected function ensureSettingsTableAvailable(): void
     {
         if (! $this->hasSettingsTable()) {
-            throw new RuntimeException('CoreMarket runtime snapshot storage is unavailable.');
+            throw new RuntimeException(sprintf(
+                'CoreMarket runtime snapshot storage is unavailable. Connection [%s], database [%s], has_table=%s.',
+                $this->databaseConnectionName(),
+                $this->databaseName(),
+                $this->hasSettingsTable() ? 'yes' : 'no'
+            ));
         }
+    }
+
+    public function storageDiagnostics(): array
+    {
+        $databaseName = $this->databaseName();
+        $hasTable = $this->hasSettingsTable();
+
+        return [
+            'default_connection' => $this->databaseConnectionName(),
+            'database_name' => $databaseName,
+            'has_business_settings_table' => $hasTable,
+            'business_settings_count' => $hasTable
+                ? DB::connection($this->databaseConnectionName())->table('business_settings')->count()
+                : null,
+            'model_connection' => $this->newBusinessSetting()->getConnectionName() ?: $this->databaseConnectionName(),
+        ];
+    }
+
+    protected function databaseConnectionName(): string
+    {
+        return (string) config('database.default', 'mysql');
+    }
+
+    protected function databaseName(): ?string
+    {
+        try {
+            return DB::connection($this->databaseConnectionName())->getDatabaseName();
+        } catch (\Throwable $exception) {
+            return null;
+        }
+    }
+
+    protected function settingsQuery()
+    {
+        return $this->newBusinessSetting()->newQuery();
+    }
+
+    protected function newBusinessSetting(): BusinessSetting
+    {
+        $model = new BusinessSetting();
+        $model->setConnection($this->databaseConnectionName());
+
+        return $model;
     }
 }

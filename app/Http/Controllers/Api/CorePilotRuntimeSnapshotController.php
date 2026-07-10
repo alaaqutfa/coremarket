@@ -73,6 +73,10 @@ class CorePilotRuntimeSnapshotController extends Controller
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
+            $diagnostics = method_exists($runtimeSnapshotService, 'storageDiagnostics')
+                ? $runtimeSnapshotService->storageDiagnostics()
+                : [];
+
             Log::error('CoreMarket runtime snapshot receiver failed.', [
                 'mode' => $mode,
                 'exception' => $exception::class,
@@ -82,6 +86,7 @@ class CorePilotRuntimeSnapshotController extends Controller
                 'status' => $request->input('status'),
                 'feature_keys' => array_keys((array) $request->input('features', [])),
                 'limit_keys' => array_keys((array) $request->input('limits', [])),
+                'storage_diagnostics' => $diagnostics,
             ]);
 
             return response()->json([
