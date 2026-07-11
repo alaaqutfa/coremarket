@@ -90,6 +90,18 @@
             border-top-right-radius: 4px !important;
             border-bottom-right-radius: 4px !important;
         }
+        /* Text badges must override the legacy 18px square badge default. */
+        .aiz-main-content .badge:not(.badge-dot):not(.badge-circle):not(.badge-status) {
+            width: auto;
+            min-width: max-content;
+            max-width: none;
+            height: auto;
+            min-height: 18px;
+            line-height: 1.2;
+            padding: 0.35em 0.65em;
+            white-space: nowrap;
+            overflow: visible;
+        }
     </style>
     <script>
         var AIZ = AIZ || {};
