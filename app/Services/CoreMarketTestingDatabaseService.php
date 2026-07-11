@@ -8,7 +8,9 @@ use Symfony\Component\Process\Process;
 
 class CoreMarketTestingDatabaseService
 {
-    protected array $criticalTables = ['business_settings', 'users', 'languages', 'currencies', 'uploads', 'products', 'orders'];
+    protected array $criticalTables = ['business_settings', 'users', 'languages', 'currencies', 'uploads', 'products', 'orders', 'translations', 'roles', 'permissions'];
+
+    protected int $minimumBaselineTableCount = 90;
 
     protected array $legacyCommandTables = ['shops', 'currencies', 'languages', 'roles', 'business_settings'];
 
@@ -149,6 +151,8 @@ class CoreMarketTestingDatabaseService
             'demo_markers' => $demoData['markers'],
             'legacy_branding_findings_count' => count($legacyBrandingFindings),
             'legacy_branding_findings' => $legacyBrandingFindings,
+            'baseline_ready' => count($connection->select('SHOW TABLES')) >= $this->minimumBaselineTableCount
+                && collect($this->criticalTables)->every(fn (string $table) => $this->tableExists($connection, $table)),
         ];
     }
 

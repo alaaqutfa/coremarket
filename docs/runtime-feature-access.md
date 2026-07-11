@@ -143,6 +143,26 @@ Apply behavior:
 
 Runtime resolution now prefers the persisted CorePilotOS-applied snapshot before env/config fallbacks.
 
+### Runtime Database Isolation
+
+Runtime snapshot storage always uses the dedicated `coremarket_runtime` connection. Its database name defaults to `coremarket_runtime` and must not fall back to `DB_DATABASE`, because a shared Apache/XAMPP environment can otherwise point a web request at another local application database.
+
+For a local HTTP configuration check only, with `APP_ENV=local` and `APP_DEBUG=true`, use:
+
+```text
+GET /api/corepilot/runtime-snapshot/diagnostics
+```
+
+The endpoint reports paths, DB names, connection names, and `business_settings` availability only. It never returns the sync token, credentials, or passwords. It must not be enabled as a production diagnostic surface.
+
+The CLI equivalent is:
+
+```bash
+php artisan coremarket:runtime-db-diagnostics
+```
+
+If either diagnostic reports `corepilotos` or another unexpected database as the runtime database, stop sync attempts and correct the local environment before applying a snapshot.
+
 ## Limited Localization Controls
 
 Client-facing localization controls should stay intentionally narrow.

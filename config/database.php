@@ -58,7 +58,8 @@ return [
             'driver' => 'mysql',
             'host' => env('COREMARKET_RUNTIME_DB_HOST', env('DB_HOST', '127.0.0.1')),
             'port' => env('COREMARKET_RUNTIME_DB_PORT', env('DB_PORT', '3306')),
-            'database' => env('COREMARKET_RUNTIME_DB_DATABASE', env('DB_DATABASE', 'forge')),
+            // Keep receiver persistence isolated from the ambient web DB context.
+            'database' => env('COREMARKET_RUNTIME_DB_DATABASE', 'coremarket_runtime'),
             'username' => env('COREMARKET_RUNTIME_DB_USERNAME', env('DB_USERNAME', 'forge')),
             'password' => env('COREMARKET_RUNTIME_DB_PASSWORD', env('DB_PASSWORD', '')),
             'unix_socket' => env('COREMARKET_RUNTIME_DB_SOCKET', env('DB_SOCKET', '')),

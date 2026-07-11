@@ -149,7 +149,9 @@ If `coremarket_testing` exists but does not contain the legacy schema expected b
 php artisan coremarket:testing-database-status
 ```
 
-If the command reports missing tables like `shops`, `currencies`, `languages`, or `roles`, prepare `coremarket_testing` from the private baseline SQL before expecting full legacy command tests to run.
+`coremarket:testing-database-status` exits with failure when the baseline is incomplete for runtime/admin tests. A valid baseline has at least the expected legacy schema footprint and includes `business_settings`, `products`, `translations`, `uploads`, `roles`, and `permissions`.
+
+If the command reports missing tables or an incomplete baseline, prepare `coremarket_testing` from the private baseline SQL before running runtime/admin tests.
 
 Use:
 

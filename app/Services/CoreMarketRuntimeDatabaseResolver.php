@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -38,7 +39,7 @@ class CoreMarketRuntimeDatabaseResolver
             }
         }
 
-        return [
+        $diagnostics = [
             'app_environment' => app()->environment(),
             'config_cached' => app()->configurationIsCached(),
             'default_connection_name' => $defaultConnection,
@@ -50,6 +51,19 @@ class CoreMarketRuntimeDatabaseResolver
             'business_settings_count' => $businessSettingsCount,
             'forbidden_database_detected' => $this->isForbiddenDatabase($databaseName),
         ];
+
+        if (
+            app()->environment('local')
+            && $databaseName !== 'coremarket_runtime'
+        ) {
+            Log::critical('Unexpected CoreMarket runtime database context.', [
+                'connection' => $connectionName,
+                'database' => $databaseName,
+                'has_business_settings_table' => $hasBusinessSettingsTable,
+            ]);
+        }
+
+        return $diagnostics;
     }
 
     public function requireWritableRuntimeConnection(): array
@@ -85,7 +99,7 @@ class CoreMarketRuntimeDatabaseResolver
     public function isForbiddenDatabase(?string $databaseName): bool
     {
         if (! is_string($databaseName) || trim($databaseName) === '') {
-            return false;
+            return true;
         }
 
         return in_array(

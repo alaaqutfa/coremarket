@@ -11,7 +11,11 @@ Route::prefix('corepilot/runtime-snapshot')
     ->group(function () {
         Route::post('preview', [CorePilotRuntimeSnapshotController::class, 'preview']);
         Route::post('apply', [CorePilotRuntimeSnapshotController::class, 'apply']);
-    });
+      });
+
+if (app()->environment('local') && config('app.debug')) {
+    Route::get('corepilot/runtime-snapshot/diagnostics', [CorePilotRuntimeSnapshotController::class, 'diagnostics']);
+}
 
 Route::group(['prefix' => 'v2/auth', 'middleware' => ['app_language']], function () {
 

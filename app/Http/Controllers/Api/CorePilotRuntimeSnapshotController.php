@@ -23,6 +23,35 @@ class CorePilotRuntimeSnapshotController extends Controller
         return $this->handleSnapshotRequest($request, $runtimeSnapshotService, 'apply');
     }
 
+    public function diagnostics(Request $request, CoreMarketRuntimeSnapshotService $runtimeSnapshotService): JsonResponse
+    {
+        abort_unless(app()->environment('local') && config('app.debug'), 404);
+
+        $diagnostics = $runtimeSnapshotService->storageDiagnostics();
+
+        return response()->json([
+            'app_environment' => app()->environment(),
+            'base_path' => base_path(),
+            'public_path' => public_path(),
+            'environment_file_path' => app()->environmentFilePath(),
+            'environment_file_exists' => is_file(app()->environmentFilePath()),
+            'config_cached' => app()->configurationIsCached(),
+            'default_connection_name' => $diagnostics['default_connection_name'] ?? null,
+            'default_database_name' => $diagnostics['default_database_name'] ?? null,
+            'runtime_connection_name' => $diagnostics['runtime_connection_name'] ?? null,
+            'runtime_database_name' => $diagnostics['runtime_database_name'] ?? null,
+            'business_settings_exists' => $diagnostics['has_business_settings_table'] ?? false,
+            'forbidden_database_detected' => $diagnostics['forbidden_database_detected'] ?? true,
+            'env_db_database' => env('DB_DATABASE'),
+            'getenv_db_database' => getenv('DB_DATABASE') ?: null,
+            'server_db_database' => $_SERVER['DB_DATABASE'] ?? null,
+            'environment_db_database' => $_ENV['DB_DATABASE'] ?? null,
+            'current_url' => $request->fullUrl(),
+            'script_filename' => $_SERVER['SCRIPT_FILENAME'] ?? null,
+            'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? null,
+        ]);
+    }
+
     protected function validatedPayload(Request $request): array
     {
         $featureAccess = app(\App\Services\CoreMarketFeatureAccessService::class);

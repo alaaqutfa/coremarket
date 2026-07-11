@@ -35,6 +35,7 @@ class CoreMarketTestingDatabaseStatus extends Command
                 ['Testing DB', $config['database']],
                 ['Host', $config['host'] ?? '[default]'],
                 ['Table count', $inspection['table_count']],
+                ['Baseline ready for runtime/admin tests', $inspection['baseline_ready'] ? 'yes' : 'no'],
                 ['Detected dataset', $inspection['detected_dataset']],
                 ['Demo data present', $inspection['demo_data_present'] ? 'yes' : 'no'],
                 ['Products count', $inspection['products_count'] ?? '[missing]'],
@@ -87,6 +88,12 @@ class CoreMarketTestingDatabaseStatus extends Command
         $this->line('Notes');
         $this->line('- CoreMarket legacy command tests require a testing database imported from the private demo/testing or clean baseline SQL when these tables are missing.');
         $this->line('- This command is read-only and does not modify the testing database.');
+
+        if (! $inspection['baseline_ready']) {
+            $this->error('Testing baseline is incomplete. Restore coremarket_testing before running runtime or admin tests.');
+
+            return self::FAILURE;
+        }
 
         return self::SUCCESS;
     }
