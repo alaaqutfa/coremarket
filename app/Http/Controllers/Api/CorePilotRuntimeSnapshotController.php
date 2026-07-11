@@ -80,6 +80,18 @@ class CorePilotRuntimeSnapshotController extends Controller
             'support' => ['nullable', 'array'],
             'support.company_name' => ['nullable', 'string', 'max:255'],
             'support.support_email' => ['nullable', 'email', 'max:255'],
+            'addons' => ['nullable', 'array'],
+            'addons.catalog_version' => ['nullable', 'string', 'max:80'],
+            'addons.items' => ['nullable', 'array'],
+            'subscription' => ['nullable', 'array'],
+            'subscription.status' => ['nullable', 'string', 'max:40'],
+            'subscription.billing_cycle' => ['nullable', 'string', 'max:40'],
+            'subscription.starts_at' => ['nullable', 'date'],
+            'subscription.ends_at' => ['nullable', 'date'],
+            'subscription.days_remaining' => ['nullable', 'integer'],
+            'subscription.renewal_label' => ['nullable', 'string', 'max:255'],
+            'subscription.currency' => ['nullable', 'string', 'size:3'],
+            'subscription.current_plan_price' => ['nullable', 'numeric', 'min:0'],
         ], $featureRules, $limitRules));
     }
 

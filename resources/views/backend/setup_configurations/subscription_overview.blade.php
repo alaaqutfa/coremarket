@@ -101,8 +101,14 @@
                         </li>
                         <li class="list-group-item px-0 d-flex justify-content-between">
                             <span class="text-muted">{{ translate('Status') }}</span>
-                            <span>{{ translate($statusText) }}</span>
+                            <span>{{ translate($subscriptionMetadata['status'] ?? $statusText) }}</span>
                         </li>
+                        <li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Billing cycle') }}</span><span>{{ $subscriptionMetadata['billing_cycle'] ?? translate('Not set') }}</span></li>
+                        <li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Subscription start') }}</span><span>{{ $subscriptionMetadata['starts_at'] ?? translate('Not set') }}</span></li>
+                        <li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Subscription end') }}</span><span>{{ $subscriptionMetadata['ends_at'] ?? translate('Not set') }}</span></li>
+                        <li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Days remaining') }}</span><span>{{ $subscriptionMetadata['days_remaining'] ?? translate('Not set') }}</span></li>
+                        @if(!empty($subscriptionMetadata['renewal_label']))<li class="list-group-item px-0"><span class="text-muted d-block">{{ translate('Renewal') }}</span><span>{{ $subscriptionMetadata['renewal_label'] }}</span></li>@endif
+                        @if(isset($subscriptionMetadata['current_plan_price']))<li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Current plan price') }}</span><span>{{ $subscriptionMetadata['currency'] ?? 'USD' }} {{ $subscriptionMetadata['current_plan_price'] }}</span></li>@endif
                         <li class="list-group-item px-0 d-flex justify-content-between">
                             <span class="text-muted">{{ translate('Expires at') }}</span>
                             <span>{{ $licenseSnapshot['expires_at'] ?: translate('Not set') }}</span>

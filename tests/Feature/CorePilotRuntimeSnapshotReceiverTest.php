@@ -153,6 +153,17 @@ class CorePilotRuntimeSnapshotReceiverTest extends TestCase
         $this->assertSame('0', (string) BusinessSetting::query()->where('type', 'vendor_system_activation')->whereNull('lang')->value('value'));
     }
 
+    public function test_apply_persists_addon_catalog_and_subscription_metadata(): void
+    {
+        $payload = $this->marketplacePayload();
+        $payload['addons'] = ['catalog_version' => '2026-07-11', 'items' => [['code' => 'pos_module', 'name' => 'POS Module', 'status' => 'available', 'monthly_price' => 35, 'setup_available' => true]]];
+        $payload['subscription'] = ['status' => 'active', 'billing_cycle' => 'monthly', 'starts_at' => '2026-07-01', 'ends_at' => '2026-08-01', 'days_remaining' => 21, 'currency' => 'USD', 'current_plan_price' => 180];
+        $this->withHeaders(['X-CorePilot-Sync-Token' => 'sync-secret'])->postJson('/api/corepilot/runtime-snapshot/apply', $payload)->assertOk();
+        $service = app(\App\Services\CoreMarketRuntimeSnapshotService::class);
+        $this->assertSame('pos_module', data_get($service->persistedAddonCatalog(), 'items.0.code'));
+        $this->assertSame('2026-08-01', data_get($service->persistedSubscriptionMetadata(), 'ends_at'));
+    }
+
     private function marketplacePayload(): array
     {
         return [

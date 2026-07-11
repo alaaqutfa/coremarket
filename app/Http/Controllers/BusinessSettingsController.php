@@ -146,6 +146,7 @@ class BusinessSettingsController extends Controller
     ): array
     {
         $licenseSnapshot = $licenseService->snapshot();
+        $subscriptionMetadata = app(\App\Services\CoreMarketRuntimeSnapshotService::class)->persistedSubscriptionMetadata();
         $featureMatrix = $featureAccess->matrixFor();
         $currentProductCount = $licenseService->currentProductCount();
         $currentMonthlyOrderCount = $licenseService->currentMonthlyOrderCount();
@@ -304,6 +305,7 @@ class BusinessSettingsController extends Controller
             'subscriptionStatusNote' => $licenseService->isActive()
                 ? 'Managed by CorePilotOS. Contact support to upgrade or activate features.'
                 : 'Subscription status requires attention. Contact support to restore or upgrade access.',
+            'subscriptionMetadata' => $subscriptionMetadata,
         ];
     }
 

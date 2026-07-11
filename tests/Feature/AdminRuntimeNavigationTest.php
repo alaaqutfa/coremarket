@@ -29,6 +29,13 @@ class AdminRuntimeNavigationTest extends TestCase
         $this->ensurePermissionTables();
         $this->ensureLegacyUserColumns();
         $this->ensureAdminSupportTables();
+        // Each scenario asserts config-driven plans; persisted snapshots belong to a separate precedence test.
+        BusinessSetting::query()->whereIn('type', [
+            'coremarket_runtime_status', 'coremarket_runtime_applied_plan', 'coremarket_runtime_store_mode',
+            'coremarket_runtime_features', 'coremarket_runtime_limits', 'coremarket_runtime_store_metadata',
+            'coremarket_runtime_support_metadata', 'coremarket_runtime_addon_catalog', 'coremarket_runtime_subscription_metadata',
+        ])->delete();
+        Cache::forget('business_settings');
     }
 
     public function test_starter_single_store_sidebar_hides_marketplace_and_owner_only_sections_for_store_admin(): void

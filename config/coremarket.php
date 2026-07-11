@@ -236,6 +236,10 @@ return [
             'limits' => 'coremarket_runtime_limits',
             'store_metadata' => 'coremarket_runtime_store_metadata',
             'support_metadata' => 'coremarket_runtime_support_metadata',
+            'addon_catalog' => 'coremarket_runtime_addon_catalog',
+            'addon_catalog_version' => 'coremarket_runtime_addon_catalog_version',
+            'addon_catalog_synced_at' => 'coremarket_runtime_addon_catalog_synced_at',
+            'subscription_metadata' => 'coremarket_runtime_subscription_metadata',
         ],
         'allowed_store_metadata' => [
             'instance_id',
@@ -249,6 +253,12 @@ return [
             'company_name',
             'support_email',
         ],
+    ],
+
+    'corepilot_addon_requests' => [
+        'url' => env('COREPILOT_ADDON_REQUEST_URL'),
+        'token' => env('COREPILOT_ADDON_REQUEST_TOKEN'),
+        'header' => 'X-CoreMarket-Addon-Request-Token',
     ],
 
     'license' => [

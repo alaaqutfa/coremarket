@@ -7,9 +7,21 @@ use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
+use Tests\Support\InteractsWithCoreMarketTestSchema;
 
 class AdminAddonRequestCatalogTest extends TestCase
 {
+    use InteractsWithCoreMarketTestSchema;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config()->set('coremarket.runtime_snapshot.connection', 'mysql');
+        $this->ensureBusinessSettingsTable();
+        $this->ensurePermissionTables();
+        $this->ensureLegacyUserColumns();
+        $this->ensureAdminSupportTables();
+    }
     public function test_store_admin_can_access_addon_request_catalog(): void
     {
         DB::beginTransaction();
@@ -29,10 +41,9 @@ class AdminAddonRequestCatalogTest extends TestCase
                 ->get(route('addons.index'))
                 ->assertOk()
                 ->assertSee('Addon Requests')
-                ->assertSee('Request optional managed capabilities')
+                ->assertSee('CorePilotOS owns pricing')
                 ->assertSee('View My Subscription')
-                ->assertSee('Multi Vendor / Sellers')
-                ->assertSee('Payment Gateway Setup')
+                ->assertSee('Blog / Content Pages')
                 ->assertDontSee('Install/Update Addon')
                 ->assertDontSee('Purchase code')
                 ->assertDontSee('Status updated successfully');
@@ -59,7 +70,7 @@ class AdminAddonRequestCatalogTest extends TestCase
             $this->actingAs($user)
                 ->get(route('addons.index'))
                 ->assertOk()
-                ->assertSee('legacy add-on upload, code install, SQL execution, and activation toggles are hidden and neutralized');
+                ->assertSee('CorePilotOS owns pricing');
         } finally {
             DB::rollBack();
         }

@@ -85,6 +85,9 @@ class CoreMarketRuntimeSnapshotService
         return $this->decodeJsonSetting($this->key('support_metadata'));
     }
 
+    public function persistedAddonCatalog(): array { return $this->decodeJsonSetting($this->key('addon_catalog')); }
+    public function persistedSubscriptionMetadata(): array { return $this->decodeJsonSetting($this->key('subscription_metadata')); }
+
     public function normalizedPersistedSnapshot(): array
     {
         return $this->normalizePayload([
@@ -95,6 +98,8 @@ class CoreMarketRuntimeSnapshotService
             'limits' => $this->persistedLimits(),
             'store' => $this->persistedStoreMetadata(),
             'support' => $this->persistedSupportMetadata(),
+            'addons' => $this->persistedAddonCatalog(),
+            'subscription' => $this->persistedSubscriptionMetadata(),
         ]);
     }
 
@@ -146,6 +151,8 @@ class CoreMarketRuntimeSnapshotService
                 $payload['support'] ?? [],
                 config('coremarket.runtime_snapshot.allowed_support_metadata', [])
             ),
+            'addons' => is_array($payload['addons'] ?? null) ? $payload['addons'] : [],
+            'subscription' => is_array($payload['subscription'] ?? null) ? $payload['subscription'] : [],
         ];
     }
 
@@ -159,6 +166,10 @@ class CoreMarketRuntimeSnapshotService
             $this->key('limits') => json_encode($normalized['limits'], JSON_UNESCAPED_SLASHES),
             $this->key('store_metadata') => json_encode($normalized['store'], JSON_UNESCAPED_SLASHES),
             $this->key('support_metadata') => json_encode($normalized['support'], JSON_UNESCAPED_SLASHES),
+            $this->key('addon_catalog') => json_encode($normalized['addons'], JSON_UNESCAPED_SLASHES),
+            $this->key('addon_catalog_version') => data_get($normalized, 'addons.catalog_version'),
+            $this->key('addon_catalog_synced_at') => now()->toIso8601String(),
+            $this->key('subscription_metadata') => json_encode($normalized['subscription'], JSON_UNESCAPED_SLASHES),
         ];
     }
 
