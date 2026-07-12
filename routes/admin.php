@@ -512,6 +512,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     Route::get('/measurement-points/destroy/{id}',  [MeasurementPointsController::class, 'destroy'])->name('measurement-points.destroy');
 
     // Addon
+    Route::post('/addons/request', [AddonController::class, 'requestActivation'])->name('addons.request')->middleware('coremarket_feature:addon_requests,1');
     Route::resource('addons', AddonController::class)->middleware('coremarket_feature:addon_requests,1');
     Route::post('/addons/activation', [AddonController::class, 'activation'])->name('addons.activation')->middleware('coremarket_feature:addon_requests,1');
 
