@@ -83,7 +83,7 @@ class AdminAddonRequestCatalogTest extends TestCase
 
         try {
             $this->persistSyncedCatalog([
-                ['code' => 'pos_module', 'name' => 'POS Module', 'status' => 'available', 'setup_available' => true],
+                ['code' => 'pos_module', 'name' => 'POS Module', 'status' => 'available', 'is_available_as_addon' => true, 'setup_available' => true],
             ]);
 
             $user = $this->makeUserWithRole(
@@ -138,6 +138,48 @@ class AdminAddonRequestCatalogTest extends TestCase
         }
     }
 
+    public function test_requestable_addon_keeps_its_request_form_when_an_upgrade_is_recommended(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->persistSyncedCatalog([
+                ['code' => 'extra_storage_5gb', 'name' => 'Extra Storage 5GB', 'status' => 'available', 'is_available_as_addon' => true, 'recommended_upgrade_plan' => 'enterprise'],
+            ]);
+            $user = $this->makeUserWithRole('Store Admin Upgrade QA', 'storeadmin.upgrade@example.test', 'staff', config('coremarket.access.store_admin_role', 'store_admin'));
+
+            $this->actingAs($user)->get(route('addons.index'))
+                ->assertOk()
+                ->assertSee('Recommended upgrade: Enterprise')
+                ->assertSee('Upgrading may save you money')
+                ->assertSee('This is a recommendation. You can still request this add-on.')
+                ->assertSee('Request activation')
+                ->assertSee(route('subscription.index'));
+        } finally {
+            DB::rollBack();
+        }
+    }
+
+    public function test_upgrade_only_addon_hides_the_request_form_when_corepilot_marks_it_unavailable(): void
+    {
+        DB::beginTransaction();
+
+        try {
+            $this->persistSyncedCatalog([
+                ['code' => 'multi_vendor_marketplace', 'name' => 'Multi-Vendor Marketplace', 'status' => 'requires_upgrade', 'is_available_as_addon' => false, 'recommended_upgrade_plan' => 'marketplace'],
+            ]);
+            $user = $this->makeUserWithRole('Store Admin Upgrade Only QA', 'storeadmin.upgrade-only@example.test', 'staff', config('coremarket.access.store_admin_role', 'store_admin'));
+
+            $this->actingAs($user)->get(route('addons.index'))
+                ->assertOk()
+                ->assertSee('Recommended upgrade: Marketplace')
+                ->assertSee('Upgrade Plan')
+                ->assertDontSee('Request activation');
+        } finally {
+            DB::rollBack();
+        }
+    }
+
     public function test_active_or_unknown_addons_cannot_be_requested(): void
     {
         DB::beginTransaction();
@@ -172,7 +214,7 @@ class AdminAddonRequestCatalogTest extends TestCase
 
         try {
             $this->persistSyncedCatalog([
-                ['code' => 'pos_module', 'name' => 'POS Module', 'status' => 'available'],
+                ['code' => 'pos_module', 'name' => 'POS Module', 'status' => 'available', 'is_available_as_addon' => true],
             ]);
 
             $user = $this->makeUserWithRole(

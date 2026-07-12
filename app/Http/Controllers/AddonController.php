@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\CoreMarketFeatureAccessService;
 use App\Services\CoreMarketRuntimeSnapshotService;
 use App\Services\CorePilotAddonRequestClient;
 use Illuminate\Http\Request;
@@ -29,7 +28,7 @@ class AddonController extends Controller
         }
 
         $item = collect($catalog['items'])->firstWhere('code', $data['addon_code']);
-        if (! $item || ! in_array($item['status'] ?? null, ['available', 'requires_upgrade'], true)) {
+        if (! $item || ! $this->isRequestableAddon($item)) {
             return back()->withErrors(['addon_request' => translate('This add-on is not eligible for a new activation request.')]);
         }
 
@@ -50,6 +49,12 @@ class AddonController extends Controller
     }
 
     public function create() { abort(404); } public function store() { abort(404); } public function show($id) { abort(404); } public function edit($id) { abort(404); } public function update(Request $request, $id) { abort(404); } public function destroy($id) { abort(404); } public function activation(Request $request) { abort(404); }
+
+    private function isRequestableAddon(array $addon): bool
+    {
+        return in_array($addon['status'] ?? null, ['available', 'requires_upgrade'], true)
+            && filter_var($addon['is_available_as_addon'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
 
     private function fallbackCatalog(): array
     {
