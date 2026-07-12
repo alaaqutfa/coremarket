@@ -9,6 +9,13 @@ class OrderDetail extends Model
 {
     use PreventDemoModeChanges;
 
+    protected $casts = [
+        'cost_price' => 'decimal:6',
+        'total_cost' => 'decimal:6',
+        'profit_amount' => 'decimal:6',
+        'profit_calculated_at' => 'datetime',
+    ];
+
     public function order()
     {
         return $this->belongsTo(Order::class);

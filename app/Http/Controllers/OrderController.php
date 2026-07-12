@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\CombinedOrder;
 use App\Models\SmsTemplate;
 use App\Services\CoreMarketLicenseService;
+use App\Services\InventoryMovementService;
 use Auth;
 use Mail;
 use App\Mail\InvoiceEmailManager;
@@ -253,6 +254,8 @@ class OrderController extends Controller
                 }
 
                 $order_detail->save();
+
+                app(InventoryMovementService::class)->recordSale($order_detail, $product_stock, Auth::id());
 
                 $product->num_of_sale += $cartItem['quantity'];
                 $product->save();

@@ -13,6 +13,7 @@ use App\Models\CouponUsage;
 use App\Models\BusinessSetting;
 use App\Models\User;
 use App\Services\CoreMarketLicenseService;
+use App\Services\InventoryMovementService;
 use DB;
 use \App\Utility\NotificationUtility;
 use App\Models\CombinedOrder;
@@ -157,6 +158,8 @@ class OrderController extends Controller
 
                 $order_detail->quantity = $cartItem['quantity'];
                 $order_detail->save();
+
+                app(InventoryMovementService::class)->recordSale($order_detail, $product_stock, auth()->id());
 
                 $product->num_of_sale = $product->num_of_sale + $cartItem['quantity'];
                 $product->save();
