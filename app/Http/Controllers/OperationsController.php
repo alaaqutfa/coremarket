@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseReceipt;
 use App\Models\SalesReturn;
 use App\Models\Supplier;
 use App\Services\AccountingEventService;
@@ -18,6 +19,7 @@ use App\Services\CoreMarketFeatureAccessService;
 use App\Services\InventoryProService;
 use App\Services\ProductIdentityLookupService;
 use App\Services\PurchaseReceivingService;
+use App\Services\PurchasingUiService;
 use App\Services\SalesReturnService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -108,30 +110,84 @@ class OperationsController extends Controller
         return redirect()->route('operations.inventory.stock')->with('success', translate('Stock adjustment recorded successfully'));
     }
 
-    public function suppliers(): View { $this->authorizeOperation('suppliers.view', ['purchasing_suppliers']); return view('backend.operations.suppliers.index', ['suppliers' => Supplier::latest()->paginate(25)]); }
+    public function suppliers(Request $request, PurchasingUiService $purchasing): View
+    {
+        $this->authorizeOperation('suppliers.view', ['purchasing_suppliers']);
+        return view('backend.operations.suppliers.index', ['suppliers' => $purchasing->suppliers($request->only(['search', 'status']))]);
+    }
     public function createSupplier(): View { $this->authorizeOperation('suppliers.create', ['purchasing_suppliers']); return view('backend.operations.suppliers.form', ['supplier' => new Supplier()]); }
     public function editSupplier(Supplier $supplier): View { $this->authorizeOperation('suppliers.edit', ['purchasing_suppliers']); return view('backend.operations.suppliers.form', compact('supplier')); }
     public function storeSupplier(Request $request): RedirectResponse { $this->authorizeOperation('suppliers.create', ['purchasing_suppliers']); $supplier = Supplier::create($this->supplierData($request)); return redirect()->route('operations.suppliers.edit', $supplier)->with('success', translate('Supplier saved successfully')); }
     public function updateSupplier(Request $request, Supplier $supplier): RedirectResponse { $this->authorizeOperation('suppliers.edit', ['purchasing_suppliers']); $supplier->update($this->supplierData($request)); return back()->with('success', translate('Supplier saved successfully')); }
 
-    public function purchaseOrders(): View { $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']); return view('backend.operations.purchase-orders.index', ['purchaseOrders' => PurchaseOrder::with('supplier')->latest()->paginate(25)]); }
-    public function createPurchaseOrder(): View { $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']); return view('backend.operations.purchase-orders.form', ['suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(), 'products' => Product::query()->orderBy('name')->limit(500)->get()]); }
+    public function purchaseOrders(Request $request, PurchasingUiService $purchasing): View
+    {
+        $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
+        return view('backend.operations.purchase-orders.index', [
+            'purchaseOrders' => $purchasing->purchaseOrders($request->only(['supplier_id', 'status', 'from', 'to'])),
+            'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+    public function createPurchaseOrder(): View
+    {
+        $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']);
+        return view('backend.operations.purchase-orders.form', [
+            'suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(),
+            'products' => Product::query()->orderBy('name')->limit(500)->get(),
+            'productStocks' => ProductStock::query()->with('product')->orderBy('product_id')->get(),
+        ]);
+    }
     public function storePurchaseOrder(Request $request, PurchaseReceivingService $service): RedirectResponse
     {
         $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']);
-        $data = $request->validate(['supplier_id' => 'nullable|exists:suppliers,id', 'ordered_at' => 'nullable|date', 'currency' => 'nullable|string|max:10', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 'items.*.product_stock_id' => 'nullable|exists:product_stocks,id', 'items.*.variant' => 'nullable|string|max:255', 'items.*.quantity_ordered' => 'required|numeric|min:0.000001', 'items.*.unit_cost' => 'nullable|numeric|min:0']);
+        $data = $request->validate(['supplier_id' => 'nullable|exists:suppliers,id', 'ordered_at' => 'nullable|date', 'currency' => 'nullable|string|max:10', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 'items.*.product_stock_id' => 'nullable|exists:product_stocks,id', 'items.*.variant' => 'nullable|string|max:255', 'items.*.quantity_ordered' => 'required|numeric|min:0.000001', 'items.*.unit_cost' => 'nullable|numeric|min:0', 'items.*.tax_amount' => 'nullable|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 'items.*.notes' => 'nullable|string|max:1000']);
         $order = $service->createPurchaseOrder($data, $data['items'], auth()->id());
         return redirect()->route('operations.purchase-orders.show', $order)->with('success', translate('Purchase order created successfully'));
     }
-    public function showPurchaseOrder(PurchaseOrder $purchaseOrder): View { $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']); return view('backend.operations.purchase-orders.show', ['purchaseOrder' => $purchaseOrder->load('supplier', 'items')]); }
+    public function showPurchaseOrder(PurchaseOrder $purchaseOrder, PurchasingUiService $purchasing): View
+    {
+        $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
+        $purchaseOrder->load(['supplier', 'items.product', 'items.productStock', 'receipts.items.purchaseOrderItem']);
+        $movementIds = $purchaseOrder->receipts->flatMap->items->pluck('inventory_movement_id')->filter();
+
+        return view('backend.operations.purchase-orders.show', [
+            'purchaseOrder' => $purchaseOrder,
+            'progress' => $purchasing->progress($purchaseOrder),
+            'movements' => InventoryMovement::query()->with(['product', 'productStock'])->whereIn('id', $movementIds)->latest()->get(),
+        ]);
+    }
     public function receivePurchaseOrder(Request $request, PurchaseOrder $purchaseOrder, PurchaseReceivingService $service): RedirectResponse
     {
         $this->authorizeOperation('purchase_orders.receive', ['purchasing_suppliers']);
         $data = $request->validate(['receipt_key' => 'required|string|max:100', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id', 'items.*.quantity_received' => 'required|numeric|min:0', 'items.*.unit_cost' => 'nullable|numeric|min:0']);
         $items = collect($data['items'])->filter(fn ($item) => (float) $item['quantity_received'] > 0)->values()->all();
         if (empty($items)) return back()->withErrors(['items' => translate('Enter a quantity to receive.')]);
-        $service->receive($purchaseOrder, $items, $data, auth()->id());
+        try {
+            $service->receive($purchaseOrder, $items, $data, auth()->id());
+        } catch (DomainException $exception) {
+            return back()->withErrors(['items' => $exception->getMessage()])->withInput();
+        }
         return back()->with('success', translate('Stock received successfully'));
+    }
+
+    public function purchaseReceipts(Request $request, PurchasingUiService $purchasing): View
+    {
+        $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
+        return view('backend.operations.purchase-receipts.index', [
+            'receipts' => $purchasing->receipts($request->only(['supplier_id', 'from', 'to'])),
+            'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function showPurchaseReceipt(PurchaseReceipt $purchaseReceipt): View
+    {
+        $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
+        $purchaseReceipt->load(['purchaseOrder.supplier', 'items.purchaseOrderItem.product', 'items.purchaseOrderItem.productStock']);
+        $movements = InventoryMovement::query()->with(['product', 'productStock'])
+            ->whereIn('id', $purchaseReceipt->items->pluck('inventory_movement_id')->filter())
+            ->latest()->get();
+
+        return view('backend.operations.purchase-receipts.show', compact('purchaseReceipt', 'movements'));
     }
 
     public function salesReturns(): View { $this->authorizeOperation('sales_returns.view', ['returns_management']); return view('backend.operations.sales-returns.index', ['salesReturns' => SalesReturn::with('order')->latest()->paginate(25)]); }

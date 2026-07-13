@@ -94,6 +94,8 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::post('/operations/purchase-orders', 'storePurchaseOrder')->name('operations.purchase-orders.store');
     Route::get('/operations/purchase-orders/{purchaseOrder}', 'showPurchaseOrder')->name('operations.purchase-orders.show');
     Route::post('/operations/purchase-orders/{purchaseOrder}/receive', 'receivePurchaseOrder')->name('operations.purchase-orders.receive');
+    Route::get('/operations/purchase-receipts', 'purchaseReceipts')->name('operations.purchase-receipts');
+    Route::get('/operations/purchase-receipts/{purchaseReceipt}', 'showPurchaseReceipt')->name('operations.purchase-receipts.show');
     Route::get('/operations/sales-returns', 'salesReturns')->name('operations.sales-returns');
     Route::get('/operations/sales-returns/create', 'createSalesReturn')->name('operations.sales-returns.create');
     Route::post('/operations/sales-returns', 'storeSalesReturn')->name('operations.sales-returns.store');

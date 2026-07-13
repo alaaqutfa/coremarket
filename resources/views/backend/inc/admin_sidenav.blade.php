@@ -30,11 +30,13 @@
         $coremarketCanInventoryMovements = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory_movements.view'));
         $coremarketCanSuppliers = $coremarketPurchasingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('suppliers.view'));
         $coremarketCanPurchaseOrders = $coremarketPurchasingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('purchase_orders.view'));
+        $coremarketCanPurchaseReceipts = $coremarketCanPurchaseOrders;
+        $coremarketCanPurchasing = $coremarketCanSuppliers || $coremarketCanPurchaseOrders || $coremarketCanPurchaseReceipts;
         $coremarketCanSalesReturns = $coremarketReturnsOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('sales_returns.view'));
         $coremarketCanExpenses = $coremarketAccountingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('expenses.view'));
         $coremarketCanAccountingSummary = $coremarketAccountingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting_summary.view'));
         $coremarketCanInventory = $coremarketCanInventoryDashboard || $coremarketCanInventoryStock || $coremarketCanInventoryLookup || $coremarketCanInventoryLowStock || $coremarketCanInventoryMovements || $coremarketCanInventoryAudit;
-        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanSuppliers || $coremarketCanPurchaseOrders || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary;
+        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary;
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
     <div class="aiz-sidebar left c-scrollbar">
@@ -99,7 +101,7 @@
                 {{-- Operations --}}
                 @if ($coremarketHasOperationsLinks)
                 <li class="aiz-side-nav-item">
-                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary']) }}">
+                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary']) }}">
                         <div class="aiz-side-nav-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h12v3H2V2Zm1 4h10v8H3V6Zm2 2v2h2V8H5Zm4 0v2h2V8H9Zm-4 3v1h6v-1H5Z" fill="#575b6a"/></svg>
                         </div>
@@ -123,11 +125,15 @@
                             </ul>
                         </li>
                         @endif
-                        @if ($coremarketCanSuppliers)
-                        <li class="aiz-side-nav-item"><a href="{{ route('operations.suppliers') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit']) }}"><span class="aiz-side-nav-text">{{ translate('Suppliers') }}</span></a></li>
-                        @endif
-                        @if ($coremarketCanPurchaseOrders)
-                        <li class="aiz-side-nav-item"><a href="{{ route('operations.purchase-orders') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show']) }}"><span class="aiz-side-nav-text">{{ translate('Purchase Orders') }}</span></a></li>
+                        @if ($coremarketCanPurchasing)
+                        <li class="aiz-side-nav-item">
+                            <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show']) }}"><span class="aiz-side-nav-text">{{ translate('Purchasing') }}</span><span class="aiz-side-nav-arrow"></span></a>
+                            <ul class="aiz-side-nav-list level-3">
+                                @if ($coremarketCanSuppliers)<li class="aiz-side-nav-item"><a href="{{ route('operations.suppliers') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit']) }}"><span class="aiz-side-nav-text">{{ translate('Suppliers') }}</span></a></li>@endif
+                                @if ($coremarketCanPurchaseOrders)<li class="aiz-side-nav-item"><a href="{{ route('operations.purchase-orders') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show']) }}"><span class="aiz-side-nav-text">{{ translate('Purchase Orders') }}</span></a></li>@endif
+                                @if ($coremarketCanPurchaseReceipts)<li class="aiz-side-nav-item"><a href="{{ route('operations.purchase-receipts') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.purchase-receipts', 'operations.purchase-receipts.show']) }}"><span class="aiz-side-nav-text">{{ translate('Purchase Receipts') }}</span></a></li>@endif
+                            </ul>
+                        </li>
                         @endif
                         @if ($coremarketCanSalesReturns)
                         <li class="aiz-side-nav-item"><a href="{{ route('operations.sales-returns') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show']) }}"><span class="aiz-side-nav-text">{{ translate('Sales Returns') }}</span></a></li>
