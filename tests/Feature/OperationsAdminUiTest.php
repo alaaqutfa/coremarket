@@ -55,6 +55,21 @@ class OperationsAdminUiTest extends TestCase
         } finally { DB::rollBack(); }
     }
 
+    public function test_sidebar_lists_only_the_operations_links_a_user_is_allowed_to_see(): void
+    {
+        DB::beginTransaction();
+        try {
+            $this->actingAs($this->user(['suppliers.view']));
+
+            $html = view('backend.inc.admin_sidenav')->render();
+
+            $this->assertStringContainsString('Operations', $html);
+            $this->assertStringContainsString('Suppliers', $html);
+            $this->assertStringNotContainsString('Inventory Movements', $html);
+            $this->assertStringNotContainsString('Accounting Summary', $html);
+        } finally { DB::rollBack(); }
+    }
+
     public function test_operations_permissions_are_seeded_in_operations_group(): void
     {
         DB::beginTransaction();
