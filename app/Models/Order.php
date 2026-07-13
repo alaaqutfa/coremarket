@@ -18,6 +18,11 @@ class Order extends Model
         return $this->hasMany(RefundRequest::class);
     }
 
+    public function salesReturns()
+    {
+        return $this->hasMany(SalesReturn::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

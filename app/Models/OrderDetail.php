@@ -36,6 +36,11 @@ class OrderDetail extends Model
         return $this->hasOne(RefundRequest::class);
     }
 
+    public function salesReturnItems()
+    {
+        return $this->hasMany(SalesReturnItem::class);
+    }
+
     public function affiliate_log()
     {
         return $this->hasMany(AffiliateLog::class);

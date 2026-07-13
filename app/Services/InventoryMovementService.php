@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\InventoryMovement;
 use App\Models\OrderDetail;
 use App\Models\ProductStock;
+use App\Models\SalesReturnItem;
 
 class InventoryMovementService
 {
@@ -17,7 +18,11 @@ class InventoryMovementService
         $snapshot = $this->snapshotCost($orderDetail, $productStock);
 
         return InventoryMovement::query()->firstOrCreate(
-            ['order_detail_id' => $orderDetail->id, 'movement_type' => self::TYPE_SALE],
+            [
+                'reference_type' => OrderDetail::class,
+                'reference_id' => $orderDetail->id,
+                'movement_type' => self::TYPE_SALE,
+            ],
             $this->movementAttributes($orderDetail, $productStock, self::TYPE_SALE, 'out', $snapshot, $createdBy)
         );
     }
@@ -28,8 +33,39 @@ class InventoryMovementService
         $snapshot = $this->snapshotCost($orderDetail, $productStock);
 
         return InventoryMovement::query()->firstOrCreate(
-            ['order_detail_id' => $orderDetail->id, 'movement_type' => self::TYPE_SALE_REVERSAL],
+            [
+                'reference_type' => OrderDetail::class,
+                'reference_id' => $orderDetail->id,
+                'movement_type' => self::TYPE_SALE_REVERSAL,
+            ],
             $this->movementAttributes($orderDetail, $productStock, self::TYPE_SALE_REVERSAL, 'in', $snapshot, $createdBy)
+        );
+    }
+
+    public function recordSalesReturnReversal(SalesReturnItem $returnItem, ?int $createdBy = null): InventoryMovement
+    {
+        return InventoryMovement::query()->firstOrCreate(
+            [
+                'reference_type' => SalesReturnItem::class,
+                'reference_id' => $returnItem->id,
+                'movement_type' => self::TYPE_SALE_REVERSAL,
+            ],
+            [
+                'product_id' => $returnItem->product_id,
+                'product_stock_id' => $returnItem->product_stock_id,
+                'variant' => $returnItem->variant,
+                'direction' => 'in',
+                'quantity' => $returnItem->quantity,
+                'unit_cost' => $returnItem->cost_price,
+                'total_cost' => $returnItem->total_cost,
+                'order_id' => $returnItem->order_id,
+                'order_detail_id' => $returnItem->order_detail_id,
+                'created_by' => $createdBy,
+                'metadata' => [
+                    'cost_source' => $returnItem->metadata['cost_source'] ?? 'missing',
+                    'sales_return_id' => $returnItem->sales_return_id,
+                ],
+            ]
         );
     }
 
@@ -79,6 +115,7 @@ class InventoryMovementService
             'reference_type' => OrderDetail::class,
             'reference_id' => $orderDetail->id,
             'order_id' => $orderDetail->order_id,
+            'order_detail_id' => $orderDetail->id,
             'created_by' => $createdBy,
             'metadata' => ['cost_source' => $snapshot['cost_source']],
         ];
