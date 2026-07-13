@@ -5,12 +5,14 @@ namespace App\Services;
 use App\Models\InventoryMovement;
 use App\Models\OrderDetail;
 use App\Models\ProductStock;
+use App\Models\PurchaseReceiptItem;
 use App\Models\SalesReturnItem;
 
 class InventoryMovementService
 {
     public const TYPE_SALE = 'sale';
     public const TYPE_SALE_REVERSAL = 'sale_reversal';
+    public const TYPE_PURCHASE = 'purchase';
 
     public function recordSale(OrderDetail $orderDetail, ?ProductStock $productStock = null, ?int $createdBy = null): InventoryMovement
     {
@@ -64,6 +66,32 @@ class InventoryMovementService
                 'metadata' => [
                     'cost_source' => $returnItem->metadata['cost_source'] ?? 'missing',
                     'sales_return_id' => $returnItem->sales_return_id,
+                ],
+            ]
+        );
+    }
+
+    public function recordPurchaseReceipt(PurchaseReceiptItem $receiptItem, ?int $createdBy = null): InventoryMovement
+    {
+        return InventoryMovement::query()->firstOrCreate(
+            [
+                'reference_type' => PurchaseReceiptItem::class,
+                'reference_id' => $receiptItem->id,
+                'movement_type' => self::TYPE_PURCHASE,
+            ],
+            [
+                'product_id' => $receiptItem->product_id,
+                'product_stock_id' => $receiptItem->product_stock_id,
+                'direction' => 'in',
+                'quantity' => $receiptItem->quantity_received,
+                'unit_cost' => $receiptItem->unit_cost,
+                'total_cost' => $receiptItem->total_cost,
+                'reference_type' => PurchaseReceiptItem::class,
+                'reference_id' => $receiptItem->id,
+                'created_by' => $createdBy,
+                'metadata' => [
+                    'purchase_order_item_id' => $receiptItem->purchase_order_item_id,
+                    'purchase_receipt_id' => $receiptItem->purchase_receipt_id,
                 ],
             ]
         );
