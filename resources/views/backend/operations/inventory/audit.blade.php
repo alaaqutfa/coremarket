@@ -1,0 +1,4 @@
+@extends('backend.layouts.app')
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><h5 class="mb-0 h6">{{ translate('Stock Audit') }}</h5></div><div class="alert alert-info">{{ translate('This audit is read-only. It does not change products, variants, or inventory.') }}</div><div class="card"><div class="card-body"><table class="table"><tbody>@foreach(['products_without_barcode'=>'Products without barcode','variants_without_barcode'=>'Variants without barcode','duplicate_product_barcodes'=>'Duplicate product barcodes','duplicate_variant_barcodes'=>'Duplicate variant barcodes','duplicate_skus'=>'Duplicate variant SKUs','stock_mismatches'=>'Current stock mismatches','movements_missing_stock'=>'Movements linked to missing stock'] as $key=>$label)<tr><th>{{ translate($label) }}</th><td>{{ $audit[$key] }}</td></tr>@endforeach</tbody></table></div></div>
+@endsection

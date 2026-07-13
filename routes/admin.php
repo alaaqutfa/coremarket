@@ -77,6 +77,13 @@ Route::controller(UpdateController::class)->group(function () {
 Route::controller(OperationsController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
     Route::get('/operations', 'overview')->name('operations.overview');
     Route::get('/operations/inventory-movements', 'inventoryMovements')->name('operations.inventory-movements');
+    Route::get('/operations/inventory', 'inventoryDashboard')->name('operations.inventory.dashboard');
+    Route::get('/operations/inventory/stock', 'inventoryStock')->name('operations.inventory.stock');
+    Route::get('/operations/inventory/barcode-lookup', 'barcodeLookup')->name('operations.inventory.barcode-lookup');
+    Route::get('/operations/inventory/low-stock', 'lowStock')->name('operations.inventory.low-stock');
+    Route::get('/operations/inventory/audit', 'inventoryAudit')->name('operations.inventory.audit');
+    Route::get('/operations/inventory/stock/{productStock}/adjust', 'adjustStockForm')->name('operations.inventory.stock.adjust');
+    Route::post('/operations/inventory/stock/{productStock}/adjust', 'adjustStock')->name('operations.inventory.stock.adjust.store');
     Route::get('/operations/suppliers', 'suppliers')->name('operations.suppliers');
     Route::get('/operations/suppliers/create', 'createSupplier')->name('operations.suppliers.create');
     Route::post('/operations/suppliers', 'storeSupplier')->name('operations.suppliers.store');

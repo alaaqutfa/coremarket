@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'inventory' => [
+        'low_stock_threshold' => 5,
+    ],
+
     'plan' => [
         'code' => env('COREMARKET_PLAN_CODE', env('COREMARKET_APPLIED_PLAN_CODE', 'starter')),
     ],
@@ -560,6 +564,14 @@ return [
             'sales_returns.view', 'sales_returns.create', 'sales_returns.complete',
             'expenses.view', 'expenses.create', 'expenses.approve',
             'accounting_summary.view',
+
+            'inventory.view',
+            'inventory.dashboard.view',
+            'inventory.stock.view',
+            'inventory.stock.adjust',
+            'inventory.stock.audit',
+            'inventory.low_stock.view',
+            'inventory.barcode_lookup.view',
         ],
 
         'store_admin_permissions' => [
@@ -601,6 +613,14 @@ return [
             'expenses.create',
             'expenses.approve',
             'accounting_summary.view',
+
+            'inventory.view',
+            'inventory.dashboard.view',
+            'inventory.stock.view',
+            'inventory.stock.adjust',
+            'inventory.stock.audit',
+            'inventory.low_stock.view',
+            'inventory.barcode_lookup.view',
         ],
 
         'store_admin_allowed_business_setting_types' => [

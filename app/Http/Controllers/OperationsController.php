@@ -8,14 +8,18 @@ use App\Models\ExpenseCategory;
 use App\Models\InventoryMovement;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductStock;
 use App\Models\PurchaseOrder;
 use App\Models\SalesReturn;
 use App\Models\Supplier;
 use App\Services\AccountingEventService;
 use App\Services\AccountingSummaryService;
 use App\Services\CoreMarketFeatureAccessService;
+use App\Services\InventoryProService;
+use App\Services\ProductIdentityLookupService;
 use App\Services\PurchaseReceivingService;
 use App\Services\SalesReturnService;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -51,6 +55,57 @@ class OperationsController extends Controller
         if ($request->filled('to')) $query->whereDate('created_at', '<=', $request->input('to'));
 
         return view('backend.operations.inventory-movements', ['movements' => $query->paginate(30)->withQueryString(), 'products' => Product::query()->orderBy('name')->limit(250)->get()]);
+    }
+
+    public function inventoryDashboard(InventoryProService $inventory): View
+    {
+        $this->authorizeOperation('inventory.dashboard.view', ['inventory_pro']);
+        return view('backend.operations.inventory.dashboard', ['stats' => $inventory->dashboardStats()]);
+    }
+
+    public function inventoryStock(Request $request, InventoryProService $inventory): View
+    {
+        $this->authorizeOperation('inventory.stock.view', ['inventory_pro']);
+        return view('backend.operations.inventory.stock', ['rows' => $inventory->stockRows($request->only(['search', 'status', 'low_stock_only']))]);
+    }
+
+    public function barcodeLookup(Request $request, ProductIdentityLookupService $lookup, InventoryProService $inventory): View
+    {
+        $this->authorizeOperation('inventory.barcode_lookup.view', ['inventory_pro']);
+        $identity = trim((string) $request->input('barcode_or_sku'));
+        $result = $identity === '' ? null : $lookup->find($identity);
+        $lastMovement = $result ? InventoryMovement::query()->where('product_stock_id', $result['product_stock']?->id)->orWhere(fn ($q) => $q->whereNull('product_stock_id')->where('product_id', $result['product']->id))->latest()->first() : null;
+        return view('backend.operations.inventory.barcode-lookup', compact('identity', 'result', 'lastMovement'));
+    }
+
+    public function lowStock(Request $request, InventoryProService $inventory): View
+    {
+        $this->authorizeOperation('inventory.low_stock.view', ['inventory_pro']);
+        return view('backend.operations.inventory.low-stock', ['rows' => $inventory->lowStockRows($request->only(['search', 'status']))]);
+    }
+
+    public function inventoryAudit(InventoryProService $inventory): View
+    {
+        $this->authorizeOperation('inventory.stock.audit', ['inventory_pro']);
+        return view('backend.operations.inventory.audit', ['audit' => $inventory->auditSummary()]);
+    }
+
+    public function adjustStockForm(ProductStock $productStock): View
+    {
+        $this->authorizeOperation('inventory.stock.adjust', ['inventory_pro']);
+        return view('backend.operations.inventory.adjust', ['productStock' => $productStock->load('product')]);
+    }
+
+    public function adjustStock(Request $request, ProductStock $productStock, InventoryProService $inventory): RedirectResponse
+    {
+        $this->authorizeOperation('inventory.stock.adjust', ['inventory_pro']);
+        $data = $request->validate(['adjustment_type' => 'required|in:increase,decrease,set', 'quantity' => 'required|numeric|min:0', 'reason' => 'required|string|max:255', 'notes' => 'nullable|string|max:2000']);
+        try {
+            $inventory->adjustStock($productStock, $data, auth()->id());
+        } catch (DomainException $exception) {
+            return back()->withErrors(['quantity' => $exception->getMessage()])->withInput();
+        }
+        return redirect()->route('operations.inventory.stock')->with('success', translate('Stock adjustment recorded successfully'));
     }
 
     public function suppliers(): View { $this->authorizeOperation('suppliers.view', ['purchasing_suppliers']); return view('backend.operations.suppliers.index', ['suppliers' => Supplier::latest()->paginate(25)]); }

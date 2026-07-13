@@ -51,7 +51,7 @@ class OperationsAdminUiTest extends TestCase
             $this->actingAs($this->user(['operations.view', 'inventory_movements.view']));
             $html = view('backend.inc.admin_sidenav')->render();
             $this->assertStringContainsString('Operations', $html);
-            $this->assertStringContainsString('Inventory Movements', $html);
+            $this->assertStringContainsString('Movements', $html);
         } finally { DB::rollBack(); }
     }
 

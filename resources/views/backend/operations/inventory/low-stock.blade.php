@@ -1,0 +1,4 @@
+@extends('backend.layouts.app')
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><h5 class="mb-0 h6">{{ translate('Low Stock Report') }}</h5></div><div class="card"><div class="card-body table-responsive"><table class="table aiz-table"><thead><tr><th>{{ translate('Product') }}</th><th>{{ translate('Variant') }}</th><th>SKU</th><th>{{ translate('Barcode') }}</th><th>Qty</th><th>{{ translate('Threshold') }}</th><th>{{ translate('Status') }}</th></tr></thead><tbody>@forelse($rows as $row)<tr><td>{{ $row['product']?->name }}</td><td>{{ $row['stock']->variant }}</td><td>{{ $row['stock']->sku }}</td><td>{{ $row['stock']->barcode ?: $row['product']?->barcode }}</td><td>{{ $row['stock']->qty }}</td><td>{{ $row['threshold'] }}</td><td>{{ translate($row['status']) }}</td></tr>@empty<tr><td colspan="7" class="text-center">{{ translate('No low stock variants found') }}</td></tr>@endforelse</tbody></table></div></div>
+@endsection

@@ -26,6 +26,9 @@ class OperationsPermissionSeeder extends Seeder
             'sales_returns.view', 'sales_returns.create', 'sales_returns.complete',
             'expenses.view', 'expenses.create', 'expenses.approve',
             'accounting_summary.view',
+            'inventory.view', 'inventory.dashboard.view', 'inventory.stock.view',
+            'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',
+            'inventory.barcode_lookup.view',
         ];
     }
 }
