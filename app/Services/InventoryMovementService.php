@@ -19,7 +19,7 @@ class InventoryMovementService
         $productStock = $productStock ?: $this->findProductStock($orderDetail);
         $snapshot = $this->snapshotCost($orderDetail, $productStock);
 
-        return InventoryMovement::query()->firstOrCreate(
+        $movement = InventoryMovement::query()->firstOrCreate(
             [
                 'reference_type' => OrderDetail::class,
                 'reference_id' => $orderDetail->id,
@@ -27,6 +27,8 @@ class InventoryMovementService
             ],
             $this->movementAttributes($orderDetail, $productStock, self::TYPE_SALE, 'out', $snapshot, $createdBy)
         );
+        app(AccountingEventService::class)->recordSale($orderDetail, $createdBy);
+        return $movement;
     }
 
     public function recordSaleReversal(OrderDetail $orderDetail, ?ProductStock $productStock = null, ?int $createdBy = null): InventoryMovement

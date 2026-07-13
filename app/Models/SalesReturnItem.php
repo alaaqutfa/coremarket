@@ -39,4 +39,6 @@ class SalesReturnItem extends Model
     {
         return $this->belongsTo(ProductStock::class);
     }
+
+    public function accountingEvents() { return $this->morphMany(AccountingEvent::class, 'reference'); }
 }

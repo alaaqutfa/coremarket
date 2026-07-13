@@ -12,4 +12,5 @@ class PurchaseReceiptItem extends Model
 
     public function receipt() { return $this->belongsTo(PurchaseReceipt::class, 'purchase_receipt_id'); }
     public function purchaseOrderItem() { return $this->belongsTo(PurchaseOrderItem::class); }
+    public function accountingEvents() { return $this->morphMany(AccountingEvent::class, 'reference'); }
 }

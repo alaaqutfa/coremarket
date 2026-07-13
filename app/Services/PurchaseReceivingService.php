@@ -133,6 +133,7 @@ class PurchaseReceivingService
                 $movement = $this->inventoryMovements->recordPurchaseReceipt($receiptItem, $receivedBy);
                 $receiptItem->inventory_movement_id = $movement->id;
                 $receiptItem->save();
+                app(AccountingEventService::class)->recordPurchaseReceipt($receiptItem->fresh('purchaseOrderItem'), $receivedBy);
 
                 $orderItem->quantity_received += $quantity;
                 if ($unitCost !== null) {

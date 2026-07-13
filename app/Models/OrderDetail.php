@@ -41,6 +41,11 @@ class OrderDetail extends Model
         return $this->hasMany(SalesReturnItem::class);
     }
 
+    public function accountingEvents()
+    {
+        return $this->morphMany(AccountingEvent::class, 'reference');
+    }
+
     public function affiliate_log()
     {
         return $this->hasMany(AffiliateLog::class);

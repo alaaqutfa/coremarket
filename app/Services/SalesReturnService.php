@@ -168,6 +168,7 @@ class SalesReturnService
             }
 
             $this->inventoryMovements->recordSalesReturnReversal($returnItem, $completedBy);
+            app(AccountingEventService::class)->recordSalesReturn($returnItem, $completedBy);
         }
 
         $returnItem->stock_reversed_quantity = $returnItem->quantity;
