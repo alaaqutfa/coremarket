@@ -16,6 +16,11 @@
         $coremarketStaffManagementEnabled = ! $coremarketStoreAdmin && coremarket_feature_enabled('staff_management');
         $coremarketAddonRequestsEnabled = coremarket_feature_enabled('addon_requests');
         $coremarketSubscriptionPageEnabled = coremarket_feature_enabled('subscription_page', true);
+        $coremarketInventoryOperationsEnabled = coremarket_feature_enabled('inventory_pro') || coremarket_feature_enabled('accounting_lite');
+        $coremarketPurchasingOperationsEnabled = coremarket_feature_enabled('purchasing_suppliers');
+        $coremarketReturnsOperationsEnabled = coremarket_feature_enabled('returns_management');
+        $coremarketAccountingOperationsEnabled = coremarket_feature_enabled('accounting_lite');
+        $coremarketOperationsEnabled = $coremarketInventoryOperationsEnabled || $coremarketPurchasingOperationsEnabled || $coremarketReturnsOperationsEnabled || $coremarketAccountingOperationsEnabled;
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
     <div class="aiz-sidebar left c-scrollbar">
@@ -27,6 +32,24 @@
                 @else
                 <img class="mw-100" src="{{ static_asset('assets/img/logo.png') }}" class="brand-icon"
                     alt="{{ get_setting('site_name') }}">
+                @endif
+
+                @if (($coremarketOperationsEnabled || auth()->user()?->user_type === 'admin') && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('operations.view')))
+                <li class="aiz-side-nav-item">
+                    <a href="javascript:void(0);" class="aiz-side-nav-link">
+                        <div class="aiz-side-nav-icon"><i class="las la-warehouse"></i></div>
+                        <span class="aiz-side-nav-text">{{ translate('Operations') }}</span><span class="aiz-side-nav-arrow"></span>
+                    </a>
+                    <ul class="aiz-side-nav-list level-2">
+                        <li class="aiz-side-nav-item"><a href="{{ route('operations.overview') }}" class="aiz-side-nav-link"><span class="aiz-side-nav-text">{{ translate('Overview') }}</span></a></li>
+                        @if($coremarketInventoryOperationsEnabled && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('inventory_movements.view')))<li class="aiz-side-nav-item"><a href="{{ route('operations.inventory-movements') }}" class="aiz-side-nav-link"><span class="aiz-side-nav-text">{{ translate('Inventory Movements') }}</span></a></li>@endif
+                        @if($coremarketPurchasingOperationsEnabled && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('suppliers.view')))<li class="aiz-side-nav-item"><a href="{{ route('operations.suppliers') }}" class="aiz-side-nav-link"><span class="aiz-side-nav-text">{{ translate('Suppliers') }}</span></a></li>@endif
+                        @if($coremarketPurchasingOperationsEnabled && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('purchase_orders.view')))<li class="aiz-side-nav-item"><a href="{{ route('operations.purchase-orders') }}" class="aiz-side-nav-link"><span class="aiz-side-nav-text">{{ translate('Purchase Orders') }}</span></a></li>@endif
+                        @if($coremarketReturnsOperationsEnabled && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('sales_returns.view')))<li class="aiz-side-nav-item"><a href="{{ route('operations.sales-returns') }}" class="aiz-side-nav-link"><span class="aiz-side-nav-text">{{ translate('Sales Returns') }}</span></a></li>@endif
+                        @if($coremarketAccountingOperationsEnabled && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('expenses.view')))<li class="aiz-side-nav-item"><a href="{{ route('operations.expenses') }}" class="aiz-side-nav-link"><span class="aiz-side-nav-text">{{ translate('Expenses') }}</span></a></li>@endif
+                        @if($coremarketAccountingOperationsEnabled && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('accounting_summary.view')))<li class="aiz-side-nav-item"><a href="{{ route('operations.accounting-summary') }}" class="aiz-side-nav-link"><span class="aiz-side-nav-text">{{ translate('Accounting Summary') }}</span></a></li>@endif
+                    </ul>
+                </li>
                 @endif
             </a>
         </div>

@@ -1,0 +1,4 @@
+@extends('backend.layouts.app')
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><h5 class="mb-0 h6">{{ $expense->title }} <span class="badge badge-info">{{ $expense->status }}</span></h5></div><div class="card"><div class="card-body"><dl><dt>{{ translate('Amount') }}</dt><dd>{{ $expense->amount }} {{ $expense->currency }}</dd><dt>{{ translate('Date') }}</dt><dd>{{ $expense->expense_date }}</dd><dt>{{ translate('Vendor') }}</dt><dd>{{ $expense->vendor_name }}</dd><dt>{{ translate('Notes') }}</dt><dd>{{ $expense->notes }}</dd></dl>@can('expenses.approve')@if($expense->status==='draft')<form method="POST" action="{{ route('operations.expenses.approve',$expense) }}">@csrf <button class="btn btn-success">{{ translate('Approve Expense') }}</button></form>@endif@endcan</div></div>
+@endsection

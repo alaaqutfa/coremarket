@@ -10,6 +10,8 @@ class StoreAdminRoleSeeder extends Seeder
 {
     public function run()
     {
+        $this->call(OperationsPermissionSeeder::class);
+
         $roleName = config('coremarket.access.store_admin_role', 'store_admin');
         $permissionNames = config('coremarket.access.store_admin_permissions', []);
 

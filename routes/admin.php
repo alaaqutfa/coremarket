@@ -31,6 +31,7 @@ use App\Http\Controllers\MeasurementPointsController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationTypeController;
+use App\Http\Controllers\OperationsController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentController;
@@ -71,6 +72,32 @@ Route::controller(UpdateController::class)->group(function () {
     Route::get('/update/step2', 'step2')->name('update.step2')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
     Route::get('/update/step3', 'step3')->name('update.step3')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
     Route::post('/purchase_code', 'purchase_code')->name('update.code')->middleware(['auth', 'admin', 'prevent-back-history', 'permission:system_update', 'restrict_store_admin']);
+});
+
+Route::controller(OperationsController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations', 'overview')->name('operations.overview');
+    Route::get('/operations/inventory-movements', 'inventoryMovements')->name('operations.inventory-movements');
+    Route::get('/operations/suppliers', 'suppliers')->name('operations.suppliers');
+    Route::get('/operations/suppliers/create', 'createSupplier')->name('operations.suppliers.create');
+    Route::post('/operations/suppliers', 'storeSupplier')->name('operations.suppliers.store');
+    Route::get('/operations/suppliers/{supplier}/edit', 'editSupplier')->name('operations.suppliers.edit');
+    Route::put('/operations/suppliers/{supplier}', 'updateSupplier')->name('operations.suppliers.update');
+    Route::get('/operations/purchase-orders', 'purchaseOrders')->name('operations.purchase-orders');
+    Route::get('/operations/purchase-orders/create', 'createPurchaseOrder')->name('operations.purchase-orders.create');
+    Route::post('/operations/purchase-orders', 'storePurchaseOrder')->name('operations.purchase-orders.store');
+    Route::get('/operations/purchase-orders/{purchaseOrder}', 'showPurchaseOrder')->name('operations.purchase-orders.show');
+    Route::post('/operations/purchase-orders/{purchaseOrder}/receive', 'receivePurchaseOrder')->name('operations.purchase-orders.receive');
+    Route::get('/operations/sales-returns', 'salesReturns')->name('operations.sales-returns');
+    Route::get('/operations/sales-returns/create', 'createSalesReturn')->name('operations.sales-returns.create');
+    Route::post('/operations/sales-returns', 'storeSalesReturn')->name('operations.sales-returns.store');
+    Route::get('/operations/sales-returns/{salesReturn}', 'showSalesReturn')->name('operations.sales-returns.show');
+    Route::post('/operations/sales-returns/{salesReturn}/complete', 'completeSalesReturn')->name('operations.sales-returns.complete');
+    Route::get('/operations/expenses', 'expenses')->name('operations.expenses');
+    Route::get('/operations/expenses/create', 'createExpense')->name('operations.expenses.create');
+    Route::post('/operations/expenses', 'storeExpense')->name('operations.expenses.store');
+    Route::get('/operations/expenses/{expense}', 'showExpense')->name('operations.expenses.show');
+    Route::post('/operations/expenses/{expense}/approve', 'approveExpense')->name('operations.expenses.approve');
+    Route::get('/operations/accounting-summary', 'accountingSummary')->name('operations.accounting-summary');
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware(['auth', 'admin', 'prevent-back-history']);

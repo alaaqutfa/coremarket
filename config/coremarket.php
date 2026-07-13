@@ -56,6 +56,11 @@ return [
             'currencies_limited' => ['default' => true],
             'addon_requests' => ['default' => true],
             'subscription_page' => ['default' => true],
+            // Operational foundations are commercially enabled by the runtime snapshot.
+            'inventory_pro' => ['default' => false],
+            'purchasing_suppliers' => ['default' => false],
+            'returns_management' => ['default' => false],
+            'accounting_lite' => ['default' => false],
         ],
 
         'limit_definitions' => [
@@ -548,6 +553,15 @@ return [
     'access' => [
         'store_admin_role' => 'store_admin',
 
+        'operations_permissions' => [
+            'operations.view', 'inventory_movements.view',
+            'suppliers.view', 'suppliers.create', 'suppliers.edit',
+            'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.receive',
+            'sales_returns.view', 'sales_returns.create', 'sales_returns.complete',
+            'expenses.view', 'expenses.create', 'expenses.approve',
+            'accounting_summary.view',
+        ],
+
         'store_admin_permissions' => [
             'admin_dashboard',
 
@@ -571,6 +585,22 @@ return [
             'view_all_website_pages',
             'add_website_page',
             'edit_website_page',
+
+            'operations.view',
+            'inventory_movements.view',
+            'suppliers.view',
+            'suppliers.create',
+            'suppliers.edit',
+            'purchase_orders.view',
+            'purchase_orders.create',
+            'purchase_orders.receive',
+            'sales_returns.view',
+            'sales_returns.create',
+            'sales_returns.complete',
+            'expenses.view',
+            'expenses.create',
+            'expenses.approve',
+            'accounting_summary.view',
         ],
 
         'store_admin_allowed_business_setting_types' => [
