@@ -12,6 +12,9 @@
                 {{translate('SKU')}}
             </td>
             <td class="text-center" data-breakpoints="lg">
+                {{translate('Barcode')}}
+            </td>
+            <td class="text-center" data-breakpoints="lg">
                 {{translate('Quantity')}}
             </td>
             <td class="text-center" data-breakpoints="lg">
@@ -81,6 +84,13 @@
                                 echo $str;
                             }
                            @endphp" class="form-control">
+                </td>
+                <td>
+                    <input type="text" name="barcode_{{ $str }}" value="@php
+                            if($stock != null) {
+                                echo $stock->barcode;
+                            }
+                           @endphp" class="form-control" placeholder="{{ translate('Optional barcode') }}">
                 </td>
                 <td>
                     <input type="number" lang="en" name="qty_{{ $str }}" value="@php

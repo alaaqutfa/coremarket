@@ -264,7 +264,14 @@
                                     <div class="col-md-6">
                                         <input type="number" lang="en" min="0" value="0"
                                             step="1" placeholder="{{ translate('Quantity') }}"
-                                            name="current_stock" class="form-control" required>
+                                        name="current_stock" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-md-3 col-from-label">{{ translate('Barcode') }}</label>
+                                    <div class="col-md-6">
+                                        <input type="text" placeholder="{{ translate('Optional product barcode') }}"
+                                            name="barcode" class="form-control" value="{{ old('barcode') }}">
                                     </div>
                                 </div>
                                 {{-- <div class="form-group row">

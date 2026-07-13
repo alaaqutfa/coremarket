@@ -197,18 +197,14 @@
                                                 </div>
                                             </div>
 
-                                            @if (addon_is_activated('pos_system'))
-                                                <!-- Barcode -->
-                                                <div class="form-group row">
-                                                    <label
-                                                        class="col-xxl-3 col-from-label fs-13">{{ translate('Barcode') }}</label>
-                                                    <div class="col-xxl-9">
-                                                        <input type="text" class="form-control" name="barcode"
-                                                            placeholder="{{ translate('Barcode') }}"
-                                                            value="{{ $product->barcode }}">
-                                                    </div>
+                                            <div class="form-group row">
+                                                <label class="col-xxl-3 col-from-label fs-13">{{ translate('Barcode') }}</label>
+                                                <div class="col-xxl-9">
+                                                    <input type="text" class="form-control" name="barcode"
+                                                        placeholder="{{ translate('Optional product barcode') }}"
+                                                        value="{{ $product->barcode }}">
                                                 </div>
-                                            @endif
+                                            </div>
 
                                             @if (addon_is_activated('refund_request'))
                                                 <!-- refund_request -->

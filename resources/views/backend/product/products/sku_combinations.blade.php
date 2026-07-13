@@ -12,6 +12,9 @@
 				{{translate('SKU')}}
 			</td>
 			<td class="text-center" data-breakpoints="lg">
+				{{translate('Barcode')}}
+			</td>
+			<td class="text-center" data-breakpoints="lg">
 				{{translate('Quantity')}}
 			</td>
 			<td class="text-center" data-breakpoints="lg">
@@ -56,6 +59,9 @@
 				</td>
 				<td>
 					<input type="text" name="sku_{{ $str }}" value="" class="form-control">
+				</td>
+				<td>
+					<input type="text" name="barcode_{{ $str }}" value="" class="form-control" placeholder="{{ translate('Optional barcode') }}">
 				</td>
 				<td>
 					<input type="number" lang="en" name="qty_{{ $str }}" value="10" min="0" step="1" class="form-control" required>

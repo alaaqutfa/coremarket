@@ -7,6 +7,8 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
+use App\Models\Product;
+use App\Services\ProductIdentityLookupService;
 
 class ProductRequest extends FormRequest
 {
@@ -43,8 +45,53 @@ class ProductRequest extends FormRequest
         $rules['current_stock'] = 'sometimes|required|numeric';
         $rules['starting_bid']  = 'sometimes|required|numeric|min:1';
         $rules['auction_date_range']  = 'sometimes|required';
+        $rules['barcode'] = ['nullable', 'string', 'max:255'];
+
+        foreach ($this->all() as $key => $value) {
+            if (str_starts_with($key, 'barcode_') || str_starts_with($key, 'sku_')) {
+                $rules[$key] = ['nullable', 'string', 'max:255'];
+            }
+        }
 
         return $rules;
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $product = $this->route('product');
+            $productId = $product instanceof Product ? $product->id : (is_numeric($product) ? (int) $product : null);
+            $identities = [];
+
+            $suffixes = [];
+            foreach (array_keys($this->all()) as $key) {
+                if (str_starts_with($key, 'barcode_')) {
+                    $suffixes[] = substr($key, strlen('barcode_'));
+                }
+                if (str_starts_with($key, 'sku_')) {
+                    $suffixes[] = substr($key, strlen('sku_'));
+                }
+            }
+
+            foreach (array_unique($suffixes) as $suffix) {
+                $identities[] = [
+                    'barcode' => $this->input('barcode_' . $suffix),
+                    'barcode_key' => 'barcode_' . $suffix,
+                    'sku' => $this->input('sku_' . $suffix),
+                    'sku_key' => 'sku_' . $suffix,
+                ];
+            }
+
+            if ($this->filled('sku')) {
+                $identities[] = ['sku' => $this->input('sku'), 'sku_key' => 'sku'];
+            }
+
+            foreach (app(ProductIdentityLookupService::class)->validationErrors($this->input('barcode'), $identities, $productId) as $key => $messages) {
+                foreach ($messages as $message) {
+                    $validator->errors()->add($key, $message);
+                }
+            }
+        });
     }
 
     /**

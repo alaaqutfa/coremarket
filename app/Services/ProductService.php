@@ -102,6 +102,7 @@ class ProductService
 
                 unset($collection['price_' . str_replace('.', '_', $str)]);
                 unset($collection['sku_' . str_replace('.', '_', $str)]);
+                unset($collection['barcode_' . str_replace('.', '_', $str)]);
                 unset($collection['qty_' . str_replace('.', '_', $str)]);
                 unset($collection['img_' . str_replace('.', '_', $str)]);
             }
@@ -253,6 +254,7 @@ class ProductService
 
                 unset($collection['price_' . str_replace('.', '_', $str)]);
                 unset($collection['sku_' . str_replace('.', '_', $str)]);
+                unset($collection['barcode_' . str_replace('.', '_', $str)]);
                 unset($collection['qty_' . str_replace('.', '_', $str)]);
                 unset($collection['img_' . str_replace('.', '_', $str)]);
             }
@@ -314,6 +316,7 @@ class ProductService
 
         $product_new = $product->replicate();
         $product_new->slug = $product_new->slug . '-' . Str::random(5);
+        $product_new->barcode = null;
         $product_new->approved = (get_setting('product_approve_by_admin') == 1 && $product->added_by != 'admin') ? 0 : 1;
         $product_new->save();
 
