@@ -107,6 +107,8 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/expenses/{expense}', 'showExpense')->name('operations.expenses.show');
     Route::post('/operations/expenses/{expense}/approve', 'approveExpense')->name('operations.expenses.approve');
     Route::get('/operations/accounting-summary', 'accountingSummary')->name('operations.accounting-summary');
+    Route::get('/operations/accounting/core', 'accountingCore')->name('operations.accounting.core');
+    Route::get('/operations/accounting/journals/{journalEntry}', 'showJournal')->name('operations.accounting.journals.show');
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware(['auth', 'admin', 'prevent-back-history']);

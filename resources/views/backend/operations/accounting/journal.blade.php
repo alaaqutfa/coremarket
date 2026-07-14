@@ -1,0 +1,4 @@
+@extends('backend.layouts.app')
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><h5 class="mb-0 h6">{{ $journalEntry->entry_number }}</h5></div><div class="card"><div class="card-body"><p>{{ $journalEntry->description }}</p><div class="table-responsive"><table class="table table-bordered"><thead><tr><th>{{ translate('Account') }}</th><th>{{ translate('Debit') }}</th><th>{{ translate('Credit') }}</th></tr></thead><tbody>@foreach($journalEntry->lines as $line)<tr><td>{{ $line->account?->code }} {{ $line->account?->name }}</td><td>{{ $line->debit }}</td><td>{{ $line->credit }}</td></tr>@endforeach</tbody><tfoot><tr><th>{{ translate('Total') }}</th><th>{{ $journalEntry->total_debit }}</th><th>{{ $journalEntry->total_credit }}</th></tr></tfoot></table></div></div></div>
+@endsection

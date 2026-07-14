@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\AccountingEvent;
+use App\Models\AccountingAccount;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\InventoryMovement;
+use App\Models\JournalEntry;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductStock;
@@ -13,6 +15,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseReceipt;
 use App\Models\SalesReturn;
 use App\Models\Supplier;
+use App\Models\TaxRate;
 use App\Services\AccountingEventService;
 use App\Services\AccountingSummaryService;
 use App\Services\CoreMarketFeatureAccessService;
@@ -251,6 +254,16 @@ class OperationsController extends Controller
     public function showExpense(Expense $expense): View { $this->authorizeOperation('expenses.view', ['accounting_lite']); return view('backend.operations.expenses.show', compact('expense')); }
     public function approveExpense(Expense $expense, AccountingEventService $service): RedirectResponse { $this->authorizeOperation('expenses.approve', ['accounting_lite']); $service->approveExpense($expense, auth()->id()); return back()->with('success', translate('Expense approved successfully')); }
     public function accountingSummary(): View { $this->authorizeOperation('accounting_summary.view', ['accounting_lite']); return view('backend.operations.accounting-summary', ['summary' => app(AccountingSummaryService::class)->summary()]); }
+    public function accountingCore(): View
+    {
+        $this->authorizeOperation('accounting.core.view', ['accounting_core', 'accounting_lite']);
+        return view('backend.operations.accounting.core', ['accounts' => AccountingAccount::query()->orderBy('code')->get(), 'journals' => JournalEntry::query()->with('lines')->latest()->paginate(25), 'taxRates' => TaxRate::query()->orderBy('name')->get()]);
+    }
+    public function showJournal(JournalEntry $journalEntry): View
+    {
+        $this->authorizeOperation('accounting.journals.view', ['accounting_core', 'accounting_lite']);
+        return view('backend.operations.accounting.journal', ['journalEntry' => $journalEntry->load('lines.account')]);
+    }
 
     private function authorizeOperation(string $permission, array $features): void
     {

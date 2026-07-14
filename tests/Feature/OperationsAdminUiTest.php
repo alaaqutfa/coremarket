@@ -77,6 +77,8 @@ class OperationsAdminUiTest extends TestCase
             $this->seed(OperationsPermissionSeeder::class);
             $this->assertDatabaseHas('permissions', ['name' => 'operations.view', 'section' => 'operations']);
             $this->assertDatabaseHas('permissions', ['name' => 'accounting_summary.view', 'section' => 'operations']);
+            $this->assertDatabaseHas('permissions', ['name' => 'accounting.core.view', 'section' => 'operations']);
+            $this->assertDatabaseHas('permissions', ['name' => 'accounting.tax.audit', 'section' => 'operations']);
         } finally { DB::rollBack(); }
     }
 

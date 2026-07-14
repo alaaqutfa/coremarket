@@ -1,6 +1,9 @@
 <?php
 
 return [
+    'vat' => [
+        'default_price_mode' => env('COREMARKET_VAT_DEFAULT_PRICE_MODE', 'exclusive'),
+    ],
     'inventory' => [
         'low_stock_threshold' => 5,
     ],
@@ -65,6 +68,7 @@ return [
             'purchasing_suppliers' => ['default' => false],
             'returns_management' => ['default' => false],
             'accounting_lite' => ['default' => false],
+            'accounting_core' => ['default' => false],
         ],
 
         'limit_definitions' => [
@@ -564,6 +568,7 @@ return [
             'sales_returns.view', 'sales_returns.create', 'sales_returns.complete',
             'expenses.view', 'expenses.create', 'expenses.approve',
             'accounting_summary.view',
+            'accounting.core.view', 'accounting.accounts.view', 'accounting.journals.view', 'accounting.journals.post', 'accounting.tax.view', 'accounting.tax.audit',
 
             'inventory.view',
             'inventory.dashboard.view',
@@ -613,6 +618,11 @@ return [
             'expenses.create',
             'expenses.approve',
             'accounting_summary.view',
+            'accounting.core.view',
+            'accounting.accounts.view',
+            'accounting.journals.view',
+            'accounting.tax.view',
+            'accounting.tax.audit',
 
             'inventory.view',
             'inventory.dashboard.view',
