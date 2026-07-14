@@ -21,6 +21,7 @@ use App\Services\ProductIdentityLookupService;
 use App\Services\PurchaseReceivingService;
 use App\Services\PurchasingUiService;
 use App\Services\SalesReturnService;
+use App\Services\SalesReturnUiService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -190,19 +191,59 @@ class OperationsController extends Controller
         return view('backend.operations.purchase-receipts.show', compact('purchaseReceipt', 'movements'));
     }
 
-    public function salesReturns(): View { $this->authorizeOperation('sales_returns.view', ['returns_management']); return view('backend.operations.sales-returns.index', ['salesReturns' => SalesReturn::with('order')->latest()->paginate(25)]); }
-    public function createSalesReturn(Request $request): View { $this->authorizeOperation('sales_returns.create', ['returns_management']); $order = $request->filled('order_id') ? Order::with('orderDetails')->findOrFail($request->integer('order_id')) : null; return view('backend.operations.sales-returns.form', ['orders' => Order::latest()->limit(100)->get(), 'order' => $order]); }
+    public function salesReturns(Request $request, SalesReturnUiService $returns): View
+    {
+        $this->authorizeOperation('sales_returns.view', ['returns_management']);
+        return view('backend.operations.sales-returns.index', [
+            'salesReturns' => $returns->returns($request->only(['status', 'return_type', 'order_id', 'completed', 'from', 'to'])),
+            'orders' => Order::query()->latest()->limit(100)->get(['id', 'code']),
+        ]);
+    }
+
+    public function createSalesReturn(Request $request, SalesReturnUiService $returns): View
+    {
+        $this->authorizeOperation('sales_returns.create', ['returns_management']);
+        $order = $request->filled('order_id') ? Order::findOrFail($request->integer('order_id')) : null;
+        return view('backend.operations.sales-returns.form', [
+            'orders' => Order::query()->latest()->limit(100)->get(['id', 'code']),
+            'order' => $order,
+            'returnableRows' => $order ? $returns->orderReturnableRows($order) : [],
+        ]);
+    }
     public function storeSalesReturn(Request $request, SalesReturnService $service): RedirectResponse
     {
         $this->authorizeOperation('sales_returns.create', ['returns_management']);
         $data = $request->validate(['order_id' => 'required|exists:orders,id', 'reason' => 'nullable|string|max:1000', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.order_detail_id' => 'required|exists:order_details,id', 'items.*.quantity' => 'required|numeric|min:0', 'items.*.reason' => 'nullable|string|max:1000']);
         $items = collect($data['items'])->filter(fn ($item) => (float) $item['quantity'] > 0)->values()->all();
         if (empty($items)) return back()->withErrors(['items' => translate('Enter a quantity to return.')]);
-        $return = $service->create(Order::findOrFail($data['order_id']), $items, $data, auth()->id());
+        try {
+            $return = $service->create(Order::findOrFail($data['order_id']), $items, $data, auth()->id());
+        } catch (DomainException $exception) {
+            return back()->withErrors(['items' => $exception->getMessage()])->withInput();
+        }
         return redirect()->route('operations.sales-returns.show', $return)->with('success', translate('Sales return created successfully'));
     }
-    public function showSalesReturn(SalesReturn $salesReturn): View { $this->authorizeOperation('sales_returns.view', ['returns_management']); return view('backend.operations.sales-returns.show', ['salesReturn' => $salesReturn->load('order', 'items')]); }
-    public function completeSalesReturn(SalesReturn $salesReturn, SalesReturnService $service): RedirectResponse { $this->authorizeOperation('sales_returns.complete', ['returns_management']); $service->complete($salesReturn, auth()->id()); return back()->with('success', translate('Sales return completed successfully')); }
+    public function showSalesReturn(SalesReturn $salesReturn, SalesReturnUiService $returns): View
+    {
+        $this->authorizeOperation('sales_returns.view', ['returns_management']);
+        $salesReturn->load(['order.user', 'items.product', 'items.productStock', 'items.orderDetail']);
+        return view('backend.operations.sales-returns.show', [
+            'salesReturn' => $salesReturn,
+            'movements' => $returns->linkedMovements($salesReturn),
+            'accountingEvents' => $returns->accountingEvents($salesReturn),
+        ]);
+    }
+    public function completeSalesReturn(SalesReturn $salesReturn, SalesReturnService $service): RedirectResponse
+    {
+        $this->authorizeOperation('sales_returns.complete', ['returns_management']);
+        $alreadyCompleted = $salesReturn->status === 'completed';
+        try {
+            $service->complete($salesReturn, auth()->id());
+        } catch (DomainException $exception) {
+            return back()->withErrors(['sales_return' => $exception->getMessage()]);
+        }
+        return back()->with('success', $alreadyCompleted ? translate('Sales return was already completed.') : translate('Sales return completed successfully'));
+    }
 
     public function expenses(): View { $this->authorizeOperation('expenses.view', ['accounting_lite']); return view('backend.operations.expenses.index', ['expenses' => Expense::with('category')->latest()->paginate(25)]); }
     public function createExpense(): View { $this->authorizeOperation('expenses.create', ['accounting_lite']); return view('backend.operations.expenses.form', ['categories' => ExpenseCategory::query()->where('is_active', true)->orderBy('name')->get()]); }
