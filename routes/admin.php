@@ -107,8 +107,20 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/expenses/{expense}', 'showExpense')->name('operations.expenses.show');
     Route::post('/operations/expenses/{expense}/approve', 'approveExpense')->name('operations.expenses.approve');
     Route::get('/operations/accounting-summary', 'accountingSummary')->name('operations.accounting-summary');
-    Route::get('/operations/accounting/core', 'accountingCore')->name('operations.accounting.core');
+    Route::get('/operations/accounting', 'accountingDashboard')->name('operations.accounting.dashboard');
+    Route::get('/operations/accounting/core', 'accountingDashboard')->name('operations.accounting.core');
+    Route::get('/operations/accounting/accounts', 'accountingAccounts')->name('operations.accounting.accounts');
+    Route::get('/operations/accounting/accounts/{account}', 'showAccountingAccount')->name('operations.accounting.accounts.show');
+    Route::get('/operations/accounting/journals', 'journals')->name('operations.accounting.journals');
     Route::get('/operations/accounting/journals/{journalEntry}', 'showJournal')->name('operations.accounting.journals.show');
+    Route::post('/operations/accounting/journals/{journalEntry}/post', 'postJournal')->name('operations.accounting.journals.post');
+    Route::get('/operations/accounting/events', 'accountingEvents')->name('operations.accounting.events');
+    Route::post('/operations/accounting/events/{event}/post', 'postAccountingEvent')->name('operations.accounting.events.post');
+    Route::get('/operations/accounting/general-ledger', 'generalLedger')->name('operations.accounting.general-ledger');
+    Route::get('/operations/accounting/trial-balance', 'trialBalance')->name('operations.accounting.trial-balance');
+    Route::get('/operations/accounting/profit-loss', 'profitLoss')->name('operations.accounting.profit-loss');
+    Route::get('/operations/accounting/vat-snapshots', 'vatSnapshots')->name('operations.accounting.vat-snapshots');
+    Route::get('/operations/accounting/vat-audit', 'vatAudit')->name('operations.accounting.vat-audit');
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware(['auth', 'admin', 'prevent-back-history']);

@@ -20,7 +20,8 @@
         $coremarketPurchasingOperationsEnabled = coremarket_feature_enabled('purchasing_suppliers');
         $coremarketReturnsOperationsEnabled = coremarket_feature_enabled('returns_management');
         $coremarketAccountingOperationsEnabled = coremarket_feature_enabled('accounting_lite');
-        $coremarketAccountingCoreEnabled = coremarket_feature_enabled('accounting_core') || $coremarketAccountingOperationsEnabled;
+        $coremarketAccountingCoreFeatureEnabled = coremarket_feature_enabled('accounting_core');
+        $coremarketAccountingCoreEnabled = $coremarketAccountingCoreFeatureEnabled || $coremarketAccountingOperationsEnabled;
         $coremarketOperationsOwner = auth()->user()?->user_type === 'admin';
         $coremarketCanOperationsOverview = $coremarketOperationsOwner || auth()->user()?->can('operations.view');
         $coremarketCanInventoryDashboard = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.dashboard.view'));
@@ -37,6 +38,14 @@
         $coremarketCanExpenses = $coremarketAccountingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('expenses.view'));
         $coremarketCanAccountingSummary = $coremarketAccountingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting_summary.view'));
         $coremarketCanAccountingCore = $coremarketAccountingCoreEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.core.view'));
+        $coremarketCanAccountingAccounts = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.accounts.view'));
+        $coremarketCanAccountingJournals = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.journals.view'));
+        $coremarketCanAccountingEvents = $coremarketAccountingCoreEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.events.view'));
+        $coremarketCanGeneralLedger = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.general_ledger.view'));
+        $coremarketCanTrialBalance = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.trial_balance.view'));
+        $coremarketCanProfitLoss = $coremarketAccountingCoreEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.profit_loss.view'));
+        $coremarketCanVatSnapshots = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.tax.view'));
+        $coremarketCanVatAudit = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.tax.audit'));
         $coremarketCanInventory = $coremarketCanInventoryDashboard || $coremarketCanInventoryStock || $coremarketCanInventoryLookup || $coremarketCanInventoryLowStock || $coremarketCanInventoryMovements || $coremarketCanInventoryAudit;
         $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingCore;
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
@@ -103,7 +112,7 @@
                 {{-- Operations --}}
                 @if ($coremarketHasOperationsLinks)
                 <li class="aiz-side-nav-item">
-                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary', 'operations.accounting.core', 'operations.accounting.journals.show']) }}">
+                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary', 'operations.accounting.dashboard', 'operations.accounting.core', 'operations.accounting.accounts', 'operations.accounting.accounts.show', 'operations.accounting.journals', 'operations.accounting.journals.show', 'operations.accounting.events', 'operations.accounting.general-ledger', 'operations.accounting.trial-balance', 'operations.accounting.profit-loss', 'operations.accounting.vat-snapshots', 'operations.accounting.vat-audit']) }}">
                         <div class="aiz-side-nav-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h12v3H2V2Zm1 4h10v8H3V6Zm2 2v2h2V8H5Zm4 0v2h2V8H9Zm-4 3v1h6v-1H5Z" fill="#575b6a"/></svg>
                         </div>
@@ -147,7 +156,17 @@
                         <li class="aiz-side-nav-item"><a href="{{ route('operations.accounting-summary') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.accounting-summary']) }}"><span class="aiz-side-nav-text">{{ translate('Accounting Summary') }}</span></a></li>
                         @endif
                         @if ($coremarketCanAccountingCore)
-                        <li class="aiz-side-nav-item"><a href="{{ route('operations.accounting.core') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.accounting.core', 'operations.accounting.journals.show']) }}"><span class="aiz-side-nav-text">{{ translate('Accounting Core') }}</span></a></li>
+                        <li class="aiz-side-nav-item"><a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.accounting.dashboard', 'operations.accounting.core', 'operations.accounting.accounts', 'operations.accounting.accounts.show', 'operations.accounting.journals', 'operations.accounting.journals.show', 'operations.accounting.events', 'operations.accounting.general-ledger', 'operations.accounting.trial-balance', 'operations.accounting.profit-loss', 'operations.accounting.vat-snapshots', 'operations.accounting.vat-audit']) }}"><span class="aiz-side-nav-text">{{ translate('Accounting') }}</span><span class="aiz-side-nav-arrow"></span></a><ul class="aiz-side-nav-list level-3">
+                            <li class="aiz-side-nav-item"><a href="{{route('operations.accounting.dashboard')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.dashboard','operations.accounting.core'])}}"><span class="aiz-side-nav-text">{{translate('Dashboard')}}</span></a></li>
+                            @if($coremarketCanAccountingAccounts)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.accounts')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.accounts','operations.accounting.accounts.show'])}}"><span class="aiz-side-nav-text">{{translate('Chart of Accounts')}}</span></a></li>@endif
+                            @if($coremarketCanAccountingJournals)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.journals')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.journals','operations.accounting.journals.show'])}}"><span class="aiz-side-nav-text">{{translate('Journal Entries')}}</span></a></li>@endif
+                            @if($coremarketCanAccountingEvents)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.events')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.events'])}}"><span class="aiz-side-nav-text">{{translate('Accounting Events')}}</span></a></li>@endif
+                            @if($coremarketCanGeneralLedger)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.general-ledger')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.general-ledger'])}}"><span class="aiz-side-nav-text">{{translate('General Ledger')}}</span></a></li>@endif
+                            @if($coremarketCanTrialBalance)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.trial-balance')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.trial-balance'])}}"><span class="aiz-side-nav-text">{{translate('Trial Balance')}}</span></a></li>@endif
+                            @if($coremarketCanProfitLoss)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.profit-loss')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.profit-loss'])}}"><span class="aiz-side-nav-text">{{translate('Profit & Loss')}}</span></a></li>@endif
+                            @if($coremarketCanVatSnapshots)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.vat-snapshots')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.vat-snapshots'])}}"><span class="aiz-side-nav-text">{{translate('VAT Snapshots')}}</span></a></li>@endif
+                            @if($coremarketCanVatAudit)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.vat-audit')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.vat-audit'])}}"><span class="aiz-side-nav-text">{{translate('VAT Audit')}}</span></a></li>@endif
+                        </ul></li>
                         @endif
                     </ul>
                 </li>

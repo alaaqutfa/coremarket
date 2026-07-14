@@ -16,6 +16,8 @@ use App\Models\PurchaseReceipt;
 use App\Models\SalesReturn;
 use App\Models\Supplier;
 use App\Models\TaxRate;
+use App\Services\AccountingPostingService;
+use App\Services\AccountingReportService;
 use App\Services\AccountingEventService;
 use App\Services\AccountingSummaryService;
 use App\Services\CoreMarketFeatureAccessService;
@@ -254,15 +256,73 @@ class OperationsController extends Controller
     public function showExpense(Expense $expense): View { $this->authorizeOperation('expenses.view', ['accounting_lite']); return view('backend.operations.expenses.show', compact('expense')); }
     public function approveExpense(Expense $expense, AccountingEventService $service): RedirectResponse { $this->authorizeOperation('expenses.approve', ['accounting_lite']); $service->approveExpense($expense, auth()->id()); return back()->with('success', translate('Expense approved successfully')); }
     public function accountingSummary(): View { $this->authorizeOperation('accounting_summary.view', ['accounting_lite']); return view('backend.operations.accounting-summary', ['summary' => app(AccountingSummaryService::class)->summary()]); }
-    public function accountingCore(): View
+    public function accountingDashboard(AccountingReportService $reports): View
     {
         $this->authorizeOperation('accounting.core.view', ['accounting_core', 'accounting_lite']);
-        return view('backend.operations.accounting.core', ['accounts' => AccountingAccount::query()->orderBy('code')->get(), 'journals' => JournalEntry::query()->with('lines')->latest()->paginate(25), 'taxRates' => TaxRate::query()->orderBy('name')->get()]);
+        return view('backend.operations.accounting.dashboard', ['stats' => $reports->dashboardStats()]);
+    }
+    public function accountingAccounts(): View
+    {
+        $this->authorizeOperation('accounting.accounts.view', ['accounting_core']);
+        return view('backend.operations.accounting.accounts', ['accounts' => AccountingAccount::query()->orderBy('code')->paginate(50)]);
+    }
+    public function showAccountingAccount(AccountingAccount $account): View
+    {
+        $this->authorizeOperation('accounting.accounts.view', ['accounting_core']);
+        $lines = $account->hasMany(\App\Models\JournalEntryLine::class, 'accounting_account_id')->with('journalEntry')->latest()->paginate(50);
+        return view('backend.operations.accounting.account', compact('account', 'lines'));
+    }
+    public function journals(Request $request, AccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting.journals.view', ['accounting_core']);
+        return view('backend.operations.accounting.journals', ['journals' => $reports->journalRows($request->only(['status', 'source_type', 'account_id', 'from', 'to', 'unbalanced']))->paginate(30)->withQueryString(), 'accounts' => AccountingAccount::query()->orderBy('code')->get(['id', 'code', 'name'])]);
     }
     public function showJournal(JournalEntry $journalEntry): View
     {
-        $this->authorizeOperation('accounting.journals.view', ['accounting_core', 'accounting_lite']);
+        $this->authorizeOperation('accounting.journals.view', ['accounting_core']);
         return view('backend.operations.accounting.journal', ['journalEntry' => $journalEntry->load('lines.account')]);
+    }
+    public function postJournal(JournalEntry $journalEntry, AccountingPostingService $posting): RedirectResponse
+    {
+        $this->authorizeOperation('accounting.journals.post', ['accounting_core']);
+        try { $posting->postJournalEntry($journalEntry, auth()->id()); } catch (DomainException $exception) { return back()->withErrors(['journal' => $exception->getMessage()]); }
+        return back()->with('success', translate('Journal entry posted successfully'));
+    }
+    public function accountingEvents(Request $request, AccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting.events.view', ['accounting_core', 'accounting_lite']);
+        return view('backend.operations.accounting.events', ['events' => $reports->eventRows($request->only(['event_type', 'journal_posting_status', 'without_journal', 'from', 'to']))->paginate(30)->withQueryString()]);
+    }
+    public function postAccountingEvent(AccountingEvent $event, AccountingPostingService $posting): RedirectResponse
+    {
+        $this->authorizeOperation('accounting.journals.post', ['accounting_core']);
+        try { $posting->post($event, auth()->id()); } catch (DomainException $exception) { return back()->withErrors(['event' => $exception->getMessage()]); }
+        return back()->with('success', translate('Accounting event posted successfully'));
+    }
+    public function generalLedger(Request $request, AccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting.general_ledger.view', ['accounting_core']);
+        return view('backend.operations.accounting.general-ledger', $reports->generalLedger($request->integer('account_id') ?: null, $request->only(['from', 'to'])) + ['accounts' => AccountingAccount::query()->orderBy('code')->get(['id', 'code', 'name'])]);
+    }
+    public function trialBalance(Request $request, AccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting.trial_balance.view', ['accounting_core']);
+        return view('backend.operations.accounting.trial-balance', $reports->trialBalance($request->only(['from', 'to'])));
+    }
+    public function profitLoss(Request $request, AccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting.profit_loss.view', ['accounting_core', 'accounting_lite']);
+        return view('backend.operations.accounting.profit-loss', $reports->profitLoss($request->only(['from', 'to'])));
+    }
+    public function vatSnapshots(Request $request, AccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting.tax.view', ['accounting_core']);
+        return view('backend.operations.accounting.vat-snapshots', ['snapshots' => $reports->vatSnapshotRows($request->only(['tax_type', 'tax_rate_id', 'source_type', 'price_mode', 'from', 'to']))->paginate(30)->withQueryString(), 'taxRates' => TaxRate::query()->orderBy('name')->get(['id', 'name'])]);
+    }
+    public function vatAudit(AccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting.tax.audit', ['accounting_core']);
+        return view('backend.operations.accounting.vat-audit', ['audit' => $reports->vatAuditSummary()]);
     }
 
     private function authorizeOperation(string $permission, array $features): void

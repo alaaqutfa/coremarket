@@ -18,6 +18,17 @@ class AccountingPostingService
             default => throw new DomainException('Unsupported accounting event type.'),
         };
     }
+
+    public function postJournalEntry(JournalEntry $entry, ?int $postedBy = null): JournalEntry
+    {
+        if ($entry->status === 'posted') return $entry;
+        if ($entry->status !== 'draft') throw new DomainException('Only draft journal entries can be posted.');
+        if (abs((float) $entry->total_debit - (float) $entry->total_credit) > 0.00001) throw new DomainException('Journal entry must be balanced before posting.');
+        $locked = DB::table('accounting_fiscal_periods')->whereIn('status', ['locked', 'closed'])->whereDate('starts_at', '<=', $entry->entry_date)->whereDate('ends_at', '>=', $entry->entry_date)->exists();
+        if ($locked) throw new DomainException('The accounting fiscal period is locked or closed.');
+        $entry->update(['status' => 'posted', 'posted_at' => now(), 'posted_by' => $postedBy]);
+        return $entry->fresh('lines.account');
+    }
     public function postSaleFromAccountingEvent(AccountingEvent $event, ?int $postedBy = null): JournalEntry
     {
         $amount=(float)$event->amount; $tax=(float)$event->tax_amount; $cost=(float)$event->cost_amount;

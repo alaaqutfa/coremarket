@@ -1,0 +1,5 @@
+@extends('backend.layouts.app')
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><h5 class="mb-0 h6">{{translate('VAT Snapshots')}}</h5></div>
+<div class="card"><div class="card-body table-responsive"><table class="table aiz-table"><thead><tr><th>{{translate('Source')}}</th><th>{{translate('Tax')}}</th><th>{{translate('Rate')}}</th><th>{{translate('Price Mode')}}</th><th>{{translate('Taxable Amount')}}</th><th>{{translate('Tax Amount')}}</th><th>{{translate('Total')}}</th></tr></thead><tbody>@forelse($snapshots as $snapshot)<tr><td>{{class_basename($snapshot->source_type)}} #{{$snapshot->source_id}}</td><td>{{$snapshot->tax_name}} {{$snapshot->tax_code}}</td><td>{{$snapshot->rate}}</td><td>{{$snapshot->price_mode}}</td><td>{{$snapshot->taxable_amount}}</td><td>{{$snapshot->tax_amount}}</td><td>{{$snapshot->total_with_tax}}</td></tr>@empty<tr><td colspan="7" class="text-center text-muted">{{translate('No VAT snapshots yet.')}}</td></tr>@endforelse</tbody></table><div class="aiz-pagination">{{$snapshots->links()}}</div></div></div>
+@endsection

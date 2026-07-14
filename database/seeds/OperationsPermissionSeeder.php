@@ -26,7 +26,7 @@ class OperationsPermissionSeeder extends Seeder
             'sales_returns.view', 'sales_returns.create', 'sales_returns.complete',
             'expenses.view', 'expenses.create', 'expenses.approve',
             'accounting_summary.view',
-            'accounting.core.view', 'accounting.accounts.view', 'accounting.journals.view', 'accounting.journals.post', 'accounting.tax.view', 'accounting.tax.audit',
+            'accounting.core.view', 'accounting.accounts.view', 'accounting.journals.view', 'accounting.journals.post', 'accounting.tax.view', 'accounting.tax.audit', 'accounting.general_ledger.view', 'accounting.trial_balance.view', 'accounting.profit_loss.view', 'accounting.events.view',
             'inventory.view', 'inventory.dashboard.view', 'inventory.stock.view',
             'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',
             'inventory.barcode_lookup.view',

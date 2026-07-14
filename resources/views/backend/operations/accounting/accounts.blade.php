@@ -1,0 +1,5 @@
+@extends('backend.layouts.app')
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><h5 class="mb-0 h6">{{ translate('Chart of Accounts') }}</h5></div>
+<div class="card"><div class="card-body table-responsive"><table class="table aiz-table mb-0"><thead><tr><th>{{translate('Code')}}</th><th>{{translate('Name')}}</th><th>{{translate('Type')}}</th><th>{{translate('Normal Balance')}}</th><th>{{translate('System')}}</th><th></th></tr></thead><tbody>@forelse($accounts as $account)<tr><td>{{ $account->code }}</td><td>{{ $account->name }}</td><td>{{ $account->type }}</td><td>{{ $account->normal_balance }}</td><td>{{ $account->is_system ? translate('Yes') : translate('No') }}</td><td><a class="btn btn-soft-primary btn-sm" href="{{route('operations.accounting.accounts.show',$account)}}">{{translate('View')}}</a></td></tr>@empty<tr><td colspan="6" class="text-center text-muted">{{translate('No accounts found.')}}</td></tr>@endforelse</tbody></table><div class="aiz-pagination">{{$accounts->links()}}</div></div></div>
+@endsection
