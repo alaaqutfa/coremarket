@@ -46,8 +46,12 @@
         $coremarketCanProfitLoss = $coremarketAccountingCoreEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.profit_loss.view'));
         $coremarketCanVatSnapshots = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.tax.view'));
         $coremarketCanVatAudit = $coremarketAccountingCoreFeatureEnabled && ($coremarketOperationsOwner || auth()->user()?->can('accounting.tax.audit'));
+        $coremarketCashboxEnabled = coremarket_feature_enabled('cashbox_shifts');
+        $coremarketCanCashboxes = $coremarketCashboxEnabled && ($coremarketOperationsOwner || auth()->user()?->can('cashboxes.view'));
+        $coremarketCanCashShifts = $coremarketCashboxEnabled && ($coremarketOperationsOwner || auth()->user()?->can('cash_shifts.view'));
+        $coremarketCanCashMovements = $coremarketCashboxEnabled && ($coremarketOperationsOwner || auth()->user()?->can('cash_movements.view'));
         $coremarketCanInventory = $coremarketCanInventoryDashboard || $coremarketCanInventoryStock || $coremarketCanInventoryLookup || $coremarketCanInventoryLowStock || $coremarketCanInventoryMovements || $coremarketCanInventoryAudit;
-        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingCore;
+        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingCore || $coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements;
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
     <div class="aiz-sidebar left c-scrollbar">
@@ -112,7 +116,7 @@
                 {{-- Operations --}}
                 @if ($coremarketHasOperationsLinks)
                 <li class="aiz-side-nav-item">
-                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary', 'operations.accounting.dashboard', 'operations.accounting.core', 'operations.accounting.accounts', 'operations.accounting.accounts.show', 'operations.accounting.journals', 'operations.accounting.journals.show', 'operations.accounting.events', 'operations.accounting.general-ledger', 'operations.accounting.trial-balance', 'operations.accounting.profit-loss', 'operations.accounting.vat-snapshots', 'operations.accounting.vat-audit']) }}">
+                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary', 'operations.accounting.dashboard', 'operations.accounting.core', 'operations.accounting.accounts', 'operations.accounting.accounts.show', 'operations.accounting.journals', 'operations.accounting.journals.show', 'operations.accounting.events', 'operations.accounting.general-ledger', 'operations.accounting.trial-balance', 'operations.accounting.profit-loss', 'operations.accounting.vat-snapshots', 'operations.accounting.vat-audit', 'operations.cashbox.dashboard', 'operations.cashboxes', 'operations.cashboxes.create', 'operations.cashboxes.show', 'operations.cashboxes.edit', 'operations.cash-shifts', 'operations.cash-shifts.show', 'operations.cash-shifts.open.form', 'operations.cash-movements.create', 'operations.cash-shifts.close.form', 'operations.cash-movements']) }}">
                         <div class="aiz-side-nav-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h12v3H2V2Zm1 4h10v8H3V6Zm2 2v2h2V8H5Zm4 0v2h2V8H9Zm-4 3v1h6v-1H5Z" fill="#575b6a"/></svg>
                         </div>
@@ -149,9 +153,6 @@
                         @if ($coremarketCanSalesReturns)
                         <li class="aiz-side-nav-item"><a href="{{ route('operations.sales-returns') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show']) }}"><span class="aiz-side-nav-text">{{ translate('Sales Returns') }}</span></a></li>
                         @endif
-                        @if ($coremarketCanExpenses)
-                        <li class="aiz-side-nav-item"><a href="{{ route('operations.expenses') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.expenses', 'operations.expenses.create', 'operations.expenses.show']) }}"><span class="aiz-side-nav-text">{{ translate('Expenses') }}</span></a></li>
-                        @endif
                         @if ($coremarketCanAccountingSummary)
                         <li class="aiz-side-nav-item"><a href="{{ route('operations.accounting-summary') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.accounting-summary']) }}"><span class="aiz-side-nav-text">{{ translate('Accounting Summary') }}</span></a></li>
                         @endif
@@ -167,6 +168,22 @@
                             @if($coremarketCanVatSnapshots)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.vat-snapshots')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.vat-snapshots'])}}"><span class="aiz-side-nav-text">{{translate('VAT Snapshots')}}</span></a></li>@endif
                             @if($coremarketCanVatAudit)<li class="aiz-side-nav-item"><a href="{{route('operations.accounting.vat-audit')}}" class="aiz-side-nav-link {{areActiveRoutes(['operations.accounting.vat-audit'])}}"><span class="aiz-side-nav-text">{{translate('VAT Audit')}}</span></a></li>@endif
                         </ul></li>
+                        @endif
+                        @if ($coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements)
+                        <li class="aiz-side-nav-item">
+                            <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.cashbox.dashboard', 'operations.cashboxes', 'operations.cashboxes.create', 'operations.cashboxes.show', 'operations.cashboxes.edit', 'operations.cash-shifts', 'operations.cash-shifts.show', 'operations.cash-shifts.open.form', 'operations.cash-movements.create', 'operations.cash-shifts.close.form', 'operations.cash-movements']) }}"><span class="aiz-side-nav-text">{{ translate('Cashbox') }}</span><span class="aiz-side-nav-arrow"></span></a>
+                            <ul class="aiz-side-nav-list level-3">
+                                @if ($coremarketCanCashboxes)
+                                <li class="aiz-side-nav-item"><a href="{{ route('operations.cashbox.dashboard') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.cashbox.dashboard']) }}"><span class="aiz-side-nav-text">{{ translate('Dashboard') }}</span></a></li>
+                                <li class="aiz-side-nav-item"><a href="{{ route('operations.cashboxes') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.cashboxes', 'operations.cashboxes.create', 'operations.cashboxes.show', 'operations.cashboxes.edit', 'operations.cash-shifts.open.form']) }}"><span class="aiz-side-nav-text">{{ translate('Cashboxes') }}</span></a></li>
+                                @endif
+                                @if ($coremarketCanCashShifts)<li class="aiz-side-nav-item"><a href="{{ route('operations.cash-shifts') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.cash-shifts', 'operations.cash-shifts.show', 'operations.cash-shifts.close.form', 'operations.cash-movements.create']) }}"><span class="aiz-side-nav-text">{{ translate('Shifts') }}</span></a></li>@endif
+                                @if ($coremarketCanCashMovements)<li class="aiz-side-nav-item"><a href="{{ route('operations.cash-movements') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.cash-movements']) }}"><span class="aiz-side-nav-text">{{ translate('Cash Movements') }}</span></a></li>@endif
+                            </ul>
+                        </li>
+                        @endif
+                        @if ($coremarketCanExpenses)
+                        <li class="aiz-side-nav-item"><a href="{{ route('operations.expenses') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.expenses', 'operations.expenses.create', 'operations.expenses.show']) }}"><span class="aiz-side-nav-text">{{ translate('Expenses') }}</span></a></li>
                         @endif
                     </ul>
                 </li>

@@ -12,6 +12,7 @@ use App\Http\Controllers\BrandBulkUploadController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\BusinessSettingsController;
 use App\Http\Controllers\CarrierController;
+use App\Http\Controllers\CashboxController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\CommissionController;
@@ -121,6 +122,27 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/accounting/profit-loss', 'profitLoss')->name('operations.accounting.profit-loss');
     Route::get('/operations/accounting/vat-snapshots', 'vatSnapshots')->name('operations.accounting.vat-snapshots');
     Route::get('/operations/accounting/vat-audit', 'vatAudit')->name('operations.accounting.vat-audit');
+});
+Route::controller(CashboxController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/cashbox', 'dashboard')->name('operations.cashbox.dashboard');
+
+    Route::get('/operations/cashboxes', 'cashboxes')->name('operations.cashboxes');
+    Route::get('/operations/cashboxes/create', 'createCashbox')->name('operations.cashboxes.create');
+    Route::post('/operations/cashboxes', 'storeCashbox')->name('operations.cashboxes.store');
+    Route::get('/operations/cashboxes/{cashbox}', 'showCashbox')->name('operations.cashboxes.show');
+    Route::get('/operations/cashboxes/{cashbox}/edit', 'editCashbox')->name('operations.cashboxes.edit');
+    Route::put('/operations/cashboxes/{cashbox}', 'updateCashbox')->name('operations.cashboxes.update');
+
+    Route::get('/operations/cash-shifts', 'shifts')->name('operations.cash-shifts');
+    Route::get('/operations/cash-shifts/{shift}', 'showShift')->name('operations.cash-shifts.show');
+    Route::get('/operations/cashboxes/{cashbox}/open-shift', 'openShiftForm')->name('operations.cash-shifts.open.form');
+    Route::post('/operations/cashboxes/{cashbox}/open-shift', 'openShift')->name('operations.cash-shifts.open');
+    Route::get('/operations/cash-shifts/{shift}/movements/create', 'createMovement')->name('operations.cash-movements.create');
+    Route::post('/operations/cash-shifts/{shift}/movements', 'storeMovement')->name('operations.cash-movements.store');
+    Route::get('/operations/cash-shifts/{shift}/close', 'closeShiftForm')->name('operations.cash-shifts.close.form');
+    Route::post('/operations/cash-shifts/{shift}/close', 'closeShift')->name('operations.cash-shifts.close');
+
+    Route::get('/operations/cash-movements', 'movements')->name('operations.cash-movements');
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware(['auth', 'admin', 'prevent-back-history']);
