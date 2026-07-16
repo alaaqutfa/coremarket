@@ -258,14 +258,15 @@ class CashboxController extends Controller
 
     private function authorizeCashbox(string $permission): void
     {
+        // A hidden navigation link is not authorization; enforce the feature for every role.
+        if (! $this->features->enabled('cashbox_shifts')) {
+            abort(404);
+        }
+
         $user = auth()->user();
 
         if (! $user || ($user->user_type !== 'admin' && ! $user->can($permission))) {
             abort(403);
-        }
-
-        if ($user->user_type !== 'admin' && ! $this->features->enabled('cashbox_shifts')) {
-            abort(404);
         }
     }
 

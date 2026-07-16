@@ -103,6 +103,7 @@ return [
                     'currencies_limited' => true,
                     'addon_requests' => true,
                     'subscription_page' => true,
+                    'cashbox_shifts' => false,
                 ],
                 'limits' => [
                     'products_limit' => 50,
@@ -134,6 +135,7 @@ return [
                     'currencies_limited' => true,
                     'addon_requests' => true,
                     'subscription_page' => true,
+                    'cashbox_shifts' => true,
                 ],
                 'limits' => [
                     'products_limit' => 300,
@@ -165,6 +167,7 @@ return [
                     'currencies_limited' => true,
                     'addon_requests' => true,
                     'subscription_page' => true,
+                    'cashbox_shifts' => true,
                 ],
                 'limits' => [
                     'products_limit' => 1500,
@@ -196,6 +199,7 @@ return [
                     'currencies_limited' => true,
                     'addon_requests' => true,
                     'subscription_page' => true,
+                    'cashbox_shifts' => true,
                 ],
                 'limits' => [
                     'products_limit' => null,

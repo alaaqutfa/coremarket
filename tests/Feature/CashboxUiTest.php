@@ -52,9 +52,10 @@ class CashboxUiTest extends TestCase
         DB::beginTransaction();
 
         try {
-            $this->actingAs($this->user([]))
-                ->get(route('operations.cashbox.dashboard'))
-                ->assertForbidden();
+            $withoutPermission = $this->user([]);
+            foreach ($this->cashboxDirectRoutes() as $route) {
+                $this->actingAs($withoutPermission)->get($route)->assertForbidden();
+            }
 
             $authorized = $this->user(['cashboxes.view']);
             $this->actingAs($authorized)
@@ -63,9 +64,9 @@ class CashboxUiTest extends TestCase
                 ->assertSee('Cashbox Dashboard');
 
             $this->setCashboxFeature(false);
-            $this->actingAs($authorized)
-                ->get(route('operations.cashbox.dashboard'))
-                ->assertNotFound();
+            foreach ($this->cashboxDirectRoutes() as $route) {
+                $this->actingAs($authorized)->get($route)->assertNotFound();
+            }
         } finally {
             DB::rollBack();
         }
@@ -230,6 +231,16 @@ class CashboxUiTest extends TestCase
     {
         config()->set('coremarket.features.cashbox_shifts', $enabled);
         app()->forgetInstance(CoreMarketFeatureAccessService::class);
+    }
+
+    private function cashboxDirectRoutes(): array
+    {
+        return [
+            route('operations.cashbox.dashboard'),
+            route('operations.cashboxes'),
+            route('operations.cash-shifts'),
+            route('operations.cash-movements'),
+        ];
     }
 
     private function user(array $permissions): User
