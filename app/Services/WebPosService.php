@@ -57,6 +57,54 @@ class WebPosService
             ->values();
     }
 
+    public function currentSessionPayload(User $user): array
+    {
+        $shift = $this->cashboxes->currentOpenShiftForUser($user);
+
+        if (! $shift) {
+            return [
+                'has_open_shift' => false,
+                'shift' => null,
+                'cashbox' => null,
+                'opened_at' => null,
+                'expected_cash' => null,
+            ];
+        }
+
+        return [
+            'has_open_shift' => true,
+            'shift' => [
+                'id' => $shift->id,
+                'status' => $shift->status,
+                'opening_balance' => (float) $shift->opening_balance,
+            ],
+            'cashbox' => $shift->cashbox ? [
+                'id' => $shift->cashbox->id,
+                'name' => $shift->cashbox->name,
+                'code' => $shift->cashbox->code,
+                'currency' => $shift->cashbox->currency,
+            ] : null,
+            'opened_at' => $shift->opened_at?->toIso8601String(),
+            'expected_cash' => $this->cashboxes->calculateExpectedCash($shift),
+        ];
+    }
+
+    public function searchPayload(Collection $items): array
+    {
+        return $items->map(fn (array $item) => [
+            'product_id' => $item['product_id'],
+            'product_stock_id' => $item['product_stock_id'],
+            'name' => $item['name'],
+            'sku' => $item['sku'],
+            'barcode' => $item['barcode'],
+            'variation' => $item['variation'],
+            'available_stock' => $item['available_stock'],
+            'price' => $item['price'],
+            'tax' => $item['taxes'],
+            'image' => $item['image'] ?? null,
+        ])->values()->all();
+    }
+
     public function buildCartLine(Product|ProductStock $subject, mixed $quantity): array
     {
         $stock = $subject instanceof ProductStock
@@ -160,6 +208,62 @@ class WebPosService
         } while (Order::query()->where('pos_receipt_number', $receipt)->exists());
 
         return $receipt;
+    }
+
+    public function checkoutSummaryPayload(Order $order): array
+    {
+        return [
+            'order_id' => $order->id,
+            'code' => $order->code,
+            'receipt_number' => $order->pos_receipt_number,
+            'grand_total' => (float) $order->grand_total,
+            'paid_amount' => (float) $order->paid_amount,
+            'change_amount' => (float) $order->change_amount,
+        ];
+    }
+
+    public function receiptPayload(Order $order): array
+    {
+        $order->loadMissing(['orderDetails.product.stocks', 'cashier', 'cashbox', 'cashierShift']);
+
+        $items = $order->orderDetails->map(function (OrderDetail $detail) {
+            $product = $detail->product;
+            $stock = $product?->stocks->firstWhere('variant', $detail->variation ?? '');
+            $price = (float) $detail->price;
+            $tax = (float) $detail->tax;
+
+            return [
+                'name' => $product?->name,
+                'sku' => $stock?->sku,
+                'barcode' => $stock?->barcode ?? $product?->barcode,
+                'quantity' => (float) $detail->quantity,
+                'price' => $price,
+                'tax' => $tax,
+                'total' => $this->round($price + $tax),
+            ];
+        })->values()->all();
+
+        return [
+            'order_id' => $order->id,
+            'code' => $order->code,
+            'receipt_number' => $order->pos_receipt_number,
+            'cashier' => $order->cashier ? [
+                'id' => $order->cashier->id,
+                'name' => $order->cashier->name,
+            ] : null,
+            'cashbox' => $order->cashbox ? [
+                'id' => $order->cashbox->id,
+                'name' => $order->cashbox->name,
+            ] : null,
+            'shift_id' => $order->cashier_shift_id,
+            'items' => $items,
+            'subtotal' => $this->round($order->orderDetails->sum('price')),
+            'tax' => $this->round($order->orderDetails->sum('tax')),
+            'grand_total' => (float) $order->grand_total,
+            'paid_amount' => (float) $order->paid_amount,
+            'change_amount' => (float) $order->change_amount,
+            'created_at' => $order->created_at?->toIso8601String(),
+        ];
     }
 
     private function openShiftForUser(User $user, bool $lock = false): CashierShift

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Api\CorePilotRuntimeSnapshotController;
+use App\Http\Controllers\Api\V2\Operations\CashboxApiController;
+use App\Http\Controllers\Api\V2\Operations\OperationsAuthController;
+use App\Http\Controllers\Api\V2\Operations\PosApiController;
 use App\Http\Middleware\EnsureSystemKey;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +45,29 @@ Route::group(['prefix' => 'v2/auth', 'middleware' => ['app_language']], function
     });
 });
 Route::group(['prefix' => 'v2', 'middleware' => ['app_language']], function () {
+
+    Route::prefix('operations')->group(function () {
+        Route::post('auth/login', [OperationsAuthController::class, 'login'])
+            ->name('api.v2.operations.auth.login');
+
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::prefix('pos')->group(function () {
+                Route::get('session', [PosApiController::class, 'session'])->name('api.v2.operations.pos.session');
+                Route::get('search', [PosApiController::class, 'search'])->name('api.v2.operations.pos.search');
+                Route::post('checkout', [PosApiController::class, 'checkout'])->name('api.v2.operations.pos.checkout');
+                Route::get('orders/{order}/receipt', [PosApiController::class, 'receipt'])->name('api.v2.operations.pos.receipt');
+            });
+
+            Route::get('cashboxes', [CashboxApiController::class, 'cashboxes'])
+                ->name('api.v2.operations.cashboxes.index');
+            Route::get('cash-shifts/current', [CashboxApiController::class, 'currentShift'])
+                ->name('api.v2.operations.cash_shifts.current');
+            Route::post('cashboxes/{cashbox}/open-shift', [CashboxApiController::class, 'openShift'])
+                ->name('api.v2.operations.cash_shifts.open');
+            Route::post('cash-shifts/{shift}/close', [CashboxApiController::class, 'closeShift'])
+                ->name('api.v2.operations.cash_shifts.close');
+        });
+    });
 
     //auth controller
     Route::post('guest-user-account-create', [AuthController::class, 'guestUserAccountCreate']);

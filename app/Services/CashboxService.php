@@ -37,6 +37,18 @@ class CashboxService
         return $cashbox->fresh();
     }
 
+    public function currentOpenShiftForUser(User|int $user): ?CashierShift
+    {
+        $user = $this->resolveUser($user);
+
+        return CashierShift::query()
+            ->with('cashbox')
+            ->where('opened_by', $user->id)
+            ->where('status', 'open')
+            ->latest('opened_at')
+            ->first();
+    }
+
     public function openShift(
         Cashbox $cashbox,
         User|int $user,
