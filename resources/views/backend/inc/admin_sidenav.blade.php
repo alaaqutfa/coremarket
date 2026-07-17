@@ -4,7 +4,8 @@
         $coremarketSellersEnabled = coremarket_feature_enabled('sellers')
             && coremarket_feature_enabled('multi_vendor')
             && (int) get_setting('vendor_system_activation') === 1;
-        $coremarketPosEnabled = coremarket_feature_enabled('pos_enabled') && addon_is_activated('pos_system');
+        // The legacy POS add-on has no usable controller. Web POS is gated below with runtime features and Operations permissions.
+        $coremarketLegacyPosEnabled = false;
         $coremarketBlogEnabled = coremarket_feature_enabled('blog');
         $coremarketMarketingBasicEnabled = coremarket_feature_enabled('marketing_basic');
         $coremarketMarketingAdvancedEnabled = coremarket_feature_enabled('marketing_advanced');
@@ -50,8 +51,10 @@
         $coremarketCanCashboxes = $coremarketCashboxEnabled && ($coremarketOperationsOwner || auth()->user()?->can('cashboxes.view'));
         $coremarketCanCashShifts = $coremarketCashboxEnabled && ($coremarketOperationsOwner || auth()->user()?->can('cash_shifts.view'));
         $coremarketCanCashMovements = $coremarketCashboxEnabled && ($coremarketOperationsOwner || auth()->user()?->can('cash_movements.view'));
+        $coremarketPosEnabled = coremarket_feature_enabled('pos') && $coremarketCashboxEnabled;
+        $coremarketCanPos = $coremarketPosEnabled && ($coremarketOperationsOwner || auth()->user()?->can('pos.view'));
         $coremarketCanInventory = $coremarketCanInventoryDashboard || $coremarketCanInventoryStock || $coremarketCanInventoryLookup || $coremarketCanInventoryLowStock || $coremarketCanInventoryMovements || $coremarketCanInventoryAudit;
-        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingCore || $coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements;
+        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingCore || $coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements || $coremarketCanPos;
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
     <div class="aiz-sidebar left c-scrollbar">
@@ -116,7 +119,7 @@
                 {{-- Operations --}}
                 @if ($coremarketHasOperationsLinks)
                 <li class="aiz-side-nav-item">
-                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary', 'operations.accounting.dashboard', 'operations.accounting.core', 'operations.accounting.accounts', 'operations.accounting.accounts.show', 'operations.accounting.journals', 'operations.accounting.journals.show', 'operations.accounting.events', 'operations.accounting.general-ledger', 'operations.accounting.trial-balance', 'operations.accounting.profit-loss', 'operations.accounting.vat-snapshots', 'operations.accounting.vat-audit', 'operations.cashbox.dashboard', 'operations.cashboxes', 'operations.cashboxes.create', 'operations.cashboxes.show', 'operations.cashboxes.edit', 'operations.cash-shifts', 'operations.cash-shifts.show', 'operations.cash-shifts.open.form', 'operations.cash-movements.create', 'operations.cash-shifts.close.form', 'operations.cash-movements']) }}">
+                    <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview', 'operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements', 'operations.suppliers', 'operations.suppliers.create', 'operations.suppliers.edit', 'operations.purchase-orders', 'operations.purchase-orders.create', 'operations.purchase-orders.show', 'operations.purchase-receipts', 'operations.purchase-receipts.show', 'operations.sales-returns', 'operations.sales-returns.create', 'operations.sales-returns.show', 'operations.expenses', 'operations.expenses.create', 'operations.expenses.show', 'operations.accounting-summary', 'operations.accounting.dashboard', 'operations.accounting.core', 'operations.accounting.accounts', 'operations.accounting.accounts.show', 'operations.accounting.journals', 'operations.accounting.journals.show', 'operations.accounting.events', 'operations.accounting.general-ledger', 'operations.accounting.trial-balance', 'operations.accounting.profit-loss', 'operations.accounting.vat-snapshots', 'operations.accounting.vat-audit', 'operations.cashbox.dashboard', 'operations.cashboxes', 'operations.cashboxes.create', 'operations.cashboxes.show', 'operations.cashboxes.edit', 'operations.cash-shifts', 'operations.cash-shifts.show', 'operations.cash-shifts.open.form', 'operations.cash-movements.create', 'operations.cash-shifts.close.form', 'operations.cash-movements', 'operations.pos', 'operations.pos.search', 'operations.pos.receipt']) }}">
                         <div class="aiz-side-nav-icon">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h12v3H2V2Zm1 4h10v8H3V6Zm2 2v2h2V8H5Zm4 0v2h2V8H9Zm-4 3v1h6v-1H5Z" fill="#575b6a"/></svg>
                         </div>
@@ -182,6 +185,9 @@
                             </ul>
                         </li>
                         @endif
+                        @if ($coremarketCanPos)
+                        <li class="aiz-side-nav-item"><a href="{{ route('operations.pos') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.pos', 'operations.pos.search', 'operations.pos.receipt']) }}"><span class="aiz-side-nav-text">{{ translate('POS') }}</span></a></li>
+                        @endif
                         @if ($coremarketCanExpenses)
                         <li class="aiz-side-nav-item"><a href="{{ route('operations.expenses') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.expenses', 'operations.expenses.create', 'operations.expenses.show']) }}"><span class="aiz-side-nav-text">{{ translate('Expenses') }}</span></a></li>
                         @endif
@@ -190,7 +196,7 @@
                 @endif
 
                 <!-- POS Addon-->
-                @if ($coremarketPosEnabled && (auth()->user()->can('pos_manager') ||
+                @if ($coremarketLegacyPosEnabled && (auth()->user()->can('pos_manager') ||
                 auth()->user()->can('pos_configuration')))
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">

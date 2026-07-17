@@ -54,6 +54,7 @@ use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UpdateController;
 use App\Http\Controllers\WebsiteController;
+use App\Http\Controllers\WebPosController;
 use App\Http\Controllers\ZoneController;
 
 /*
@@ -143,6 +144,13 @@ Route::controller(CashboxController::class)->middleware(['auth', 'admin', 'restr
     Route::post('/operations/cash-shifts/{shift}/close', 'closeShift')->name('operations.cash-shifts.close');
 
     Route::get('/operations/cash-movements', 'movements')->name('operations.cash-movements');
+});
+
+Route::controller(WebPosController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/pos', 'index')->name('operations.pos');
+    Route::get('/operations/pos/search', 'search')->name('operations.pos.search');
+    Route::post('/operations/pos/checkout', 'checkout')->name('operations.pos.checkout');
+    Route::get('/operations/pos/orders/{order}/receipt', 'receipt')->name('operations.pos.receipt');
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware(['auth', 'admin', 'prevent-back-history']);

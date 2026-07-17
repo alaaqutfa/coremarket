@@ -8,6 +8,13 @@ use App\Traits\PreventDemoModeChanges;
 class Order extends Model
 {
     use PreventDemoModeChanges;
+
+    protected $casts = [
+        'paid_amount' => 'decimal:6',
+        'change_amount' => 'decimal:6',
+        'pos_metadata' => 'array',
+    ];
+
     public function orderDetails()
     {
         return $this->hasMany(OrderDetail::class);
@@ -66,5 +73,30 @@ class Order extends Model
     public function commissionHistory()
     {
         return $this->hasOne(CommissionHistory::class);
+    }
+
+    public function cashierShift()
+    {
+        return $this->belongsTo(CashierShift::class);
+    }
+
+    public function cashbox()
+    {
+        return $this->belongsTo(Cashbox::class);
+    }
+
+    public function cashier()
+    {
+        return $this->belongsTo(User::class, 'cashier_id');
+    }
+
+    public function isPosOrder(): bool
+    {
+        return $this->order_from === 'pos';
+    }
+
+    public function hasPosReceipt(): bool
+    {
+        return filled($this->pos_receipt_number);
     }
 }

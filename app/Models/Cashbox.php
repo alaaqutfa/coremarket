@@ -32,6 +32,11 @@ class Cashbox extends Model
         return $this->hasMany(CashMovement::class);
     }
 
+    public function posOrders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');

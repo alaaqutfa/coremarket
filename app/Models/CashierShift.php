@@ -44,6 +44,11 @@ class CashierShift extends Model
         return $this->hasMany(CashMovement::class);
     }
 
+    public function posOrders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public function opener(): BelongsTo
     {
         return $this->belongsTo(User::class, 'opened_by');

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Cashbox;
 use App\Models\CashierShift;
 use App\Models\CashMovement;
+use App\Models\Order;
 use App\Models\User;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
@@ -127,6 +128,64 @@ class CashboxService
                 $occurredAt ?: now(),
                 $user,
                 array_replace(['accounting_pending' => true], $metadata)
+            );
+
+            $this->refreshExpectedCash($lockedShift);
+
+            return $movement;
+        });
+    }
+
+    /**
+     * Records the cash side of a completed POS sale. Manual cash movement APIs
+     * intentionally cannot create this reserved movement type.
+     */
+    public function recordSaleMovementForOrder(Order $order, CashierShift $shift, User|int $user): CashMovement
+    {
+        $user = $this->resolveUser($user);
+
+        return DB::transaction(function () use ($order, $shift, $user) {
+            $lockedShift = CashierShift::query()->lockForUpdate()->findOrFail($shift->getKey());
+
+            $this->ensureShiftIsOpen($lockedShift);
+
+            if (! $order->isPosOrder() || (int) $order->cashier_shift_id !== (int) $lockedShift->id) {
+                throw new DomainException('Order is not assigned to this POS shift.');
+            }
+
+            if ((int) $order->cashbox_id !== (int) $lockedShift->cashbox_id) {
+                throw new DomainException('Order cashbox does not match the POS shift.');
+            }
+
+            $existing = CashMovement::query()
+                ->where('reference_type', Order::class)
+                ->where('reference_id', $order->id)
+                ->where('movement_type', 'sale')
+                ->lockForUpdate()
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $amount = $this->normalizePositiveAmount($order->grand_total);
+            $movement = $this->createMovement(
+                $lockedShift,
+                'sale',
+                'in',
+                $amount,
+                'POS sale ' . ($order->pos_receipt_number ?: $order->code),
+                now(),
+                $user,
+                [
+                    'pos_receipt_number' => $order->pos_receipt_number,
+                    'pos_request_key' => $order->pos_request_key,
+                    'payment_type' => 'cash',
+                    'accounting_pending' => true,
+                ],
+                false,
+                Order::class,
+                $order->id
             );
 
             $this->refreshExpectedCash($lockedShift);
@@ -351,7 +410,9 @@ class CashboxService
         mixed $occurredAt,
         ?User $user,
         array $metadata = [],
-        bool $allowZeroAmount = false
+        bool $allowZeroAmount = false,
+        ?string $referenceType = null,
+        ?int $referenceId = null
     ): CashMovement {
         if ($amount < 0 || (! $allowZeroAmount && $amount === 0.0)) {
             throw new DomainException('Cash movement amount must be greater than zero.');
@@ -365,6 +426,8 @@ class CashboxService
             'amount' => $amount,
             'currency' => $shift->cashbox()->value('currency'),
             'description' => $description,
+            'reference_type' => $referenceType,
+            'reference_id' => $referenceId,
             'created_by' => $user?->id,
             'occurred_at' => $occurredAt,
             'metadata' => $metadata,
