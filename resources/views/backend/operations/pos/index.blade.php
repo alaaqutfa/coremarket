@@ -24,7 +24,7 @@
     </div>
 @endif
 
-<div class="row gutters-10" id="web-pos-app" data-search-url="{{ route('operations.pos.search') }}">
+<div class="row gutters-10" id="web-pos-app" data-search-url="{{ route('operations.pos.search') }}" data-customer-search-url="{{ route('operations.pos.customers.search') }}" data-loyalty-enabled="{{ $loyaltyEnabled ? '1' : '0' }}">
     <div class="col-lg-7 mb-3">
         <div class="card h-100">
             <div class="card-header"><h6 class="mb-0">{{ translate('Find products') }}</h6></div>
@@ -45,6 +45,13 @@
             <div class="card-body d-flex flex-column">
                 <div id="pos-item-inputs"></div>
                 <input type="hidden" name="pos_request_key" id="pos-request-key">
+                <input type="hidden" name="customer_id" id="pos-customer-id">
+                <div class="border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2"><label class="mb-0 font-weight-bold">{{ translate('Customer') }}</label><button type="button" class="btn btn-link btn-sm p-0" id="pos-clear-customer">{{ translate('Walk-in customer') }}</button></div>
+                    <input type="search" id="pos-customer-search" class="form-control form-control-sm" placeholder="{{ translate('Search customer by name or phone') }}" autocomplete="off">
+                    <div id="pos-customer-results" class="list-group mt-2"></div>
+                    <div id="pos-selected-customer" class="small text-muted mt-2">{{ translate('Walk-in customer') }}</div>
+                </div>
                 <div class="table-responsive flex-grow-1"><table class="table table-sm"><thead><tr><th>{{ translate('Item') }}</th><th class="text-center">{{ translate('Qty') }}</th><th class="text-right">{{ translate('Total') }}</th></tr></thead><tbody id="pos-cart"><tr><td colspan="3" class="text-center text-muted py-4">{{ translate('Cart is empty.') }}</td></tr></tbody></table></div>
                 <div class="border-top pt-3 mt-auto">
                     <div class="d-flex justify-content-between mb-1"><span>{{ translate('Subtotal') }}</span><span id="pos-subtotal">0.00</span></div>
@@ -72,6 +79,15 @@
     const query = document.getElementById('pos-search');
     const paid = document.getElementById('pos-paid-amount');
     const requestKey = document.getElementById('pos-request-key');
+    const customerSearch = document.getElementById('pos-customer-search');
+    const customerResults = document.getElementById('pos-customer-results');
+    const customerId = document.getElementById('pos-customer-id');
+    const selectedCustomer = document.getElementById('pos-selected-customer');
+    const loyaltyEnabled = app.dataset.loyaltyEnabled === '1';
+    let selectedCustomerData = null;
+    @if ($loyaltyEnabled)
+    const loyaltyBalanceLabel = @json(translate('Loyalty balance'));
+    @endif
 
     requestKey.value = window.crypto?.randomUUID ? window.crypto.randomUUID() : `pos-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -113,6 +129,70 @@
             row.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => updateCart(item.product_stock_id, button.dataset.action)));
             cartBody.appendChild(row);
         });
+    }
+
+    function renderCustomer() {
+        customerResults.innerHTML = '';
+        if (!selectedCustomerData) {
+            customerId.value = '';
+            selectedCustomer.textContent = '{{ translate('Walk-in customer') }}';
+            return;
+        }
+        customerId.value = selectedCustomerData.id;
+        selectedCustomer.innerHTML = '';
+        const name = document.createElement('strong');
+        name.textContent = selectedCustomerData.name;
+        selectedCustomer.appendChild(name);
+        const details = [selectedCustomerData.phone, selectedCustomerData.masked_email].filter(Boolean).join(' - ');
+        if (details) {
+            const info = document.createElement('div');
+            info.textContent = details;
+            selectedCustomer.appendChild(info);
+        }
+        if (loyaltyEnabled && selectedCustomerData.loyalty?.enabled) {
+            const loyalty = document.createElement('div');
+            loyalty.className = 'text-success';
+            loyalty.textContent = `${loyaltyBalanceLabel}: ${selectedCustomerData.loyalty.balance}`;
+            selectedCustomer.appendChild(loyalty);
+        }
+    }
+
+    async function searchCustomers() {
+        const q = customerSearch.value.trim();
+        if (q.length < 2) {
+            customerResults.innerHTML = '';
+            return;
+        }
+        customerResults.innerHTML = `<div class="text-center text-muted py-2">{{ translate('Searching...') }}</div>`;
+        try {
+            const response = await fetch(`${app.dataset.customerSearchUrl}?q=${encodeURIComponent(q)}`, {headers: {'Accept': 'application/json'}});
+            if (!response.ok) throw new Error('Customer search unavailable');
+            const payload = await response.json();
+            customerResults.innerHTML = '';
+            if (!payload.items.length) {
+                customerResults.innerHTML = `<div class="text-center text-muted py-2">{{ translate('No customers found.') }}</div>`;
+                return;
+            }
+            payload.items.forEach(customer => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'list-group-item list-group-item-action';
+                const name = document.createElement('strong');
+                name.textContent = customer.name;
+                const details = document.createElement('small');
+                details.className = 'd-block text-muted';
+                details.textContent = [customer.phone, customer.masked_email].filter(Boolean).join(' - ');
+                button.append(name, details);
+                button.addEventListener('click', () => {
+                    selectedCustomerData = customer;
+                    customerSearch.value = '';
+                    renderCustomer();
+                });
+                customerResults.appendChild(button);
+            });
+        } catch (error) {
+            customerResults.innerHTML = `<div class="alert alert-danger mb-0">{{ translate('Customer search is unavailable.') }}</div>`;
+        }
     }
 
     function updateCart(key, action) {
@@ -164,8 +244,11 @@
 
     document.getElementById('pos-search-button').addEventListener('click', search);
     query.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); search(); } });
+    customerSearch.addEventListener('input', searchCustomers);
+    document.getElementById('pos-clear-customer').addEventListener('click', () => { selectedCustomerData = null; customerSearch.value = ''; renderCustomer(); });
     paid.addEventListener('input', renderCart);
     document.getElementById('pos-clear-cart').addEventListener('click', () => { cart.clear(); renderCart(); });
+    renderCustomer();
     renderCart();
 })();
 </script>

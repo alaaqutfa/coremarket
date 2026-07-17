@@ -33,6 +33,15 @@ class LoyaltyPointsService
         return (int) $this->accountForCustomer($customer)->points_balance;
     }
 
+    public function balanceForCustomerWithoutCreatingAccount(User $customer): int
+    {
+        $this->assertCustomer($customer);
+
+        return (int) (LoyaltyAccount::query()
+            ->where('user_id', $customer->id)
+            ->value('points_balance') ?? 0);
+    }
+
     public function activeRuleForOrder(?Order $order = null): ?LoyaltyRule
     {
         return LoyaltyRule::query()
@@ -58,12 +67,12 @@ class LoyaltyPointsService
 
     public function eligibleOrder(Order $order): bool
     {
-        if (! $order->user_id || $order->guest_id || $order->order_from === 'pos') {
+        if (! $order->user_id || $order->guest_id) {
             return false;
         }
 
         $customer = $order->relationLoaded('user') ? $order->user : User::query()->find($order->user_id);
-        if (! $customer || $customer->user_type !== 'customer') {
+        if (! $customer || $customer->user_type !== 'customer' || $customer->banned) {
             return false;
         }
 
@@ -151,6 +160,15 @@ class LoyaltyPointsService
 
             return $movement;
         });
+    }
+
+    public function pointsEarnedForOrder(Order $order): ?LoyaltyPointMovement
+    {
+        return LoyaltyPointMovement::query()
+            ->where('reference_type', Order::class)
+            ->where('reference_id', $order->id)
+            ->where('movement_type', 'earn')
+            ->first();
     }
 
     public function attemptEarnForOrder(Order $order): ?LoyaltyPointMovement

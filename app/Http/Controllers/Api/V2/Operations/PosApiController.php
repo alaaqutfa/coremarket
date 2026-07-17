@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V2\Operations;
 use App\Http\Controllers\Api\V2\Controller;
 use App\Http\Controllers\Api\V2\Operations\Concerns\RespondsWithApiJson;
 use App\Models\Order;
+use App\Services\CoreMarketFeatureAccessService;
 use App\Services\WebPosService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +41,39 @@ class PosApiController extends Controller
         ]);
     }
 
+    public function customersSearch(Request $request, WebPosService $pos, CoreMarketFeatureAccessService $features): JsonResponse
+    {
+        $this->authorizePos('pos.view');
+
+        $validator = Validator::make($request->query(), [
+            'q' => ['required', 'string', 'min:2', 'max:100'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:10'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors()->toArray());
+        }
+
+        $loyaltyEnabled = $features->enabled('loyalty_points');
+        $items = $pos->searchCustomers(
+            $validator->validated()['q'],
+            $validator->validated()['limit'] ?? 10,
+        )->map(function (array $customer) use ($loyaltyEnabled) {
+            return [
+                'id' => $customer['id'],
+                'name' => $customer['name'],
+                'phone' => $customer['phone'],
+                'masked_email' => $customer['masked_email'],
+                'loyalty' => $loyaltyEnabled ? [
+                    'enabled' => true,
+                    'balance' => $customer['loyalty_balance'],
+                ] : null,
+            ];
+        })->values()->all();
+
+        return $this->success(['items' => $items]);
+    }
+
     public function checkout(Request $request, WebPosService $pos): JsonResponse
     {
         $this->authorizePos('pos.sell');
@@ -47,6 +81,7 @@ class PosApiController extends Controller
         $validator = Validator::make($request->all(), [
             'pos_request_key' => ['required', 'string', 'max:191'],
             'paid_amount' => ['required', 'numeric', 'min:0'],
+            'customer_id' => ['nullable', 'integer', 'min:1'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer'],
             'items.*.product_stock_id' => ['nullable', 'integer'],
@@ -60,7 +95,11 @@ class PosApiController extends Controller
         try {
             $order = $pos->createPosOrder(
                 $validator->validated()['items'],
-                ['payment_type' => 'cash', 'paid_amount' => $validator->validated()['paid_amount']],
+                [
+                    'payment_type' => 'cash',
+                    'paid_amount' => $validator->validated()['paid_amount'],
+                    'customer_id' => $validator->validated()['customer_id'] ?? null,
+                ],
                 $request->user(),
                 $validator->validated()['pos_request_key'],
             );

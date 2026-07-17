@@ -31,6 +31,7 @@ class WebPosController extends Controller
             'openShift' => $openShift?->load('cashbox'),
             'canSell' => $this->canAny(['pos.sell']),
             'canOpenShift' => $this->canAny(['cash_shifts.open']),
+            'loyaltyEnabled' => $this->features->enabled('loyalty_points'),
         ]);
     }
 
@@ -45,6 +46,31 @@ class WebPosController extends Controller
         return response()->json($pos->searchProducts($data['q'])->values());
     }
 
+    public function customersSearch(Request $request, WebPosService $pos): JsonResponse
+    {
+        $this->authorizePos(['pos.view']);
+
+        $data = $request->validate([
+            'q' => 'required|string|min:2|max:100',
+            'limit' => 'nullable|integer|min:1|max:10',
+        ]);
+        $loyaltyEnabled = $this->features->enabled('loyalty_points');
+
+        return response()->json([
+            'items' => $pos->searchCustomers($data['q'], $data['limit'] ?? 10)
+                ->map(fn (array $customer) => [
+                    'id' => $customer['id'],
+                    'name' => $customer['name'],
+                    'phone' => $customer['phone'],
+                    'masked_email' => $customer['masked_email'],
+                    'loyalty' => $loyaltyEnabled ? [
+                        'enabled' => true,
+                        'balance' => $customer['loyalty_balance'],
+                    ] : null,
+                ])->values(),
+        ]);
+    }
+
     public function checkout(Request $request, WebPosService $pos): RedirectResponse
     {
         $this->authorizePos(['pos.sell']);
@@ -56,12 +82,17 @@ class WebPosController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'paid_amount' => 'required|numeric|min:0',
             'pos_request_key' => 'required|string|max:255',
+            'customer_id' => 'nullable|integer|min:1',
         ]);
 
         try {
             $order = $pos->createPosOrder(
                 $data['items'],
-                ['payment_type' => 'cash', 'paid_amount' => $data['paid_amount']],
+                [
+                    'payment_type' => 'cash',
+                    'paid_amount' => $data['paid_amount'],
+                    'customer_id' => $data['customer_id'] ?? null,
+                ],
                 auth()->user(),
                 $data['pos_request_key']
             );
@@ -73,7 +104,7 @@ class WebPosController extends Controller
             ->with('success', translate('POS sale completed successfully'));
     }
 
-    public function receipt(Order $order): View
+    public function receipt(Order $order, WebPosService $pos): View
     {
         $this->authorizePos(['pos.receipts.view']);
 
@@ -81,9 +112,10 @@ class WebPosController extends Controller
             abort(404);
         }
 
-        $order->load(['orderDetails.product', 'cashier', 'cashbox', 'cashierShift']);
+        $order->load(['orderDetails.product', 'cashier', 'cashbox', 'cashierShift', 'user']);
+        $receipt = $pos->receiptPayload($order);
 
-        return view('backend.operations.pos.receipt', compact('order'));
+        return view('backend.operations.pos.receipt', compact('order', 'receipt'));
     }
 
     private function authorizePos(array $permissions): void

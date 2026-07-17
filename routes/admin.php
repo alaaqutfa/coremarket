@@ -150,6 +150,7 @@ Route::controller(CashboxController::class)->middleware(['auth', 'admin', 'restr
 Route::controller(WebPosController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
     Route::get('/operations/pos', 'index')->name('operations.pos');
     Route::get('/operations/pos/search', 'search')->name('operations.pos.search');
+    Route::get('/operations/pos/customers/search', 'customersSearch')->name('operations.pos.customers.search');
     Route::post('/operations/pos/checkout', 'checkout')->name('operations.pos.checkout');
     Route::get('/operations/pos/orders/{order}/receipt', 'receipt')->name('operations.pos.receipt');
 });

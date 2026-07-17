@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CashierShift;
+use App\Models\LoyaltyPointMovement;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Product;
@@ -20,6 +21,8 @@ class WebPosService
         private CashboxService $cashboxes,
         private InventoryMovementService $inventory,
         private ProductIdentityLookupService $identityLookup,
+        private LoyaltyPointsService $loyalty,
+        private CoreMarketFeatureAccessService $features,
     ) {
     }
 
@@ -55,6 +58,68 @@ class WebPosService
                 return $stocks->map(fn (ProductStock $stock) => $this->lineForProductStock($product, $stock, 'name'));
             })
             ->values();
+    }
+
+    public function searchCustomers(string $query, int $limit = 10): Collection
+    {
+        $query = trim($query);
+        if (mb_strlen($query) < 2) {
+            return collect();
+        }
+
+        $limit = max(1, min($limit, 10));
+
+        return User::query()
+            ->where('user_type', 'customer')
+            ->where('banned', 0)
+            ->where(function ($customers) use ($query) {
+                $customers->where('name', 'like', '%' . $query . '%')
+                    ->orWhere('phone', 'like', '%' . $query . '%')
+                    ->orWhere('email', 'like', '%' . $query . '%');
+            })
+            ->orderBy('name')
+            ->limit($limit)
+            ->get()
+            ->map(fn (User $customer) => $this->customerPayload($customer));
+    }
+
+    public function validatePosCustomer(?int $customerId): ?User
+    {
+        if ($customerId === null) {
+            return null;
+        }
+
+        $customer = User::query()->find($customerId);
+        if (! $customer || $customer->user_type !== 'customer' || $customer->banned) {
+            throw new DomainException('Selected POS customer is unavailable.');
+        }
+
+        return $customer;
+    }
+
+    public function customerPayload(User $customer): array
+    {
+        return [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'phone' => $customer->phone,
+            'masked_email' => $this->maskedEmail($customer->email),
+            'loyalty_balance' => $this->features->enabled('loyalty_points')
+                ? $this->loyalty->balanceForCustomerWithoutCreatingAccount($customer)
+                : null,
+        ];
+    }
+
+    public function loyaltySummaryForCustomer(?User $customer): array
+    {
+        $enabled = $this->features->enabled('loyalty_points');
+
+        return [
+            'enabled' => $enabled,
+            'points_balance' => $enabled && $customer
+                ? $this->loyalty->balanceForCustomerWithoutCreatingAccount($customer)
+                : null,
+        ];
     }
 
     public function currentSessionPayload(User $user): array
@@ -165,20 +230,27 @@ class WebPosService
             throw new DomainException('POS request key is required.');
         }
 
+        $customerId = $this->customerIdFromPayment($payment);
+
         try {
-            return DB::transaction(function () use ($cart, $payment, $user, $requestKey) {
+            return DB::transaction(function () use ($cart, $payment, $user, $requestKey, $customerId) {
                 $existing = Order::query()->where('pos_request_key', $requestKey)->lockForUpdate()->first();
                 if ($existing) {
+                    if ((int) ($existing->user_id ?? 0) !== (int) ($customerId ?? 0)) {
+                        throw new DomainException('POS request key is already associated with a different customer.');
+                    }
+
                     return $existing;
                 }
 
+                $customer = $this->validatePosCustomer($customerId);
                 $shift = $this->openShiftForUser($user, true);
                 $lines = $this->normalizeCart($cart, true);
                 $this->assertStockIsAvailable($lines);
                 $totals = $this->totalsForLines($lines);
                 $paidAmount = $this->validateCashPayment($payment, $totals['grand_total']);
 
-                $order = $this->createOrder($lines, $shift, $user, $requestKey, $totals, $paidAmount);
+                $order = $this->createOrder($lines, $shift, $user, $customer, $requestKey, $totals, $paidAmount);
 
                 foreach ($lines as $line) {
                     $detail = $this->createOrderDetail($order, $line);
@@ -187,8 +259,9 @@ class WebPosService
                 }
 
                 $this->cashboxes->recordSaleMovementForOrder($order, $shift, $user);
+                $this->maybeAwardLoyaltyForPosOrder($order);
 
-                return $order->fresh(['orderDetails', 'cashierShift', 'cashbox', 'cashier']);
+                return $order->fresh(['orderDetails', 'cashierShift', 'cashbox', 'cashier', 'user']);
             });
         } catch (QueryException $exception) {
             $existing = Order::query()->where('pos_request_key', $requestKey)->first();
@@ -212,6 +285,8 @@ class WebPosService
 
     public function checkoutSummaryPayload(Order $order): array
     {
+        $order->loadMissing('user');
+
         return [
             'order_id' => $order->id,
             'code' => $order->code,
@@ -219,12 +294,14 @@ class WebPosService
             'grand_total' => (float) $order->grand_total,
             'paid_amount' => (float) $order->paid_amount,
             'change_amount' => (float) $order->change_amount,
+            'customer' => $order->user ? $this->customerPayload($order->user) : null,
+            'loyalty' => $this->loyaltySummaryForOrder($order),
         ];
     }
 
     public function receiptPayload(Order $order): array
     {
-        $order->loadMissing(['orderDetails.product.stocks', 'cashier', 'cashbox', 'cashierShift']);
+        $order->loadMissing(['orderDetails.product.stocks', 'cashier', 'cashbox', 'cashierShift', 'user']);
 
         $items = $order->orderDetails->map(function (OrderDetail $detail) {
             $product = $detail->product;
@@ -256,6 +333,8 @@ class WebPosService
                 'name' => $order->cashbox->name,
             ] : null,
             'shift_id' => $order->cashier_shift_id,
+            'customer' => $order->user ? $this->customerPayload($order->user) : null,
+            'loyalty' => $this->loyaltySummaryForOrder($order),
             'items' => $items,
             'subtotal' => $this->round($order->orderDetails->sum('price')),
             'tax' => $this->round($order->orderDetails->sum('tax')),
@@ -278,6 +357,31 @@ class WebPosService
         }
 
         return $query->first() ?? throw new DomainException('An open cashier shift is required for POS sales.');
+    }
+
+    private function customerIdFromPayment(array $payment): ?int
+    {
+        $customerId = $payment['customer_id'] ?? null;
+        if ($customerId === null || $customerId === '') {
+            return null;
+        }
+
+        if (filter_var($customerId, FILTER_VALIDATE_INT) === false || (int) $customerId < 1) {
+            throw new DomainException('Selected POS customer is unavailable.');
+        }
+
+        return (int) $customerId;
+    }
+
+    private function maskedEmail(?string $email): ?string
+    {
+        if (! $email || ! str_contains($email, '@')) {
+            return null;
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+
+        return Str::substr($local, 0, 1) . '***@' . $domain;
     }
 
     private function normalizeCart(array $cart, bool $lockStocks = false): array
@@ -368,7 +472,43 @@ class WebPosService
         return $this->round($paidAmount);
     }
 
-    private function createOrder(array $lines, CashierShift $shift, User $user, string $requestKey, array $totals, float $paidAmount): Order
+    public function maybeAwardLoyaltyForPosOrder(Order $order): ?LoyaltyPointMovement
+    {
+        if (! $order->isPosOrder() || ! $order->user_id || ! $this->features->enabled('loyalty_points')) {
+            return null;
+        }
+
+        return $this->loyalty->attemptEarnForOrder($order);
+    }
+
+    private function loyaltySummaryForOrder(Order $order): ?array
+    {
+        $enabled = $this->features->enabled('loyalty_points');
+        if (! $enabled) {
+            return ['enabled' => false, 'points_earned' => 0, 'balance_before' => null, 'balance_after' => null];
+        }
+
+        $customer = $order->user;
+        if (! $customer) {
+            return null;
+        }
+
+        $movement = $this->loyalty->pointsEarnedForOrder($order);
+        if (! $movement) {
+            $balance = $this->loyalty->balanceForCustomerWithoutCreatingAccount($customer);
+
+            return ['enabled' => true, 'points_earned' => 0, 'balance_before' => $balance, 'balance_after' => $balance];
+        }
+
+        return [
+            'enabled' => true,
+            'points_earned' => (int) $movement->points,
+            'balance_before' => (int) $movement->balance_after - (int) $movement->points,
+            'balance_after' => (int) $movement->balance_after,
+        ];
+    }
+
+    private function createOrder(array $lines, CashierShift $shift, User $user, ?User $customer, string $requestKey, array $totals, float $paidAmount): Order
     {
         $sellerIds = collect($lines)->pluck('product.user_id')->filter()->unique();
         if ($sellerIds->count() > 1) {
@@ -377,7 +517,7 @@ class WebPosService
 
         $receipt = $this->generateReceiptNumber();
         $order = new Order();
-        $order->user_id = null;
+        $order->user_id = $customer?->id;
         $order->seller_id = $sellerIds->first();
         $order->shipping_type = 'pos';
         $order->order_from = 'pos';
@@ -400,6 +540,7 @@ class WebPosService
             'tax_source' => 'legacy_product_taxes',
             'cashier_shift_id' => $shift->id,
             'cashbox_id' => $shift->cashbox_id,
+            'customer_id' => $customer?->id,
         ];
         $order->save();
 
