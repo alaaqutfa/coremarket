@@ -19,6 +19,7 @@ class OrderService{
         $order->delivery_viewed = '0';
         $order->delivery_status = $request->status;
         $order->save();
+        app(LoyaltyPointsService::class)->attemptEarnForOrder($order);
 
         if ($request->status == 'cancelled' && $order->payment_type == 'wallet') {
             $user = User::where('id', $order->user_id)->first();
@@ -115,6 +116,7 @@ class OrderService{
         }
         $order->payment_status = $status;
         $order->save();
+        app(LoyaltyPointsService::class)->attemptEarnForOrder($order);
 
 
         if ($order->payment_status == 'paid' && $order->commission_calculated == 0) {

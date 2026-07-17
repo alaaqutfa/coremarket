@@ -15,6 +15,7 @@ use App\Models\OrderDetail;
 use App\Models\User;
 use App\Models\SmsTemplate;
 use App\Utility\SmsUtility;
+use App\Services\LoyaltyPointsService;
 
 
 class DeliveryBoyController extends Controller
@@ -343,6 +344,7 @@ class DeliveryBoyController extends Controller
         $order->delivery_history_date = date("Y-m-d H:i:s");
 
         $order->save();
+        app(LoyaltyPointsService::class)->attemptEarnForOrder($order);
         $delivery_history->save();
 
         if (addon_is_activated('otp_system') && SmsTemplate::where('identifier','delivery_status_change')->first()->status == 1){

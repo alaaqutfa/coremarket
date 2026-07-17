@@ -8,6 +8,7 @@ use App\Models\SmsTemplate;
 use App\Models\User;
 use App\Utility\NotificationUtility;
 use App\Utility\SmsUtility;
+use App\Services\LoyaltyPointsService;
 use Illuminate\Http\Request;
 use App\Models\OrdersExport;
 use Maatwebsite\Excel\Facades\Excel;
@@ -77,6 +78,7 @@ class OrderController extends Controller
         $order->delivery_viewed = '0';
         $order->delivery_status = $request->status;
         $order->save();
+        app(LoyaltyPointsService::class)->attemptEarnForOrder($order);
 
         if ($request->status == 'cancelled' && $order->payment_type == 'wallet') {
             $user = User::where('id', $order->user_id)->first();
@@ -155,6 +157,7 @@ class OrderController extends Controller
         }
         $order->payment_status = $status;
         $order->save();
+        app(LoyaltyPointsService::class)->attemptEarnForOrder($order);
 
 
         if ($order->payment_status == 'paid' && $order->commission_calculated == 0) {

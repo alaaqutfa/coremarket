@@ -87,6 +87,15 @@ class SalesReturnService
             $salesReturn->stock_reversed_at = $stockWasReversed ? now() : null;
             $salesReturn->save();
 
+            $order = Order::query()->find($salesReturn->order_id);
+            if ($order) {
+                app(LoyaltyPointsService::class)->attemptReverseForOrder(
+                    $order,
+                    'Sales return completed',
+                    $completedBy ? \App\Models\User::query()->find($completedBy) : null
+                );
+            }
+
             return $salesReturn->fresh('items');
         });
     }

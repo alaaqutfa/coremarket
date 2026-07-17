@@ -28,6 +28,7 @@ use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\DynamicPopupController;
 use App\Http\Controllers\FlashDealController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\LoyaltyPointsController;
 use App\Http\Controllers\MeasurementPointsController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\NotificationController;
@@ -151,6 +152,17 @@ Route::controller(WebPosController::class)->middleware(['auth', 'admin', 'restri
     Route::get('/operations/pos/search', 'search')->name('operations.pos.search');
     Route::post('/operations/pos/checkout', 'checkout')->name('operations.pos.checkout');
     Route::get('/operations/pos/orders/{order}/receipt', 'receipt')->name('operations.pos.receipt');
+});
+
+Route::controller(LoyaltyPointsController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/loyalty', 'dashboard')->name('operations.loyalty.dashboard');
+    Route::get('/operations/loyalty/rules', 'rules')->name('operations.loyalty.rules');
+    Route::post('/operations/loyalty/rules', 'storeRule')->name('operations.loyalty.rules.store');
+    Route::get('/operations/loyalty/accounts', 'accounts')->name('operations.loyalty.accounts.index');
+    Route::get('/operations/loyalty/accounts/{account}', 'showAccount')->name('operations.loyalty.accounts.show');
+    Route::get('/operations/loyalty/movements', 'movements')->name('operations.loyalty.movements.index');
+    Route::post('/operations/loyalty/accounts/{account}/adjust', 'adjust')->name('operations.loyalty.adjust');
+    Route::get('/operations/loyalty/orders/{order}', 'orderTrace')->name('operations.loyalty.orders.show');
 });
 
 Route::get('/admin', [AdminController::class, 'admin_dashboard'])->name('admin.dashboard')->middleware(['auth', 'admin', 'prevent-back-history']);

@@ -16,6 +16,7 @@ use App\Models\CombinedOrder;
 use App\Models\SmsTemplate;
 use App\Services\CoreMarketLicenseService;
 use App\Services\InventoryMovementService;
+use App\Services\LoyaltyPointsService;
 use Auth;
 use Mail;
 use App\Mail\InvoiceEmailManager;
@@ -390,6 +391,7 @@ class OrderController extends Controller
         $order->delivery_viewed = '0';
         $order->delivery_status = $request->status;
         $order->save();
+        app(LoyaltyPointsService::class)->attemptEarnForOrder($order);
 
         if ($request->status == 'cancelled' && $order->payment_type == 'wallet') {
             $user = User::where('id', $order->user_id)->first();
@@ -515,6 +517,7 @@ class OrderController extends Controller
         }
         $order->payment_status = $status;
         $order->save();
+        app(LoyaltyPointsService::class)->attemptEarnForOrder($order);
 
 
         if (
