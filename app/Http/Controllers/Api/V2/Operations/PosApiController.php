@@ -82,6 +82,7 @@ class PosApiController extends Controller
             'pos_request_key' => ['required', 'string', 'max:191'],
             'paid_amount' => ['required', 'numeric', 'min:0'],
             'customer_id' => ['nullable', 'integer', 'min:1'],
+            'points_to_redeem' => ['nullable', 'integer', 'min:0'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer'],
             'items.*.product_stock_id' => ['nullable', 'integer'],
@@ -92,6 +93,10 @@ class PosApiController extends Controller
             return $this->validationError($validator->errors()->toArray());
         }
 
+        if ((int) ($validator->validated()['points_to_redeem'] ?? 0) > 0) {
+            $this->ensureRedemptionPermission($request);
+        }
+
         try {
             $order = $pos->createPosOrder(
                 $validator->validated()['items'],
@@ -99,6 +104,7 @@ class PosApiController extends Controller
                     'payment_type' => 'cash',
                     'paid_amount' => $validator->validated()['paid_amount'],
                     'customer_id' => $validator->validated()['customer_id'] ?? null,
+                    'points_to_redeem' => $validator->validated()['points_to_redeem'] ?? 0,
                 ],
                 $request->user(),
                 $validator->validated()['pos_request_key'],
@@ -140,6 +146,13 @@ class PosApiController extends Controller
     {
         $this->ensureFeaturesEnabled();
         $this->ensurePermission($permission);
+    }
+
+    private function ensureRedemptionPermission(Request $request): void
+    {
+        if (! $request->user()?->can('pos.redeem_loyalty')) {
+            abort(403);
+        }
     }
 
     private function domainError(DomainException $exception): JsonResponse

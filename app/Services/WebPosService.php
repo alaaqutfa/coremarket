@@ -231,13 +231,17 @@ class WebPosService
         }
 
         $customerId = $this->customerIdFromPayment($payment);
+        $pointsToRedeem = $this->pointsToRedeemFromPayment($payment);
 
         try {
-            return DB::transaction(function () use ($cart, $payment, $user, $requestKey, $customerId) {
+            return DB::transaction(function () use ($cart, $payment, $user, $requestKey, $customerId, $pointsToRedeem) {
                 $existing = Order::query()->where('pos_request_key', $requestKey)->lockForUpdate()->first();
                 if ($existing) {
                     if ((int) ($existing->user_id ?? 0) !== (int) ($customerId ?? 0)) {
                         throw new DomainException('POS request key is already associated with a different customer.');
+                    }
+                    if ((int) $existing->loyalty_points_redeemed !== $pointsToRedeem) {
+                        throw new DomainException('POS request key is already associated with a different loyalty redemption.');
                     }
 
                     return $existing;
@@ -248,9 +252,15 @@ class WebPosService
                 $lines = $this->normalizeCart($cart, true);
                 $this->assertStockIsAvailable($lines);
                 $totals = $this->totalsForLines($lines);
-                $paidAmount = $this->validateCashPayment($payment, $totals['grand_total']);
+                $redemptionPreview = $this->previewRedemptionForCheckout($customer, $pointsToRedeem, $totals['grand_total']);
+                $finalTotal = $redemptionPreview['final_total'] ?? $totals['grand_total'];
+                $paidAmount = $this->validateCashPayment($payment, $finalTotal);
 
-                $order = $this->createOrder($lines, $shift, $user, $customer, $requestKey, $totals, $paidAmount);
+                $order = $this->createOrder($lines, $shift, $user, $customer, $requestKey, $totals, $paidAmount, $finalTotal);
+                if ($pointsToRedeem > 0) {
+                    $this->loyalty->redeemForOrder($order, $customer, $pointsToRedeem, $user);
+                    $order->refresh();
+                }
 
                 foreach ($lines as $line) {
                     $detail = $this->createOrderDetail($order, $line);
@@ -286,12 +296,16 @@ class WebPosService
     public function checkoutSummaryPayload(Order $order): array
     {
         $order->loadMissing('user');
+        $finalTotal = (float) $order->grand_total;
+        $grossTotal = $this->round($finalTotal + (float) ($order->loyalty_redemption_discount ?? 0));
 
         return [
             'order_id' => $order->id,
             'code' => $order->code,
             'receipt_number' => $order->pos_receipt_number,
-            'grand_total' => (float) $order->grand_total,
+            'gross_total' => $grossTotal,
+            'grand_total' => $finalTotal,
+            'final_total' => $finalTotal,
             'paid_amount' => (float) $order->paid_amount,
             'change_amount' => (float) $order->change_amount,
             'customer' => $order->user ? $this->customerPayload($order->user) : null,
@@ -302,6 +316,8 @@ class WebPosService
     public function receiptPayload(Order $order): array
     {
         $order->loadMissing(['orderDetails.product.stocks', 'cashier', 'cashbox', 'cashierShift', 'user']);
+        $finalTotal = (float) $order->grand_total;
+        $grossTotal = $this->round($finalTotal + (float) ($order->loyalty_redemption_discount ?? 0));
 
         $items = $order->orderDetails->map(function (OrderDetail $detail) {
             $product = $detail->product;
@@ -338,7 +354,9 @@ class WebPosService
             'items' => $items,
             'subtotal' => $this->round($order->orderDetails->sum('price')),
             'tax' => $this->round($order->orderDetails->sum('tax')),
-            'grand_total' => (float) $order->grand_total,
+            'gross_total' => $grossTotal,
+            'grand_total' => $finalTotal,
+            'final_total' => $finalTotal,
             'paid_amount' => (float) $order->paid_amount,
             'change_amount' => (float) $order->change_amount,
             'created_at' => $order->created_at?->toIso8601String(),
@@ -371,6 +389,20 @@ class WebPosService
         }
 
         return (int) $customerId;
+    }
+
+    private function pointsToRedeemFromPayment(array $payment): int
+    {
+        $points = $payment['points_to_redeem'] ?? 0;
+        if ($points === null || $points === '') {
+            return 0;
+        }
+
+        if (filter_var($points, FILTER_VALIDATE_INT) === false || (int) $points < 0) {
+            throw new DomainException('Loyalty redemption points must be a non-negative integer.');
+        }
+
+        return (int) $points;
     }
 
     private function maskedEmail(?string $email): ?string
@@ -472,6 +504,21 @@ class WebPosService
         return $this->round($paidAmount);
     }
 
+    private function previewRedemptionForCheckout(?User $customer, int $pointsToRedeem, float $grossTotal): ?array
+    {
+        if ($pointsToRedeem <= 0) {
+            return null;
+        }
+        if (! $customer) {
+            throw new DomainException('Loyalty redemption requires a customer.');
+        }
+        if (! $this->features->enabled('loyalty_points')) {
+            throw new DomainException('Loyalty redemption is disabled.');
+        }
+
+        return $this->loyalty->previewRedeemForCustomer($customer, $pointsToRedeem, $grossTotal, 'pos');
+    }
+
     public function maybeAwardLoyaltyForPosOrder(Order $order): ?LoyaltyPointMovement
     {
         if (! $order->isPosOrder() || ! $order->user_id || ! $this->features->enabled('loyalty_points')) {
@@ -485,7 +532,7 @@ class WebPosService
     {
         $enabled = $this->features->enabled('loyalty_points');
         if (! $enabled) {
-            return ['enabled' => false, 'points_earned' => 0, 'balance_before' => null, 'balance_after' => null];
+            return ['enabled' => false, 'points_redeemed' => 0, 'redemption_discount' => 0.0, 'points_earned' => 0, 'balance_before' => null, 'balance_after' => null, 'final_balance' => null];
         }
 
         $customer = $order->user;
@@ -493,22 +540,33 @@ class WebPosService
             return null;
         }
 
-        $movement = $this->loyalty->pointsEarnedForOrder($order);
-        if (! $movement) {
+        $redeemed = $this->loyalty->pointsRedeemedForOrder($order);
+        $earned = $this->loyalty->pointsEarnedForOrder($order);
+        if (! $redeemed && ! $earned) {
             $balance = $this->loyalty->balanceForCustomerWithoutCreatingAccount($customer);
 
-            return ['enabled' => true, 'points_earned' => 0, 'balance_before' => $balance, 'balance_after' => $balance];
+            return ['enabled' => true, 'points_redeemed' => 0, 'redemption_discount' => 0.0, 'points_earned' => 0, 'balance_before' => $balance, 'balance_after' => $balance, 'final_balance' => $balance];
         }
+
+        $balanceBefore = $redeemed
+            ? (int) $redeemed->balance_after + (int) $redeemed->points
+            : (int) $earned->balance_after - (int) $earned->points;
+        $finalBalance = $earned
+            ? (int) $earned->balance_after
+            : (int) $redeemed->balance_after;
 
         return [
             'enabled' => true,
-            'points_earned' => (int) $movement->points,
-            'balance_before' => (int) $movement->balance_after - (int) $movement->points,
-            'balance_after' => (int) $movement->balance_after,
+            'points_redeemed' => (int) ($redeemed?->points ?? 0),
+            'redemption_discount' => (float) ($order->loyalty_redemption_discount ?? 0),
+            'points_earned' => (int) ($earned?->points ?? 0),
+            'balance_before' => $balanceBefore,
+            'balance_after' => $finalBalance,
+            'final_balance' => $finalBalance,
         ];
     }
 
-    private function createOrder(array $lines, CashierShift $shift, User $user, ?User $customer, string $requestKey, array $totals, float $paidAmount): Order
+    private function createOrder(array $lines, CashierShift $shift, User $user, ?User $customer, string $requestKey, array $totals, float $paidAmount, float $finalTotal): Order
     {
         $sellerIds = collect($lines)->pluck('product.user_id')->filter()->unique();
         if ($sellerIds->count() > 1) {
@@ -533,7 +591,7 @@ class WebPosService
         $order->cashbox_id = $shift->cashbox_id;
         $order->cashier_id = $user->id;
         $order->paid_amount = $paidAmount;
-        $order->change_amount = $this->round($paidAmount - $totals['grand_total']);
+        $order->change_amount = $this->round($paidAmount - $finalTotal);
         $order->pos_receipt_number = $receipt;
         $order->pos_request_key = $requestKey;
         $order->pos_metadata = [

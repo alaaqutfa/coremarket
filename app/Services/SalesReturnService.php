@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
+use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -89,11 +90,14 @@ class SalesReturnService
 
             $order = Order::query()->find($salesReturn->order_id);
             if ($order) {
-                app(LoyaltyPointsService::class)->attemptReverseForOrder(
+                $actor = $completedBy ? User::query()->find($completedBy) : null;
+                $loyalty = app(LoyaltyPointsService::class);
+                $loyalty->attemptReverseForOrder(
                     $order,
                     'Sales return completed',
-                    $completedBy ? \App\Models\User::query()->find($completedBy) : null
+                    $actor
                 );
+                $loyalty->restoreRedeemedForOrder($order, 'sales_return_completed', $actor);
             }
 
             return $salesReturn->fresh('items');

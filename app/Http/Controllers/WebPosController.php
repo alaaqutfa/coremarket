@@ -83,7 +83,12 @@ class WebPosController extends Controller
             'paid_amount' => 'required|numeric|min:0',
             'pos_request_key' => 'required|string|max:255',
             'customer_id' => 'nullable|integer|min:1',
+            'points_to_redeem' => 'nullable|integer|min:0',
         ]);
+
+        if ((int) ($data['points_to_redeem'] ?? 0) > 0) {
+            $this->authorizeLoyaltyRedemption();
+        }
 
         try {
             $order = $pos->createPosOrder(
@@ -92,6 +97,7 @@ class WebPosController extends Controller
                     'payment_type' => 'cash',
                     'paid_amount' => $data['paid_amount'],
                     'customer_id' => $data['customer_id'] ?? null,
+                    'points_to_redeem' => $data['points_to_redeem'] ?? 0,
                 ],
                 auth()->user(),
                 $data['pos_request_key']
@@ -135,5 +141,14 @@ class WebPosController extends Controller
         $user = auth()->user();
 
         return $user && ($user->user_type === 'admin' || $user->hasAnyPermission($permissions));
+    }
+
+    private function authorizeLoyaltyRedemption(): void
+    {
+        $user = auth()->user();
+
+        if (! $user || ! $user->can('pos.redeem_loyalty')) {
+            abort(403);
+        }
     }
 }

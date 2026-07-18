@@ -28,7 +28,7 @@ class OperationsPermissionSeeder extends Seeder
             'accounting_summary.view',
             'accounting.core.view', 'accounting.accounts.view', 'accounting.journals.view', 'accounting.journals.post', 'accounting.tax.view', 'accounting.tax.audit', 'accounting.general_ledger.view', 'accounting.trial_balance.view', 'accounting.profit_loss.view', 'accounting.events.view',
             'cashboxes.view','cashboxes.create','cashboxes.edit','cash_shifts.view','cash_shifts.open','cash_shifts.close','cash_movements.view','cash_movements.create',
-            'pos.view', 'pos.sell', 'pos.receipts.view',
+            'pos.view', 'pos.sell', 'pos.receipts.view', 'pos.redeem_loyalty',
             'loyalty.view', 'loyalty.rules.manage', 'loyalty.adjust', 'loyalty.movements.view',
             'inventory.view', 'inventory.dashboard.view', 'inventory.stock.view',
             'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',

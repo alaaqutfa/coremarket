@@ -24,7 +24,13 @@
         <div class="ml-auto" style="max-width: 280px;">
             <div class="d-flex justify-content-between"><span>{{ translate('Subtotal') }}</span><span>{{ number_format((float) $order->orderDetails->sum('price'), 2) }}</span></div>
             <div class="d-flex justify-content-between"><span>{{ translate('Tax') }}</span><span>{{ number_format((float) $order->orderDetails->sum('tax'), 2) }}</span></div>
-            <div class="d-flex justify-content-between font-weight-bold border-top pt-2 mt-2"><span>{{ translate('Grand total') }}</span><span>{{ number_format((float) $order->grand_total, 2) }}</span></div>
+            @if ($order->hasLoyaltyRedemption())
+                <div class="d-flex justify-content-between text-success"><span>{{ translate('Points redeemed') }}</span><span>{{ $order->loyalty_points_redeemed }}</span></div>
+                <div class="d-flex justify-content-between text-success"><span>{{ translate('Redemption discount') }}</span><span>-{{ number_format((float) $order->loyalty_redemption_discount, 2) }}</span></div>
+                <div class="d-flex justify-content-between font-weight-bold border-top pt-2 mt-2"><span>{{ translate('Final total') }}</span><span>{{ number_format((float) $order->grand_total, 2) }}</span></div>
+            @else
+                <div class="d-flex justify-content-between font-weight-bold border-top pt-2 mt-2"><span>{{ translate('Grand total') }}</span><span>{{ number_format((float) $order->grand_total, 2) }}</span></div>
+            @endif
             <div class="d-flex justify-content-between"><span>{{ translate('Paid') }}</span><span>{{ number_format((float) $order->paid_amount, 2) }}</span></div>
             <div class="d-flex justify-content-between"><span>{{ translate('Change') }}</span><span>{{ number_format((float) $order->change_amount, 2) }}</span></div>
             @if ($receipt['customer'] && $receipt['loyalty']['enabled'])

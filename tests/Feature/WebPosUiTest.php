@@ -105,7 +105,7 @@ class WebPosUiTest extends TestCase
         try {
             $this->seed(OperationsPermissionSeeder::class);
 
-            foreach (['pos.view', 'pos.sell', 'pos.receipts.view'] as $permission) {
+            foreach (['pos.view', 'pos.sell', 'pos.receipts.view', 'pos.redeem_loyalty'] as $permission) {
                 $this->assertDatabaseHas('permissions', ['name' => $permission, 'section' => 'operations']);
             }
         } finally {

@@ -56,6 +56,174 @@ class LoyaltyPointsService
             ->first();
     }
 
+    public function activeRedemptionRuleForOrderFrom(?string $orderFrom = 'pos'): ?LoyaltyRule
+    {
+        return LoyaltyRule::query()
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->get()
+            ->first(fn (LoyaltyRule $rule) => $rule->hasRedemptionEnabledForOrderFrom($orderFrom));
+    }
+
+    public function previewRedeemForCustomer(User $customer, int $points, float $grossTotal, ?string $orderFrom = 'pos'): array
+    {
+        $this->assertRedeemableCustomer($customer);
+
+        $balance = (int) (LoyaltyAccount::query()
+            ->where('user_id', $customer->id)
+            ->value('points_balance') ?? 0);
+
+        return $this->buildRedemptionPreview($customer, $points, $grossTotal, $orderFrom, $balance);
+    }
+
+    public function redeemForOrder(Order $order, User $customer, int $points, ?User $actor = null): LoyaltyPointMovement
+    {
+        $this->assertRedeemableCustomer($customer);
+        if ((int) $order->user_id !== (int) $customer->id) {
+            throw new DomainException('Loyalty redemption customer must match the order customer.');
+        }
+
+        $idempotencyKey = "loyalty:redeem:order:{$order->id}";
+
+        return DB::transaction(function () use ($order, $customer, $points, $actor, $idempotencyKey) {
+            $existing = LoyaltyPointMovement::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+            if ($existing) {
+                if ((int) $existing->user_id !== (int) $customer->id || (int) $existing->points !== $points) {
+                    throw new DomainException('Order already has a different loyalty redemption.');
+                }
+
+                return $existing;
+            }
+
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            if ((int) $lockedOrder->loyalty_points_redeemed > 0 || (float) $lockedOrder->loyalty_redemption_discount > 0) {
+                throw new DomainException('Order already has a different loyalty redemption.');
+            }
+
+            $account = LoyaltyAccount::query()
+                ->where('user_id', $customer->id)
+                ->lockForUpdate()
+                ->first();
+            if (! $account || ! $account->isActive()) {
+                throw new DomainException('Insufficient loyalty points balance.');
+            }
+
+            $preview = $this->buildRedemptionPreview(
+                $customer,
+                $points,
+                (float) $lockedOrder->grand_total,
+                $lockedOrder->order_from,
+                (int) $account->points_balance,
+            );
+
+            $movement = LoyaltyPointMovement::query()->create([
+                'loyalty_account_id' => $account->id,
+                'user_id' => $customer->id,
+                'movement_type' => 'redeem',
+                'direction' => 'out',
+                'points' => $preview['used_points'],
+                'balance_after' => $preview['balance_after'],
+                'reference_type' => Order::class,
+                'reference_id' => $lockedOrder->id,
+                'idempotency_key' => $idempotencyKey,
+                'reason' => 'Redeemed for POS order',
+                'created_by' => $actor?->id,
+                'metadata' => [
+                    'rule_id' => $preview['rule_id'],
+                    'order_id' => $lockedOrder->id,
+                    'order_code' => $lockedOrder->code,
+                    'order_from' => $lockedOrder->order_from,
+                    'gross_total' => $preview['gross_total'],
+                    'discount_amount' => $preview['discount_amount'],
+                    'final_total' => $preview['final_total'],
+                    'cashier_id' => $lockedOrder->cashier_id,
+                    'actor_id' => $actor?->id,
+                    'policy' => 'pos_order_level_discount',
+                ],
+            ]);
+
+            $account->points_balance = $preview['balance_after'];
+            $account->lifetime_points_redeemed = (int) $account->lifetime_points_redeemed + $preview['used_points'];
+            $account->save();
+
+            $metadata = (array) ($lockedOrder->pos_metadata ?? []);
+            $metadata['loyalty_redemption'] = [
+                'rule_id' => $preview['rule_id'],
+                'gross_total' => $preview['gross_total'],
+                'points_redeemed' => $preview['used_points'],
+                'discount_amount' => $preview['discount_amount'],
+                'final_total' => $preview['final_total'],
+            ];
+            $lockedOrder->loyalty_points_redeemed = $preview['used_points'];
+            $lockedOrder->loyalty_redemption_discount = $preview['discount_amount'];
+            $lockedOrder->grand_total = $preview['final_total'];
+            $lockedOrder->pos_metadata = $metadata;
+            $lockedOrder->save();
+
+            return $movement;
+        });
+    }
+
+    public function pointsRedeemedForOrder(Order $order): ?LoyaltyPointMovement
+    {
+        return LoyaltyPointMovement::query()
+            ->where('reference_type', Order::class)
+            ->where('reference_id', $order->id)
+            ->where('movement_type', 'redeem')
+            ->first();
+    }
+
+    public function restoreRedeemedForOrder(Order $order, string $reason = 'return', ?User $actor = null): ?LoyaltyPointMovement
+    {
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new DomainException('A loyalty redemption restore reason is required.');
+        }
+
+        $idempotencyKey = "loyalty:redeem-restore:order:{$order->id}";
+
+        return DB::transaction(function () use ($order, $reason, $actor, $idempotencyKey) {
+            $existing = LoyaltyPointMovement::query()->where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                return $existing;
+            }
+
+            $redeem = $this->pointsRedeemedForOrder($order);
+            if (! $redeem) {
+                return null;
+            }
+
+            $account = LoyaltyAccount::query()->lockForUpdate()->findOrFail($redeem->loyalty_account_id);
+            $newBalance = (int) $account->points_balance + (int) $redeem->points;
+            $movement = LoyaltyPointMovement::query()->create([
+                'loyalty_account_id' => $account->id,
+                'user_id' => $redeem->user_id,
+                'movement_type' => 'redeem_restore',
+                'direction' => 'in',
+                'points' => $redeem->points,
+                'balance_after' => $newBalance,
+                'reference_type' => Order::class,
+                'reference_id' => $order->id,
+                'idempotency_key' => $idempotencyKey,
+                'reason' => $reason,
+                'created_by' => $actor?->id,
+                'metadata' => [
+                    'original_redeem_movement_id' => $redeem->id,
+                    'reason' => $reason,
+                    'policy' => 'full_restore_on_first_completed_return',
+                    'actor_id' => $actor?->id,
+                ],
+            ]);
+
+            $account->points_balance = $newBalance;
+            $account->save();
+
+            return $movement;
+        });
+    }
+
     public function saveRule(array $payload, ?LoyaltyRule $rule = null): LoyaltyRule
     {
         $rule ??= new LoyaltyRule();
@@ -310,5 +478,77 @@ class LoyaltyPointsService
         if ($customer->user_type !== 'customer') {
             throw new DomainException('Loyalty accounts are only available for customers.');
         }
+    }
+
+    private function assertRedeemableCustomer(User $customer): void
+    {
+        $this->assertCustomer($customer);
+
+        if ($customer->banned) {
+            throw new DomainException('Selected loyalty customer is unavailable.');
+        }
+    }
+
+    private function buildRedemptionPreview(User $customer, int $points, float $grossTotal, ?string $orderFrom, int $balance): array
+    {
+        if ($points <= 0) {
+            throw new DomainException('Redemption points must be greater than zero.');
+        }
+        if ($grossTotal <= 0) {
+            throw new DomainException('Redemption gross total must be greater than zero.');
+        }
+
+        $rule = $this->activeRedemptionRuleForOrderFrom($orderFrom);
+        if (! $rule) {
+            throw new DomainException('Loyalty redemption is disabled.');
+        }
+        if ($points < (int) $rule->min_redeem_points) {
+            throw new DomainException('Redemption points are below the minimum.');
+        }
+        if ($points > $balance) {
+            throw new DomainException('Insufficient loyalty points balance.');
+        }
+        if ($rule->max_redeem_points_per_order !== null && $points > (int) $rule->max_redeem_points_per_order) {
+            throw new DomainException('Redemption points exceed the per-order cap.');
+        }
+
+        $units = intdiv($points, (int) $rule->redeem_points);
+        $usedPoints = $units * (int) $rule->redeem_points;
+        if ($usedPoints <= 0) {
+            throw new DomainException('Redemption points do not match the rule conversion.');
+        }
+
+        $discount = $this->roundMoney($units * (float) $rule->redeem_value);
+        if ($rule->max_redeem_percent !== null) {
+            $maxDiscount = $this->roundMoney($grossTotal * ((float) $rule->max_redeem_percent / 100));
+            if ($discount > $maxDiscount) {
+                throw new DomainException('Redemption discount exceeds the allowed percentage.');
+            }
+        }
+
+        $finalTotal = $this->roundMoney($grossTotal - $discount);
+        if ($discount <= 0 || $finalTotal < 0.01) {
+            throw new DomainException('Redemption discount exceeds the allowed total.');
+        }
+
+        return [
+            'enabled' => true,
+            'rule_id' => $rule->id,
+            'requested_points' => $points,
+            'used_points' => $usedPoints,
+            'discount_amount' => $discount,
+            'gross_total' => $this->roundMoney($grossTotal),
+            'final_total' => $finalTotal,
+            'balance_before' => $balance,
+            'balance_after' => $balance - $usedPoints,
+            'redeem_points' => (int) $rule->redeem_points,
+            'redeem_value' => (float) $rule->redeem_value,
+            'order_from' => $orderFrom,
+        ];
+    }
+
+    private function roundMoney(float $amount): float
+    {
+        return round($amount, 6);
     }
 }

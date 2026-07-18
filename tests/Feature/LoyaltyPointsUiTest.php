@@ -122,7 +122,9 @@ class LoyaltyPointsUiTest extends TestCase
             $this->actingAs($user)->post(route('operations.loyalty.rules.store'), $payload)->assertRedirect(route('operations.loyalty.rules'));
             $rule = LoyaltyRule::query()->where('name', 'UI Earn Rule')->firstOrFail();
             $this->assertSame(2, $rule->earn_rate_points);
-            $this->assertFalse(array_key_exists('redeem_points', $rule->getAttributes()));
+            $this->assertNull($rule->redeem_points);
+            $this->assertNull($rule->redeem_value);
+            $this->assertFalse($rule->hasRedemptionEnabledForOrderFrom('pos'));
 
             $this->actingAs($user)->post(route('operations.loyalty.rules.store'), $this->rulePayload([
                 'rule_id' => $rule->id,

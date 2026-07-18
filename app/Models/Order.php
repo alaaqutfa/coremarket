@@ -12,6 +12,8 @@ class Order extends Model
     protected $casts = [
         'paid_amount' => 'decimal:6',
         'change_amount' => 'decimal:6',
+        'loyalty_points_redeemed' => 'integer',
+        'loyalty_redemption_discount' => 'decimal:6',
         'pos_metadata' => 'array',
     ];
 
@@ -98,5 +100,11 @@ class Order extends Model
     public function hasPosReceipt(): bool
     {
         return filled($this->pos_receipt_number);
+    }
+
+    public function hasLoyaltyRedemption(): bool
+    {
+        return (int) $this->loyalty_points_redeemed > 0
+            && (float) $this->loyalty_redemption_discount > 0;
     }
 }

@@ -12,6 +12,10 @@
     <div class="alert alert-danger">{{ $errors->first('pos') }}</div>
 @endif
 
+@if ($errors->has('points_to_redeem'))
+    <div class="alert alert-danger">{{ $errors->first('points_to_redeem') }}</div>
+@endif
+
 @if (! $openShift)
     <div class="alert alert-warning">
         {{ translate('Open a cashier shift before completing a POS sale.') }}
@@ -51,6 +55,17 @@
                     <input type="search" id="pos-customer-search" class="form-control form-control-sm" placeholder="{{ translate('Search customer by name or phone') }}" autocomplete="off">
                     <div id="pos-customer-results" class="list-group mt-2"></div>
                     <div id="pos-selected-customer" class="small text-muted mt-2">{{ translate('Walk-in customer') }}</div>
+                    @if ($loyaltyEnabled)
+                        <div id="pos-loyalty-redemption" class="border-top mt-3 pt-3 d-none">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="font-weight-bold">{{ translate('Loyalty redemption') }}</span>
+                                <span id="pos-loyalty-balance" class="text-success small"></span>
+                            </div>
+                            <label for="pos-points-to-redeem" class="small mb-1">{{ translate('Redeem points for this POS sale') }}</label>
+                            <input type="number" name="points_to_redeem" id="pos-points-to-redeem" class="form-control form-control-sm" min="0" step="1" value="{{ old('points_to_redeem', 0) }}" disabled>
+                            <div id="pos-loyalty-redemption-hint" class="small text-muted mt-1">{{ translate('Discount will be calculated at checkout.') }}</div>
+                        </div>
+                    @endif
                 </div>
                 <div class="table-responsive flex-grow-1"><table class="table table-sm"><thead><tr><th>{{ translate('Item') }}</th><th class="text-center">{{ translate('Qty') }}</th><th class="text-right">{{ translate('Total') }}</th></tr></thead><tbody id="pos-cart"><tr><td colspan="3" class="text-center text-muted py-4">{{ translate('Cart is empty.') }}</td></tr></tbody></table></div>
                 <div class="border-top pt-3 mt-auto">
@@ -84,6 +99,10 @@
     const customerId = document.getElementById('pos-customer-id');
     const selectedCustomer = document.getElementById('pos-selected-customer');
     const loyaltyEnabled = app.dataset.loyaltyEnabled === '1';
+    const redemptionPanel = document.getElementById('pos-loyalty-redemption');
+    const pointsToRedeem = document.getElementById('pos-points-to-redeem');
+    const redemptionBalance = document.getElementById('pos-loyalty-balance');
+    const redemptionHint = document.getElementById('pos-loyalty-redemption-hint');
     let selectedCustomerData = null;
     @if ($loyaltyEnabled)
     const loyaltyBalanceLabel = @json(translate('Loyalty balance'));
@@ -136,6 +155,7 @@
         if (!selectedCustomerData) {
             customerId.value = '';
             selectedCustomer.textContent = '{{ translate('Walk-in customer') }}';
+            renderRedemption();
             return;
         }
         customerId.value = selectedCustomerData.id;
@@ -155,6 +175,30 @@
             loyalty.textContent = `${loyaltyBalanceLabel}: ${selectedCustomerData.loyalty.balance}`;
             selectedCustomer.appendChild(loyalty);
         }
+        renderRedemption();
+    }
+
+    function renderRedemption() {
+        if (!redemptionPanel || !pointsToRedeem) return;
+
+        const balance = Number(selectedCustomerData?.loyalty?.balance || 0);
+        const canRedeem = loyaltyEnabled && !!selectedCustomerData && selectedCustomerData.loyalty?.enabled;
+        redemptionPanel.classList.toggle('d-none', !canRedeem);
+        pointsToRedeem.disabled = !canRedeem || balance < 1;
+
+        if (!canRedeem) {
+            pointsToRedeem.value = 0;
+            return;
+        }
+
+        redemptionBalance.textContent = `${loyaltyBalanceLabel}: ${balance}`;
+        if (balance < 1) {
+            pointsToRedeem.value = 0;
+            redemptionHint.textContent = '{{ translate('No points available.') }}';
+            return;
+        }
+
+        redemptionHint.textContent = '{{ translate('Discount will be calculated at checkout.') }}';
     }
 
     async function searchCustomers() {
