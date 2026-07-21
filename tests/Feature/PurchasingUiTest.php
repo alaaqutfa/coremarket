@@ -36,6 +36,11 @@ class PurchasingUiTest extends TestCase
 
             $this->actingAs($user)->get(route('operations.suppliers', ['search' => $supplier->name]))
                 ->assertOk()->assertSee($supplier->name);
+            $this->actingAs($user)->get(route('operations.purchase-orders.create'))
+                ->assertOk()
+                ->assertSee('id="add-purchase-item"', false)
+                ->assertSee("document.getElementById('add-purchase-item').addEventListener", false)
+                ->assertSee('function addRow()', false);
 
             $response = $this->actingAs($user)->post(route('operations.purchase-orders.store'), [
                 'supplier_id' => $supplier->id,

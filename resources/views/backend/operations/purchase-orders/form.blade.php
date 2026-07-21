@@ -25,7 +25,7 @@
 </tr></template>
 @endsection
 
-@push('script')
+@section('script')
 <script>
     (function () {
         const rows = document.getElementById('purchase-order-items');
@@ -46,4 +46,4 @@
         addRow();
     })();
 </script>
-@endpush
+@endsection
