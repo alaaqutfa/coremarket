@@ -20,7 +20,7 @@
                 <tbody>@forelse($suppliers as $supplier)<tr>
                     <td>{{ $supplier->name }}</td><td>{{ $supplier->company_name ?: '-' }}</td><td><div>{{ $supplier->email ?: '-' }}</div><small>{{ $supplier->phone }}</small></td><td>{{ $supplier->purchase_orders_count }}</td>
                     <td><span class="badge badge-{{ $supplier->is_active ? 'success' : 'secondary' }}">{{ $supplier->is_active ? translate('Active') : translate('Inactive') }}</span></td>
-                    <td class="text-right">@can('suppliers.edit')<a class="btn btn-soft-primary btn-sm" href="{{ route('operations.suppliers.edit', $supplier) }}">{{ translate('Edit') }}</a>@endcan</td>
+                    <td class="text-right">@can('supplier_ledger.view')<a class="btn btn-soft-primary btn-sm" href="{{ route('operations.suppliers.show', $supplier) }}">{{ translate('Statement') }}</a>@endcan @can('suppliers.edit')<a class="btn btn-soft-primary btn-sm" href="{{ route('operations.suppliers.edit', $supplier) }}">{{ translate('Edit') }}</a>@endcan</td>
                 </tr>@empty<tr><td colspan="6" class="text-center text-muted">{{ translate('No suppliers found.') }}</td></tr>@endforelse</tbody>
             </table>
         </div>

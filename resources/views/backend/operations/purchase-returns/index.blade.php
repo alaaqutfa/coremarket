@@ -1,0 +1,12 @@
+@extends('backend.layouts.app')
+
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><div class="row"><div class="col"><h5 class="mb-0 h6">{{ translate('Purchase Returns') }}</h5></div>@can('purchase_returns.create')<div class="col text-right"><a class="btn btn-primary" href="{{ route('operations.purchase-returns.create') }}">{{ translate('Create Purchase Return') }}</a></div>@endcan</div></div>
+<div class="card"><div class="card-body">
+    <form class="row gutters-10 mb-3"><div class="col-md-5"><select class="form-control" name="supplier_id"><option value="">{{ translate('All suppliers') }}</option>@foreach($suppliers as $supplier)<option value="{{ $supplier->id }}" @selected(request('supplier_id') == $supplier->id)>{{ $supplier->name }}</option>@endforeach</select></div><div class="col-md-4"><select class="form-control" name="status"><option value="">{{ translate('All statuses') }}</option>@foreach(['draft','completed','cancelled'] as $status)<option value="{{ $status }}" @selected(request('status') === $status)>{{ translate(ucfirst($status)) }}</option>@endforeach</select></div><div class="col-md-3"><button class="btn btn-soft-primary">{{ translate('Filter') }}</button></div></form>
+    <div class="table-responsive"><table class="table aiz-table mb-0"><thead><tr><th>{{ translate('Return') }}</th><th>{{ translate('Supplier') }}</th><th>{{ translate('Purchase Order') }}</th><th>{{ translate('Date') }}</th><th>{{ translate('Status') }}</th><th>{{ translate('Total') }}</th><th></th></tr></thead><tbody>
+    @forelse($purchaseReturns as $return)<tr><td>{{ $return->return_number }}</td><td>{{ $return->supplier?->name ?: '-' }}</td><td>{{ $return->purchaseOrder?->purchase_number ?: '-' }}</td><td>{{ optional($return->return_date)->format('Y-m-d') }}</td><td><span class="badge badge-{{ $return->status === 'completed' ? 'success' : ($return->status === 'cancelled' ? 'secondary' : 'warning') }}">{{ translate(ucfirst($return->status)) }}</span></td><td>{{ coremarket_money($return->total, $return->currency) }}</td><td><a class="btn btn-soft-primary btn-sm" href="{{ route('operations.purchase-returns.show', $return) }}">{{ translate('View') }}</a></td></tr>
+    @empty<tr><td colspan="7" class="text-center text-muted">{{ translate('No purchase returns found.') }}</td></tr>@endforelse
+    </tbody></table></div><div class="aiz-pagination">{{ $purchaseReturns->links() }}</div>
+</div></div>
+@endsection

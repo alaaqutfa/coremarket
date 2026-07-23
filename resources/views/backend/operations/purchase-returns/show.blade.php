@@ -1,0 +1,18 @@
+@extends('backend.layouts.app')
+
+@section('content')
+<div class="aiz-titlebar text-left mt-2 mb-3"><div class="row"><div class="col"><h5 class="mb-0 h6">{{ $purchaseReturn->return_number }} <span class="badge badge-{{ $purchaseReturn->status === 'completed' ? 'success' : ($purchaseReturn->status === 'cancelled' ? 'secondary' : 'warning') }}">{{ translate(ucfirst($purchaseReturn->status)) }}</span></h5></div><div class="col text-right"><a class="btn btn-soft-primary btn-sm" href="{{ route('operations.purchase-returns') }}">{{ translate('Purchase Returns') }}</a></div></div></div>
+<div class="card"><div class="card-body">
+    <div class="row"><div class="col-md-4"><strong>{{ translate('Supplier') }}:</strong> @can('supplier_ledger.view')<a href="{{ route('operations.suppliers.show', $purchaseReturn->supplier) }}">{{ $purchaseReturn->supplier?->name }}</a>@else{{ $purchaseReturn->supplier?->name }}@endcan</div><div class="col-md-4"><strong>{{ translate('Purchase Order') }}:</strong> @can('purchase_orders.view')<a href="{{ route('operations.purchase-orders.show', $purchaseReturn->purchaseOrder) }}">{{ $purchaseReturn->purchaseOrder?->purchase_number }}</a>@else{{ $purchaseReturn->purchaseOrder?->purchase_number }}@endcan</div><div class="col-md-4"><strong>{{ translate('Return Date') }}:</strong> {{ optional($purchaseReturn->return_date)->format('Y-m-d') }}</div></div>
+    <div class="table-responsive mt-3"><table class="table table-bordered"><thead><tr><th>{{ translate('Product') }}</th><th>{{ translate('SKU / Barcode') }}</th><th>{{ translate('Quantity') }}</th><th>{{ translate('Unit Cost') }}</th><th>{{ translate('Tax') }}</th><th>{{ translate('Line Total') }}</th></tr></thead><tbody>@foreach($purchaseReturn->items as $item)<tr><td>{{ $item->product?->name ?: '#'.$item->product_id }}</td><td>{{ $item->productStock?->sku ?: '-' }} / {{ $item->productStock?->barcode ?: '-' }}</td><td>{{ coremarket_quantity($item->quantity) }}</td><td>{{ coremarket_money($item->unit_cost, $purchaseReturn->currency) }}</td><td>{{ coremarket_money($item->tax_amount, $purchaseReturn->currency) }}</td><td>{{ coremarket_money($item->line_total, $purchaseReturn->currency) }}</td></tr>@endforeach</tbody></table></div>
+    <div class="text-right"><div><strong>{{ translate('Subtotal') }}:</strong> {{ coremarket_money($purchaseReturn->subtotal, $purchaseReturn->currency) }}</div><div><strong>{{ translate('Tax') }}:</strong> {{ coremarket_money($purchaseReturn->tax_total, $purchaseReturn->currency) }}</div><div><strong>{{ translate('Total') }}:</strong> {{ coremarket_money($purchaseReturn->total, $purchaseReturn->currency) }}</div><div><strong>{{ translate('USD Total') }}:</strong> {{ coremarket_money($purchaseReturn->total_usd, 'USD') }}</div></div>
+    @if($purchaseReturn->reason)<p><strong>{{ translate('Reason') }}:</strong> {{ $purchaseReturn->reason }}</p>@endif
+</div></div>
+
+@if($purchaseReturn->status === 'draft')
+<div class="d-flex">
+    @can('purchase_returns.complete')<form method="POST" action="{{ route('operations.purchase-returns.complete', $purchaseReturn) }}" class="mr-2">@csrf<button class="btn btn-success" onclick="return confirm('{{ translate('Complete this return and remove stock?') }}')">{{ translate('Complete Return') }}</button></form>@endcan
+    @can('purchase_returns.cancel')<form method="POST" action="{{ route('operations.purchase-returns.cancel', $purchaseReturn) }}">@csrf<button class="btn btn-soft-danger" onclick="return confirm('{{ translate('Cancel this draft?') }}')">{{ translate('Cancel Draft') }}</button></form>@endcan
+</div>
+@endif
+@endsection

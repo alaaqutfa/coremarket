@@ -6,6 +6,7 @@ use App\Models\InventoryMovement;
 use App\Models\OrderDetail;
 use App\Models\ProductStock;
 use App\Models\PurchaseReceiptItem;
+use App\Models\PurchaseReturnItem;
 use App\Models\SalesReturnItem;
 
 class InventoryMovementService
@@ -13,6 +14,7 @@ class InventoryMovementService
     public const TYPE_SALE = 'sale';
     public const TYPE_SALE_REVERSAL = 'sale_reversal';
     public const TYPE_PURCHASE = 'purchase';
+    public const TYPE_PURCHASE_RETURN = 'purchase_return';
 
     public function recordSale(OrderDetail $orderDetail, ?ProductStock $productStock = null, ?int $createdBy = null): InventoryMovement
     {
@@ -94,6 +96,35 @@ class InventoryMovementService
                 'metadata' => [
                     'purchase_order_item_id' => $receiptItem->purchase_order_item_id,
                     'purchase_receipt_id' => $receiptItem->purchase_receipt_id,
+                ],
+            ]
+        );
+    }
+
+    public function recordPurchaseReturn(PurchaseReturnItem $returnItem, ?int $createdBy = null): InventoryMovement
+    {
+        return InventoryMovement::query()->firstOrCreate(
+            [
+                'reference_type' => PurchaseReturnItem::class,
+                'reference_id' => $returnItem->id,
+                'movement_type' => self::TYPE_PURCHASE_RETURN,
+            ],
+            [
+                'product_id' => $returnItem->product_id,
+                'product_stock_id' => $returnItem->product_stock_id,
+                'movement_type' => self::TYPE_PURCHASE_RETURN,
+                'direction' => 'out',
+                'quantity' => $returnItem->quantity,
+                'unit_cost' => $returnItem->unit_cost,
+                'total_cost' => (float) $returnItem->line_total - (float) $returnItem->tax_amount,
+                'reference_type' => PurchaseReturnItem::class,
+                'reference_id' => $returnItem->id,
+                'created_by' => $createdBy,
+                'metadata' => [
+                    'purchase_return_id' => $returnItem->purchase_return_id,
+                    'purchase_order_item_id' => $returnItem->purchase_order_item_id,
+                    'cost_source' => $returnItem->metadata['cost_source'] ?? 'purchase_order_item_snapshot',
+                    'tax_amount' => $returnItem->tax_amount,
                 ],
             ]
         );

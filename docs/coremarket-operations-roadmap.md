@@ -159,6 +159,8 @@ No migrations are part of this audit. Candidate migrations should be split and r
 
 Settings such as strict inventory and negative stock should use the established business-settings mechanism unless schema evidence requires otherwise.
 
+Step 50 delivers the additive supplier accounting and purchase return foundation from items 3 and 4. The supplier ledger is an operational subledger, not double-entry accounting: received purchases are credits that increase the USD amount owed, while supplier payments and completed purchase returns are debits that decrease it. Payment allocation, aging, journal posting, statement PDF, and supplier portal workflows remain deferred.
+
 ## Product pricing vocabulary
 
 - `cost_price`: the supplier purchase cost captured by purchasing and inventory cost snapshots.
@@ -174,22 +176,22 @@ Settings such as strict inventory and negative stock should use the established 
 | 48 | Money, currency, and tax foundation | USD base/rate policy, LBP conversion tests, two-decimal money helpers, tax calculation snapshot |
 | 49 | Purchase Invoice + Barcode + Cost/Regular/Sale Price workflow | Scanner lookup, tax selection, fixed/margin pricing, atomic stock and cost snapshots |
 | 50 | Supplier Accounting + Purchase Returns foundation | Payable ledger design, cash/credit/partial payments, statements, and cost-based return policy |
-| 51 | Price Lists + customer pricing levels A/B/C | Explicit customer/segment price lists without overloading `sale_price` |
-| 52 | Product Family / Sub Family + inventory classification | Approved internal hierarchy, migration, filters, imports, and reporting; this is not a storefront category |
-| 53 | Strict inventory policies | Central negative-stock and purchase-only inbound enforcement |
-| 54 | Purchase PDF | Branded snapshot-based A4/receipt document output as approved |
-| 55 | Sidebar and dashboard | Permission-aware navigation order and quick actions |
-| 56 | Phone normalization | Shared E.164 flow and web/API regression coverage |
-| 57 | Accounting reports | Valuation, balance sheet, aging, tax, and reconciliation in approved order |
+| 51 | Inventory Strict Mode + Negative Stock Policy | Central negative-stock and purchase-only inbound enforcement |
+| 52 | Price Lists + customer pricing levels A/B/C | Explicit customer/segment price lists without overloading `sale_price` |
+| 53 | Product Family / Sub Family + inventory classification | Approved internal hierarchy, migration, filters, imports, and reporting; this is not a storefront category |
+| 54 | Purchase Invoice PDF + Supplier Statement PDF | Branded immutable purchase and supplier documents after ledger stabilization |
+| 55 | Accounting Reports foundation | Valuation, balance sheet, aging, tax, and reconciliation in approved order |
+| 56 | Sidebar and dashboard | Permission-aware navigation order and quick actions |
+| 57 | Phone normalization | Shared E.164 flow and web/API regression coverage |
 | 58 | Unified channel regression | POS/storefront purchasing, stock, money, tax and accounting contract tests |
 | Later | Flutter mobile POS | Camera barcode scanning after backend contracts are stable |
 
-Step 49 intentionally reuses `products.unit_price` as the regular retail price and the existing product promotion discount fields for an explicitly supplied temporary `sale_price`. Price Lists A/B/C remain a separate Step 51 concept. Purchase PDF remains deferred until Step 54 because the current receipt does not yet preserve supplier invoice identity, payment status, or a complete immutable printable document snapshot.
+Step 49 intentionally reuses `products.unit_price` as the regular retail price and the existing product promotion discount fields for an explicitly supplied temporary `sale_price`. Price Lists A/B/C remain a separate Step 52 concept. Purchase and supplier statement PDFs remain deferred until Step 54, after the operational supplier ledger has stabilized.
 
 ## Explicit non-goals for this step
 
 - No complete accounting or purchasing workflow.
 - No tax/VAT posting policy change.
-- No migration, baseline, CorePilotOS, Flutter, payment gateway, or generated asset changes.
+- No baseline, CorePilotOS, Flutter, payment gateway, or generated asset changes.
 - No broad sidebar/dashboard redesign.
 - No purchase PDF or mobile barcode implementation.

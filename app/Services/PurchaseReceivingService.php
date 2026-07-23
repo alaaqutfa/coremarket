@@ -18,7 +18,8 @@ class PurchaseReceivingService
     public function __construct(
         private InventoryMovementService $inventoryMovements,
         private PurchaseItemPricingService $itemPricing,
-        private CoreMarketMoneyService $money
+        private CoreMarketMoneyService $money,
+        private SupplierLedgerService $supplierLedger
     ) {
     }
 
@@ -103,6 +104,7 @@ class PurchaseReceivingService
                     throw new DomainException('Receipt key belongs to another purchase order.');
                 }
 
+                $this->supplierLedger->recordPurchase($existing, $receivedBy);
                 return $existing->load('items');
             }
 
@@ -157,6 +159,7 @@ class PurchaseReceivingService
             }
 
             $this->refreshStatus($purchaseOrder, $receivedBy);
+            $this->supplierLedger->recordPurchase($receipt->fresh(), $receivedBy);
 
             return $receipt->fresh('items');
         });

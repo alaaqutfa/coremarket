@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseReceipt;
+use App\Models\PurchaseReturn;
 use App\Models\SalesReturn;
 use App\Models\Supplier;
 use App\Models\TaxRate;
@@ -26,14 +27,18 @@ use App\Services\InventoryProService;
 use App\Services\ProductIdentityLookupService;
 use App\Services\PurchaseItemPricingService;
 use App\Services\PurchaseReceivingService;
+use App\Services\PurchaseReturnService;
 use App\Services\PurchasingUiService;
 use App\Services\SalesReturnService;
 use App\Services\SalesReturnUiService;
+use App\Services\SupplierLedgerService;
+use App\Services\SupplierPaymentService;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 
 class OperationsController extends Controller
 {
@@ -125,9 +130,45 @@ class OperationsController extends Controller
         return view('backend.operations.suppliers.index', ['suppliers' => $purchasing->suppliers($request->only(['search', 'status']))]);
     }
     public function createSupplier(): View { $this->authorizeOperation('suppliers.create', ['purchasing_suppliers']); return view('backend.operations.suppliers.form', ['supplier' => new Supplier()]); }
+    public function showSupplier(Supplier $supplier, SupplierLedgerService $ledger): View
+    {
+        $this->authorizeOperation('supplier_ledger.view', ['purchasing_suppliers']);
+
+        return view('backend.operations.suppliers.show', [
+            'supplier' => $supplier,
+            'balance' => $ledger->supplierBalance($supplier),
+            'ledgerEntries' => $supplier->ledgerEntries()->latest('occurred_at')->paginate(25),
+            'payments' => $supplier->payments()->with('purchaseOrder')->latest('paid_at')->limit(10)->get(),
+            'purchaseReturns' => $supplier->purchaseReturns()->with('purchaseOrder')->latest()->limit(10)->get(),
+            'purchaseOrders' => $supplier->purchaseOrders()->latest()->limit(100)->get(),
+            'paymentKey' => (string) Str::uuid(),
+        ]);
+    }
     public function editSupplier(Supplier $supplier): View { $this->authorizeOperation('suppliers.edit', ['purchasing_suppliers']); return view('backend.operations.suppliers.form', compact('supplier')); }
     public function storeSupplier(Request $request): RedirectResponse { $this->authorizeOperation('suppliers.create', ['purchasing_suppliers']); $supplier = Supplier::create($this->supplierData($request)); return redirect()->route('operations.suppliers.edit', $supplier)->with('success', translate('Supplier saved successfully')); }
     public function updateSupplier(Request $request, Supplier $supplier): RedirectResponse { $this->authorizeOperation('suppliers.edit', ['purchasing_suppliers']); $supplier->update($this->supplierData($request)); return back()->with('success', translate('Supplier saved successfully')); }
+    public function storeSupplierPayment(Request $request, Supplier $supplier, SupplierPaymentService $payments): RedirectResponse
+    {
+        $this->authorizeOperation('supplier_payments.create', ['purchasing_suppliers']);
+        $data = $request->validate([
+            'payment_key' => 'required|string|max:100',
+            'purchase_order_id' => 'nullable|exists:purchase_orders,id',
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|string|max:10',
+            'exchange_rate' => 'required|numeric|min:0.000001',
+            'payment_method' => 'nullable|in:cash,bank_transfer,card,cheque,other',
+            'payment_reference' => 'nullable|string|max:255',
+            'paid_at' => 'required|date',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+        try {
+            $payments->createPayment($supplier, $data, auth()->id());
+        } catch (DomainException|\InvalidArgumentException $exception) {
+            return back()->withErrors(['payment' => $exception->getMessage()])->withInput();
+        }
+
+        return back()->with('success', translate('Supplier payment recorded successfully'));
+    }
 
     public function purchaseOrders(Request $request, PurchasingUiService $purchasing): View
     {
@@ -244,6 +285,99 @@ class OperationsController extends Controller
             ->latest()->get();
 
         return view('backend.operations.purchase-receipts.show', compact('purchaseReceipt', 'movements'));
+    }
+
+    public function purchaseReturns(Request $request): View
+    {
+        $this->authorizeOperation('purchase_returns.view', ['purchasing_suppliers']);
+        $returns = PurchaseReturn::query()
+            ->with(['supplier', 'purchaseOrder'])
+            ->when($request->input('supplier_id'), fn ($query, $supplierId) => $query->where('supplier_id', $supplierId))
+            ->when($request->input('status'), fn ($query, $status) => $query->where('status', $status))
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        return view('backend.operations.purchase-returns.index', [
+            'purchaseReturns' => $returns,
+            'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function createPurchaseReturn(Request $request): View
+    {
+        $this->authorizeOperation('purchase_returns.create', ['purchasing_suppliers']);
+        $purchaseOrder = $request->filled('purchase_order_id')
+            ? PurchaseOrder::query()->with(['supplier', 'items.product', 'items.productStock', 'items.purchaseReturnItems.purchaseReturn'])->findOrFail($request->integer('purchase_order_id'))
+            : null;
+
+        return view('backend.operations.purchase-returns.form', [
+            'purchaseOrder' => $purchaseOrder,
+            'purchaseOrders' => PurchaseOrder::query()
+                ->with('supplier')
+                ->whereNotNull('supplier_id')
+                ->whereIn('status', ['partially_received', 'received'])
+                ->latest()
+                ->limit(200)
+                ->get(),
+        ]);
+    }
+
+    public function storePurchaseReturn(Request $request, PurchaseReturnService $service): RedirectResponse
+    {
+        $this->authorizeOperation('purchase_returns.create', ['purchasing_suppliers']);
+        $data = $request->validate([
+            'purchase_order_id' => 'required|exists:purchase_orders,id',
+            'return_date' => 'required|date',
+            'reason' => 'nullable|string|max:2000',
+            'notes' => 'nullable|string|max:2000',
+            'items' => 'required|array|min:1',
+            'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id',
+            'items.*.quantity' => 'required|numeric|min:0',
+        ]);
+        $items = collect($data['items'])->filter(fn ($item) => (float) $item['quantity'] > 0)->values()->all();
+        if ($items === []) {
+            return back()->withErrors(['items' => translate('Enter a quantity to return.')])->withInput();
+        }
+        try {
+            $return = $service->createDraft(PurchaseOrder::findOrFail($data['purchase_order_id']), $items, $data, auth()->id());
+        } catch (DomainException|\InvalidArgumentException $exception) {
+            return back()->withErrors(['items' => $exception->getMessage()])->withInput();
+        }
+
+        return redirect()->route('operations.purchase-returns.show', $return)->with('success', translate('Purchase return draft created successfully'));
+    }
+
+    public function showPurchaseReturn(PurchaseReturn $purchaseReturn): View
+    {
+        $this->authorizeOperation('purchase_returns.view', ['purchasing_suppliers']);
+        $purchaseReturn->load(['supplier', 'purchaseOrder', 'items.product', 'items.productStock', 'items.purchaseOrderItem']);
+
+        return view('backend.operations.purchase-returns.show', compact('purchaseReturn'));
+    }
+
+    public function completePurchaseReturn(PurchaseReturn $purchaseReturn, PurchaseReturnService $service): RedirectResponse
+    {
+        $this->authorizeOperation('purchase_returns.complete', ['purchasing_suppliers']);
+        try {
+            $service->complete($purchaseReturn, auth()->id());
+        } catch (DomainException $exception) {
+            return back()->withErrors(['purchase_return' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', translate('Purchase return completed successfully'));
+    }
+
+    public function cancelPurchaseReturn(PurchaseReturn $purchaseReturn, PurchaseReturnService $service): RedirectResponse
+    {
+        $this->authorizeOperation('purchase_returns.cancel', ['purchasing_suppliers']);
+        try {
+            $service->cancel($purchaseReturn);
+        } catch (DomainException $exception) {
+            return back()->withErrors(['purchase_return' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', translate('Purchase return cancelled successfully'));
     }
 
     public function salesReturns(Request $request, SalesReturnUiService $returns): View
