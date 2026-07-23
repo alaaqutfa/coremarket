@@ -87,6 +87,7 @@
 (() => {
     const app = document.getElementById('web-pos-app');
     if (!app) return;
+    const allowNegativeStock = @json(app(\App\Services\CoreMarketInventoryPolicyService::class)->allowNegativeStock());
     const cart = new Map();
     const money = value => Number(value || 0).toFixed(2);
     const results = document.getElementById('pos-results');
@@ -242,7 +243,7 @@
     function updateCart(key, action) {
         const item = cart.get(key);
         if (!item) return;
-        if (action === 'increase' && item.quantity < item.available_stock) item.quantity++;
+        if (action === 'increase' && (allowNegativeStock || item.quantity < item.available_stock)) item.quantity++;
         if (action === 'decrease') item.quantity--;
         if (action === 'remove' || item.quantity < 1) cart.delete(key);
         renderCart();
@@ -272,7 +273,7 @@
             items.forEach(item => {
                 const button = document.createElement('button');
                 button.type = 'button'; button.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
-                button.disabled = !item.product_stock_id || Number(item.available_stock) < 1;
+                button.disabled = !item.product_stock_id || (!allowNegativeStock && Number(item.available_stock) < 1);
                 button.innerHTML = `<span><strong></strong><small class="d-block text-muted"></small></span><span class="text-right"><strong></strong><small class="d-block text-muted"></small></span>`;
                 button.querySelector('strong').textContent = item.name;
                 button.querySelector('small').textContent = [item.variation, item.sku || item.barcode, item.matched_by].filter(Boolean).join(' - ');

@@ -188,6 +188,15 @@ Step 50 delivers the additive supplier accounting and purchase return foundation
 
 Step 49 intentionally reuses `products.unit_price` as the regular retail price and the existing product promotion discount fields for an explicitly supplied temporary `sale_price`. Price Lists A/B/C remain a separate Step 52 concept. Purchase and supplier statement PDFs remain deferred until Step 54, after the operational supplier ledger has stabilized.
 
+## Inventory policy settings
+
+Step 51 uses the existing business-settings mechanism with config fallbacks; it does not add an inventory settings table.
+
+- `inventory.strict_inventory_mode`: defaults to `false`. When enabled, new or duplicated products start with zero stock, existing quantities are preserved during product edits, and inbound stock must come from purchase receipts, sales returns, or authorized adjustments.
+- `inventory.allow_negative_stock`: defaults to `false`. When disabled, every protected stock-decrease path rejects a quantity that would make a variant negative. When enabled, decreases may pass below zero while the existing inventory movement remains the audit record.
+
+Strict inventory mode protects inventory and costing discipline. Negative-stock permission is a per-instance policy. Price Lists A/B/C and Family/Sub Family remain outside Step 51.
+
 ## Explicit non-goals for this step
 
 - No complete accounting or purchasing workflow.

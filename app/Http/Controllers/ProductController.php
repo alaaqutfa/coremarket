@@ -330,6 +330,9 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, Product $product): RedirectResponse
     {
+        $preservedStockQuantities = app(\App\Services\CoreMarketInventoryPolicyService::class)->strictInventoryMode()
+            ? $product->stocks()->pluck('qty', 'variant')->all()
+            : [];
 
         //Product
         $product = $this->productService->update($request->except([
@@ -349,7 +352,10 @@ class ProductController extends Controller
         $product->stocks()->delete();
         $this->productStockService->store($request->only([
             'colors_active', 'colors', 'choice_no', 'wholesale_price', 'unit_price', 'sku', 'current_stock', 'product_id',
-        ]), $product);
+        ]), $product, $preservedStockQuantities);
+        if ($preservedStockQuantities !== []) {
+            $product->update(['current_stock' => array_sum($preservedStockQuantities)]);
+        }
 
         //Flash Deal
         $this->productFlashDealService->store($request->only([

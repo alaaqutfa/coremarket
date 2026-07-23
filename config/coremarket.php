@@ -14,6 +14,8 @@ return [
     ],
     'inventory' => [
         'low_stock_threshold' => 5,
+        'strict_inventory_mode' => false,
+        'allow_negative_stock' => false,
     ],
 
     'plan' => [

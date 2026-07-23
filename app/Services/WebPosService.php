@@ -23,6 +23,7 @@ class WebPosService
         private ProductIdentityLookupService $identityLookup,
         private LoyaltyPointsService $loyalty,
         private CoreMarketFeatureAccessService $features,
+        private CoreMarketInventoryPolicyService $inventoryPolicy,
     ) {
     }
 
@@ -470,8 +471,12 @@ class WebPosService
     private function assertStockIsAvailable(array $lines): void
     {
         foreach ($lines as $line) {
-            if (! $line['product']->digital && $line['quantity'] > (float) $line['stock']->qty) {
-                throw new DomainException('Requested quantity exceeds available stock.');
+            if (! $line['product']->digital) {
+                $this->inventoryPolicy->assertCanDecreaseStock(
+                    $line['stock'],
+                    (float) $line['quantity'],
+                    'POS checkout'
+                );
             }
         }
     }
@@ -641,6 +646,7 @@ class WebPosService
         }
 
         $stock = $line['stock'];
+        $this->inventoryPolicy->assertCanDecreaseStock($stock, (float) $line['quantity'], 'POS checkout');
         $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
         $stock->decrement('qty', $line['quantity']);
 

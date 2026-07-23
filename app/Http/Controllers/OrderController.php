@@ -16,6 +16,7 @@ use App\Models\CombinedOrder;
 use App\Models\SmsTemplate;
 use App\Services\CoreMarketLicenseService;
 use App\Services\InventoryMovementService;
+use App\Services\CoreMarketInventoryPolicyService;
 use App\Services\LoyaltyPointsService;
 use Auth;
 use Mail;
@@ -225,7 +226,7 @@ class OrderController extends Controller
                 $product_variation = $cartItem['variation'];
 
                 $product_stock = $product->stocks->where('variant', $product_variation)->first();
-                if ($product->digital != 1 && $cartItem['quantity'] > $product_stock->qty) {
+                if ($product->digital != 1 && ! app(CoreMarketInventoryPolicyService::class)->allowNegativeStock() && $cartItem['quantity'] > $product_stock->qty) {
                     flash(translate('The requested quantity is not available for ') . $product->getTranslation('name'))->warning();
                     $order->delete();
                     return redirect()->route('cart')->send();

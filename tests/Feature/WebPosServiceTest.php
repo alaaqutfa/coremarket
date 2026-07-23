@@ -3,14 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\CashMovement;
+use App\Models\BusinessSetting;
 use App\Models\Order;
 use App\Models\ProductStock;
 use App\Models\User;
 use App\Services\CashboxService;
+use App\Services\CoreMarketInventoryPolicyService;
 use App\Services\WebPosService;
 use DomainException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -33,6 +36,12 @@ class WebPosServiceTest extends TestCase
 
         $this->service = app(WebPosService::class);
         $this->cashboxes = app(CashboxService::class);
+    }
+
+    protected function tearDown(): void
+    {
+        Cache::forget('business_settings');
+        parent::tearDown();
     }
 
     public function test_requires_an_open_cashier_shift_before_sale(): void
@@ -133,6 +142,33 @@ class WebPosServiceTest extends TestCase
         $this->expectExceptionMessage('Requested quantity exceeds available stock.');
 
         $this->sale($stock, $user, 'oversell-' . uniqid(), 2, 50);
+    }
+
+    public function test_pos_can_sell_below_zero_when_inventory_policy_allows_it(): void
+    {
+        $setting = BusinessSetting::query()
+            ->where('type', CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING)
+            ->whereNull('lang')
+            ->first() ?: new BusinessSetting();
+        $setting->forceFill([
+            'type' => CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING,
+            'value' => '1',
+            'lang' => null,
+        ])->save();
+        Cache::forget('business_settings');
+        $user = $this->user();
+        $this->openShift($user);
+        $stock = $this->productStock($user, ['qty' => 1]);
+
+        $order = $this->sale($stock, $user, 'negative-stock-pos-' . uniqid(), 2, 50);
+
+        $this->assertSame(-1.0, (float) $stock->fresh()->qty);
+        $this->assertDatabaseHas('inventory_movements', [
+            'order_id' => $order->id,
+            'movement_type' => 'sale',
+            'direction' => 'out',
+            'quantity' => '2.000000',
+        ]);
     }
 
     public function test_duplicate_request_key_returns_existing_order_without_duplicate_side_effects(): void

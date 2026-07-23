@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryProService
 {
+    public function __construct(private CoreMarketInventoryPolicyService $inventoryPolicy)
+    {
+    }
+
     public function dashboardStats(): array
     {
         return [
@@ -77,7 +81,11 @@ class InventoryProService
                 'set' => $quantity,
                 default => throw new DomainException('Unknown stock adjustment type.'),
             };
-            if ($target < 0) throw new DomainException('Stock adjustment cannot result in negative inventory.');
+            if ($target < $before) {
+                $this->inventoryPolicy->assertCanDecreaseStock($stock, $before - $target, 'manual stock adjustment');
+            } elseif ($target > $before) {
+                $this->inventoryPolicy->assertCanIncreaseStock('authorized_adjustment');
+            }
             $delta = $target - $before;
             $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
             $stock->update(['qty' => $target]);
@@ -95,7 +103,13 @@ class InventoryProService
                 'reference_type' => 'manual_adjustment',
                 'created_by' => $userId,
                 'notes' => $payload['notes'] ?? null,
-                'metadata' => ['reason' => $payload['reason'], 'adjustment_type' => $payload['adjustment_type'], 'before_qty' => $before, 'after_qty' => $target],
+                'metadata' => [
+                    'reason' => $payload['reason'],
+                    'adjustment_type' => $payload['adjustment_type'],
+                    'before_qty' => $before,
+                    'after_qty' => $target,
+                    'inventory_policy' => $this->inventoryPolicy->policySnapshot(),
+                ],
             ]);
         });
     }

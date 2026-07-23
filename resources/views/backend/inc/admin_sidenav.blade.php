@@ -30,6 +30,7 @@
         $coremarketCanInventoryLookup = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.barcode_lookup.view'));
         $coremarketCanInventoryLowStock = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.low_stock.view'));
         $coremarketCanInventoryAudit = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.stock.audit'));
+        $coremarketCanInventoryPolicy = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.stock.adjust'));
         $coremarketCanInventoryMovements = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory_movements.view'));
         $coremarketCanSuppliers = $coremarketPurchasingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('suppliers.view'));
         $coremarketCanSupplierLedger = $coremarketPurchasingOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('supplier_ledger.view'));
@@ -61,7 +62,7 @@
         $coremarketCanLoyaltyMovements = $coremarketLoyaltyEnabled && ($coremarketOperationsOwner || auth()->user()?->can('loyalty.movements.view'));
         $coremarketCanLoyaltyAdjust = $coremarketLoyaltyEnabled && ($coremarketOperationsOwner || auth()->user()?->can('loyalty.adjust'));
         $coremarketCanLoyalty = $coremarketCanLoyaltyView || $coremarketCanLoyaltyRules || $coremarketCanLoyaltyMovements || $coremarketCanLoyaltyAdjust;
-        $coremarketCanInventory = $coremarketCanInventoryDashboard || $coremarketCanInventoryStock || $coremarketCanInventoryLookup || $coremarketCanInventoryLowStock || $coremarketCanInventoryMovements || $coremarketCanInventoryAudit;
+        $coremarketCanInventory = $coremarketCanInventoryDashboard || $coremarketCanInventoryStock || $coremarketCanInventoryLookup || $coremarketCanInventoryLowStock || $coremarketCanInventoryMovements || $coremarketCanInventoryAudit || $coremarketCanInventoryPolicy;
         $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingCore || $coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements || $coremarketCanPos || $coremarketCanLoyalty;
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
@@ -140,7 +141,7 @@
                         @endif
                         @if ($coremarketCanInventory)
                         <li class="aiz-side-nav-item">
-                            <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements']) }}"><span class="aiz-side-nav-text">{{ translate('Inventory') }}</span><span class="aiz-side-nav-arrow"></span></a>
+                            <a href="#" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory.dashboard', 'operations.inventory.stock', 'operations.inventory.barcode-lookup', 'operations.inventory.low-stock', 'operations.inventory.audit', 'operations.inventory.policy', 'operations.inventory.policy.update', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store', 'operations.inventory-movements']) }}"><span class="aiz-side-nav-text">{{ translate('Inventory') }}</span><span class="aiz-side-nav-arrow"></span></a>
                             <ul class="aiz-side-nav-list level-3">
                                 @if ($coremarketCanInventoryDashboard)<li class="aiz-side-nav-item"><a href="{{ route('operations.inventory.dashboard') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory.dashboard']) }}"><span class="aiz-side-nav-text">{{ translate('Dashboard') }}</span></a></li>@endif
                                 @if ($coremarketCanInventoryStock)<li class="aiz-side-nav-item"><a href="{{ route('operations.inventory.stock') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory.stock', 'operations.inventory.stock.adjust', 'operations.inventory.stock.adjust.store']) }}"><span class="aiz-side-nav-text">{{ translate('Stock / Variants') }}</span></a></li>@endif
@@ -148,6 +149,7 @@
                                 @if ($coremarketCanInventoryLowStock)<li class="aiz-side-nav-item"><a href="{{ route('operations.inventory.low-stock') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory.low-stock']) }}"><span class="aiz-side-nav-text">{{ translate('Low Stock') }}</span></a></li>@endif
                                 @if ($coremarketCanInventoryMovements)<li class="aiz-side-nav-item"><a href="{{ route('operations.inventory-movements') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory-movements']) }}"><span class="aiz-side-nav-text">{{ translate('Movements') }}</span></a></li>@endif
                                 @if ($coremarketCanInventoryAudit)<li class="aiz-side-nav-item"><a href="{{ route('operations.inventory.audit') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory.audit']) }}"><span class="aiz-side-nav-text">{{ translate('Stock Audit') }}</span></a></li>@endif
+                                @if ($coremarketCanInventoryPolicy)<li class="aiz-side-nav-item"><a href="{{ route('operations.inventory.policy') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.inventory.policy', 'operations.inventory.policy.update']) }}"><span class="aiz-side-nav-text">{{ translate('Inventory Policy') }}</span></a></li>@endif
                             </ul>
                         </li>
                         @endif

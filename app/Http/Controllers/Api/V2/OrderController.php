@@ -14,6 +14,7 @@ use App\Models\BusinessSetting;
 use App\Models\User;
 use App\Services\CoreMarketLicenseService;
 use App\Services\InventoryMovementService;
+use App\Services\CoreMarketInventoryPolicyService;
 use DB;
 use \App\Utility\NotificationUtility;
 use App\Models\CombinedOrder;
@@ -125,7 +126,7 @@ class OrderController extends Controller
                 $product_variation = $cartItem['variation'];
 
                 $product_stock = $product->stocks->where('variant', $product_variation)->first();
-                if ($product->digital != 1 && $cartItem['quantity'] > $product_stock->qty) {
+                if ($product->digital != 1 && ! app(CoreMarketInventoryPolicyService::class)->allowNegativeStock() && $cartItem['quantity'] > $product_stock->qty) {
                     $order->delete();
                     $combined_order->delete();
                     return response()->json([

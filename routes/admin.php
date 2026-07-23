@@ -85,6 +85,8 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/inventory/barcode-lookup', 'barcodeLookup')->name('operations.inventory.barcode-lookup');
     Route::get('/operations/inventory/low-stock', 'lowStock')->name('operations.inventory.low-stock');
     Route::get('/operations/inventory/audit', 'inventoryAudit')->name('operations.inventory.audit');
+    Route::get('/operations/inventory/policy', 'inventoryPolicy')->name('operations.inventory.policy');
+    Route::post('/operations/inventory/policy', 'updateInventoryPolicy')->name('operations.inventory.policy.update');
     Route::get('/operations/inventory/stock/{productStock}/adjust', 'adjustStockForm')->name('operations.inventory.stock.adjust');
     Route::post('/operations/inventory/stock/{productStock}/adjust', 'adjustStock')->name('operations.inventory.stock.adjust.store');
     Route::get('/operations/suppliers', 'suppliers')->name('operations.suppliers');

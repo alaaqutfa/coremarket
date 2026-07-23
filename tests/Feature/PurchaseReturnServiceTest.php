@@ -6,6 +6,9 @@ use App\Models\Supplier;
 use App\Services\PurchaseReceivingService;
 use App\Services\PurchaseReturnService;
 use App\Services\SupplierLedgerService;
+use App\Services\CoreMarketInventoryPolicyService;
+use App\Models\BusinessSetting;
+use Illuminate\Support\Facades\Cache;
 use DomainException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +17,12 @@ use Tests\TestCase;
 class PurchaseReturnServiceTest extends TestCase
 {
     use DatabaseTransactions;
+
+    protected function tearDown(): void
+    {
+        Cache::forget('business_settings');
+        parent::tearDown();
+    }
 
     public function test_completed_purchase_return_reduces_stock_and_supplier_balance_once(): void
     {
@@ -70,6 +79,50 @@ class PurchaseReturnServiceTest extends TestCase
         $this->assertSame('cancelled', $first->fresh()->status);
         $this->assertSame('draft', $replacement->status);
         $this->assertDatabaseCount('inventory_movements', 1);
+    }
+
+    public function test_purchase_return_respects_negative_stock_policy(): void
+    {
+        [, $order, $stockId] = $this->receivedPurchase();
+        DB::table('product_stocks')->where('id', $stockId)->update(['qty' => 0]);
+        $service = app(PurchaseReturnService::class);
+        $purchaseReturn = $service->createDraft($order, [[
+            'purchase_order_item_id' => $order->items->first()->id,
+            'quantity' => 1,
+        ]]);
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('Purchase return quantity exceeds current stock.');
+        $service->complete($purchaseReturn);
+    }
+
+    public function test_purchase_return_can_reduce_below_zero_when_policy_allows_it(): void
+    {
+        [, $order, $stockId] = $this->receivedPurchase();
+        DB::table('product_stocks')->where('id', $stockId)->update(['qty' => 0]);
+        $setting = BusinessSetting::query()
+            ->where('type', CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING)
+            ->whereNull('lang')
+            ->first() ?: new BusinessSetting();
+        $setting->forceFill([
+            'type' => CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING,
+            'value' => '1',
+            'lang' => null,
+        ])->save();
+        Cache::forget('business_settings');
+        $service = app(PurchaseReturnService::class);
+        $purchaseReturn = $service->createDraft($order, [[
+            'purchase_order_item_id' => $order->items->first()->id,
+            'quantity' => 1,
+        ]]);
+
+        $service->complete($purchaseReturn);
+
+        $this->assertSame(-1.0, (float) DB::table('product_stocks')->where('id', $stockId)->value('qty'));
+        $this->assertDatabaseHas('inventory_movements', [
+            'movement_type' => 'purchase_return',
+            'direction' => 'out',
+        ]);
     }
 
     private function receivedPurchase(): array

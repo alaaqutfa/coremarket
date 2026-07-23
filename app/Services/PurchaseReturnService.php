@@ -18,7 +18,8 @@ class PurchaseReturnService
     public function __construct(
         private CoreMarketMoneyService $money,
         private InventoryMovementService $inventoryMovements,
-        private SupplierLedgerService $ledger
+        private SupplierLedgerService $ledger,
+        private CoreMarketInventoryPolicyService $inventoryPolicy
     ) {
     }
 
@@ -152,9 +153,7 @@ class PurchaseReturnService
         if (! $product || ! $stock || $product->digital) {
             throw new DomainException('A stocked product is required to complete this purchase return.');
         }
-        if ((float) $stock->qty < (float) $item->quantity) {
-            throw new DomainException('Purchase return quantity exceeds current stock.');
-        }
+        $this->inventoryPolicy->assertCanDecreaseStock($stock, (float) $item->quantity, 'purchase return');
 
         $movementExists = InventoryMovement::query()
             ->where('reference_type', PurchaseReturnItem::class)

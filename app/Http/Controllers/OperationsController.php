@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountingEvent;
 use App\Models\AccountingAccount;
+use App\Models\BusinessSetting;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\InventoryMovement;
@@ -22,6 +23,7 @@ use App\Services\AccountingReportService;
 use App\Services\AccountingEventService;
 use App\Services\AccountingSummaryService;
 use App\Services\CoreMarketFeatureAccessService;
+use App\Services\CoreMarketInventoryPolicyService;
 use App\Services\CoreMarketTaxService;
 use App\Services\InventoryProService;
 use App\Services\ProductIdentityLookupService;
@@ -39,6 +41,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class OperationsController extends Controller
 {
@@ -104,6 +107,33 @@ class OperationsController extends Controller
     {
         $this->authorizeOperation('inventory.stock.audit', ['inventory_pro']);
         return view('backend.operations.inventory.audit', ['audit' => $inventory->auditSummary()]);
+    }
+
+    public function inventoryPolicy(CoreMarketInventoryPolicyService $policy): View
+    {
+        $this->authorizeOperation('inventory.stock.adjust', ['inventory_pro']);
+
+        return view('backend.operations.inventory.policy', ['policy' => $policy->policySnapshot()]);
+    }
+
+    public function updateInventoryPolicy(Request $request): RedirectResponse
+    {
+        $this->authorizeOperation('inventory.stock.adjust', ['inventory_pro']);
+        $data = $request->validate([
+            'strict_inventory_mode' => 'required|boolean',
+            'allow_negative_stock' => 'required|boolean',
+        ]);
+
+        foreach ([
+            CoreMarketInventoryPolicyService::STRICT_MODE_SETTING => $data['strict_inventory_mode'],
+            CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING => $data['allow_negative_stock'],
+        ] as $type => $value) {
+            $setting = BusinessSetting::query()->where('type', $type)->whereNull('lang')->first() ?: new BusinessSetting();
+            $setting->forceFill(['type' => $type, 'value' => $value ? '1' : '0', 'lang' => null])->save();
+        }
+        Cache::forget('business_settings');
+
+        return back()->with('success', translate('Inventory policy updated successfully'));
     }
 
     public function adjustStockForm(ProductStock $productStock): View
