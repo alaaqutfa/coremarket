@@ -1,6 +1,14 @@
 <?php
 
 return [
+    'money' => [
+        'base_currency' => 'USD',
+        'base_exchange_rate' => 1.0,
+        'display_decimals' => 2,
+    ],
+    'tax' => [
+        'default_rate_code' => env('COREMARKET_DEFAULT_TAX_RATE_CODE'),
+    ],
     'vat' => [
         'default_price_mode' => env('COREMARKET_VAT_DEFAULT_PRICE_MODE', 'exclusive'),
     ],

@@ -159,23 +159,30 @@ No migrations are part of this audit. Candidate migrations should be split and r
 
 Settings such as strict inventory and negative stock should use the established business-settings mechanism unless schema evidence requires otherwise.
 
+## Product pricing vocabulary
+
+- `cost_price`: the supplier purchase cost captured by purchasing and inventory cost snapshots.
+- `regular_price` / `retail_price`: the default official selling price.
+- `sale_price`: a temporary promotion or discount price. It is not a customer pricing level.
+- `price_list_price`: a future customer- or segment-specific price. Price Lists A/B/C belong to this concept and are not implemented by the money foundation.
+
 ## Delivery phases
 
 | Phase | Scope | Exit criteria |
 | --- | --- | --- |
-| 47A | Audit, roadmap, Add Item rendering fix | Roadmap approved; focused regression passes |
-| 47B | Money/currency normalization | USD rate policy, LBP conversion tests, shared formatter, Operations rendering inventory |
-| 47C | General tax administration | Super Admin TaxRate CRUD/default and calculation tests; no purchase posting yet |
-| 47D | Purchase invoice UX | Scanner lookup, scalable product search, line tax and pricing controls |
-| 47E | Purchase posting integration | Atomic stock/cost/sale-price snapshots and idempotent receiving |
-| 47F | Supplier accounting | Payable ledger, cash/credit/partial payments, allocations and statements |
-| 47G | Purchase returns | Cost-based supplier return, stock-out, payable credit and idempotency |
-| 47H | Strict inventory policies | Central negative-stock and purchase-only inbound enforcement |
-| 47I | Purchase PDF | Branded snapshot-based 58/A4-ready document output as approved |
-| 47J | Sidebar and dashboard | Permission-aware navigation order and quick actions |
-| 47K | Phone normalization | Shared E.164 flow and web/API regression coverage |
-| 47L | Accounting reports | Valuation, balance sheet, aging, tax, and reconciliation in approved order |
-| 47M | Unified channel regression | POS/storefront purchasing, stock, money, tax and accounting contract tests |
+| 47 | Audit, roadmap, Add Item rendering fix | Roadmap approved; focused regression passes |
+| 48 | Money, currency, and tax foundation | USD base/rate policy, LBP conversion tests, two-decimal money helpers, tax calculation snapshot |
+| 49 | Purchase Invoice + Barcode + Cost/Regular/Sale Price workflow | Scanner lookup, tax selection, fixed/margin pricing, atomic stock and cost snapshots |
+| 50 | Price Lists + customer pricing levels A/B/C | Explicit customer/segment price lists without overloading `sale_price` |
+| 51 | Product Family / Sub Family + inventory classification | Approved hierarchy, migration, filters, imports, and reporting |
+| 52 | Supplier accounting | Payable ledger, cash/credit/partial payments, allocations and statements |
+| 53 | Purchase returns | Cost-based supplier return, stock-out, payable credit and idempotency |
+| 54 | Strict inventory policies | Central negative-stock and purchase-only inbound enforcement |
+| 55 | Purchase PDF | Branded snapshot-based A4/receipt document output as approved |
+| 56 | Sidebar and dashboard | Permission-aware navigation order and quick actions |
+| 57 | Phone normalization | Shared E.164 flow and web/API regression coverage |
+| 58 | Accounting reports | Valuation, balance sheet, aging, tax, and reconciliation in approved order |
+| 59 | Unified channel regression | POS/storefront purchasing, stock, money, tax and accounting contract tests |
 | Later | Flutter mobile POS | Camera barcode scanning after backend contracts are stable |
 
 ## Explicit non-goals for this step

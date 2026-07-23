@@ -450,6 +450,34 @@ if (! function_exists('single_price')) {
     }
 }
 
+if (! function_exists('coremarket_money')) {
+    function coremarket_money($amount, ?string $currency = null): string
+    {
+        return app(\App\Services\CoreMarketMoneyService::class)->formatMoney($amount, $currency);
+    }
+}
+
+if (! function_exists('coremarket_price')) {
+    function coremarket_price($amount, ?string $currency = null): string
+    {
+        return app(\App\Services\CoreMarketMoneyService::class)->formatPrice($amount, $currency);
+    }
+}
+
+if (! function_exists('coremarket_number')) {
+    function coremarket_number($number, int $decimals = 2): string
+    {
+        return app(\App\Services\CoreMarketMoneyService::class)->formatNumber($number, $decimals);
+    }
+}
+
+if (! function_exists('coremarket_quantity')) {
+    function coremarket_quantity($quantity): string
+    {
+        return app(\App\Services\CoreMarketMoneyService::class)->formatQuantity($quantity);
+    }
+}
+
 if (! function_exists('discount_in_percentage')) {
     function discount_in_percentage($product)
     {
