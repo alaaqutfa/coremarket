@@ -40,6 +40,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PickupPointController;
 use App\Http\Controllers\ProductBulkUploadController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductFamilyController;
 use App\Http\Controllers\ProductQueryController;
 use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\ProfileController;
@@ -136,6 +137,15 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/accounting/profit-loss', 'profitLoss')->name('operations.accounting.profit-loss');
     Route::get('/operations/accounting/vat-snapshots', 'vatSnapshots')->name('operations.accounting.vat-snapshots');
     Route::get('/operations/accounting/vat-audit', 'vatAudit')->name('operations.accounting.vat-audit');
+});
+
+Route::controller(ProductFamilyController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/inventory/families', 'index')->name('operations.inventory.families.index');
+    Route::get('/operations/inventory/families/create', 'create')->name('operations.inventory.families.create');
+    Route::post('/operations/inventory/families', 'store')->name('operations.inventory.families.store');
+    Route::get('/operations/inventory/families/{productFamily}/edit', 'edit')->name('operations.inventory.families.edit');
+    Route::put('/operations/inventory/families/{productFamily}', 'update')->name('operations.inventory.families.update');
+    Route::patch('/operations/inventory/families/{productFamily}/toggle', 'toggle')->name('operations.inventory.families.toggle');
 });
 Route::controller(CashboxController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
     Route::get('/operations/cashbox', 'dashboard')->name('operations.cashbox.dashboard');

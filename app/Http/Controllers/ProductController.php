@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Models\Wishlist;
 use App\Notifications\ShopProductNotification;
 use App\Services\CoreMarketLicenseService;
+use App\Services\CoreMarketProductClassificationService;
 use App\Services\FrequentlyBoughtProductService;
 use App\Services\ProductFlashDealService;
 use App\Services\ProductService;
@@ -185,8 +186,9 @@ class ProductController extends Controller
 
         $categories = Category::where('digital', 0)
             ->get();
+        $families = app(CoreMarketProductClassificationService::class)->families();
 
-        return view('backend.product.products.create', compact('categories'));
+        return view('backend.product.products.create', compact('categories', 'families'));
     }
 
     public function add_more_choice_option(Request $request)
@@ -295,7 +297,8 @@ class ProductController extends Controller
             ->where('digital', 0)
             ->with('childrenCategories')
             ->get();
-        return view('backend.product.products.edit', compact('product', 'categories', 'tags', 'lang'));
+        $families = app(CoreMarketProductClassificationService::class)->families();
+        return view('backend.product.products.edit', compact('product', 'categories', 'tags', 'lang', 'families'));
     }
 
     /**
@@ -317,8 +320,9 @@ class ProductController extends Controller
             ->where('digital', 0)
             ->with('childrenCategories')
             ->get();
+        $families = app(CoreMarketProductClassificationService::class)->families();
 
-        return view('backend.product.products.edit', compact('product', 'categories', 'tags', 'lang'));
+        return view('backend.product.products.edit', compact('product', 'categories', 'tags', 'lang', 'families'));
     }
 
     /**

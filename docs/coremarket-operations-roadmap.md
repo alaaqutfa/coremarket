@@ -214,6 +214,24 @@ Next delivery phases remain:
 - 54 Purchase Invoice PDF + Supplier Statement PDF.
 - 55 Accounting Reports Foundation.
 
+## Product family classification
+
+Step 53 adds a product-level operational Family/Sub Family hierarchy for inventory filtering and reporting. It is intentionally independent from the existing storefront category tree.
+
+- Category remains the storefront/display, commission, navigation, and SEO classification.
+- Family and Sub Family are internal inventory classifications; a sub family must belong to its selected active family.
+- Product create/edit can assign active classifications without changing category or brand assignments.
+- Inventory stock and movement screens can filter and display Family/Sub Family.
+- Classification remains product-level. Variant-level classification, bulk import/export columns, inventory valuation, and supplier-product mapping remain deferred.
+- Manufacturing, BOM, production recipes, and storefront taxonomy changes are not part of this foundation.
+
+Next:
+
+- 54 Purchase Invoice PDF + Supplier Statement PDF.
+- 55 Accounting Reports Foundation.
+- 56 Sidebar + Quick Actions UX.
+- 57 Release Packaging + Hardware QA.
+
 ## Explicit non-goals for this step
 
 - No complete accounting or purchasing workflow.

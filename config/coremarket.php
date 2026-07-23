@@ -606,6 +606,7 @@ return [
             'inventory.stock.audit',
             'inventory.low_stock.view',
             'inventory.barcode_lookup.view',
+            'inventory.families.manage',
         ],
 
         'store_admin_permissions' => [
@@ -671,6 +672,7 @@ return [
             'inventory.stock.audit',
             'inventory.low_stock.view',
             'inventory.barcode_lookup.view',
+            'inventory.families.manage',
         ],
 
         'store_admin_allowed_business_setting_types' => [

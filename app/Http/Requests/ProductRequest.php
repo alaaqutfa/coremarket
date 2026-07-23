@@ -9,6 +9,8 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use App\Models\Product;
 use App\Services\ProductIdentityLookupService;
+use App\Services\CoreMarketProductClassificationService;
+use DomainException;
 
 class ProductRequest extends FormRequest
 {
@@ -46,6 +48,8 @@ class ProductRequest extends FormRequest
         $rules['starting_bid']  = 'sometimes|required|numeric|min:1';
         $rules['auction_date_range']  = 'sometimes|required';
         $rules['barcode'] = ['nullable', 'string', 'max:255'];
+        $rules['product_family_id'] = ['nullable', 'integer', 'exists:product_families,id'];
+        $rules['product_sub_family_id'] = ['nullable', 'integer', 'exists:product_families,id'];
 
         foreach ($this->all() as $key => $value) {
             if (str_starts_with($key, 'barcode_') || str_starts_with($key, 'sku_')) {
@@ -91,7 +95,24 @@ class ProductRequest extends FormRequest
                     $validator->errors()->add($key, $message);
                 }
             }
+
+            try {
+                app(CoreMarketProductClassificationService::class)->validateFamilyHierarchy(
+                    $this->input('product_family_id'),
+                    $this->input('product_sub_family_id')
+                );
+            } catch (DomainException $exception) {
+                $validator->errors()->add('product_sub_family_id', $exception->getMessage());
+            }
         });
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'product_family_id' => $this->filled('product_family_id') ? $this->input('product_family_id') : null,
+            'product_sub_family_id' => $this->filled('product_sub_family_id') ? $this->input('product_sub_family_id') : null,
+        ]);
     }
 
     /**

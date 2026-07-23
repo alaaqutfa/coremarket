@@ -32,7 +32,7 @@ class InventoryProService
 
     public function stockRows(array $filters = []): Collection
     {
-        $rows = ProductStock::query()->with('product')->get()->map(function (ProductStock $stock) {
+        $rows = ProductStock::query()->with(['product.productFamily', 'product.productSubFamily'])->get()->map(function (ProductStock $stock) {
             $product = $stock->product;
             $threshold = (float) ($product?->low_stock_quantity ?: config('coremarket.inventory.low_stock_threshold', 5));
             $movementAt = InventoryMovement::query()->where('product_stock_id', $stock->id)->max('created_at');
@@ -45,6 +45,8 @@ class InventoryProService
             $needle = strtolower(trim((string) ($filters['search'] ?? '')));
             if ($needle !== '' && ! str_contains(strtolower(($row['product']?->name ?? '').' '.$row['stock']->sku.' '.$row['stock']->barcode.' '.$row['product']?->barcode), $needle)) return false;
             if (($filters['status'] ?? '') !== '' && $row['status'] !== $filters['status']) return false;
+            if (! empty($filters['product_family_id']) && (int) $row['product']?->product_family_id !== (int) $filters['product_family_id']) return false;
+            if (! empty($filters['product_sub_family_id']) && (int) $row['product']?->product_sub_family_id !== (int) $filters['product_sub_family_id']) return false;
             return empty($filters['low_stock_only']) || in_array($row['status'], ['low_stock', 'out_of_stock'], true);
         })->values();
     }

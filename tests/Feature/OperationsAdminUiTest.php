@@ -82,6 +82,7 @@ class OperationsAdminUiTest extends TestCase
             $this->assertDatabaseHas('permissions', ['name' => 'supplier_ledger.view', 'section' => 'operations']);
             $this->assertDatabaseHas('permissions', ['name' => 'supplier_payments.create', 'section' => 'operations']);
             $this->assertDatabaseHas('permissions', ['name' => 'purchase_returns.complete', 'section' => 'operations']);
+            $this->assertDatabaseHas('permissions', ['name' => 'inventory.families.manage', 'section' => 'operations']);
         } finally { DB::rollBack(); }
     }
 

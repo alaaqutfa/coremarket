@@ -30,6 +30,16 @@ class Product extends Model
     {
         return $this->belongsTo(Category::class, 'category_id');
     }
+
+    public function productFamily()
+    {
+        return $this->belongsTo(ProductFamily::class, 'product_family_id');
+    }
+
+    public function productSubFamily()
+    {
+        return $this->belongsTo(ProductFamily::class, 'product_sub_family_id');
+    }
     
     public function categories()
     {

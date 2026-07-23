@@ -11,6 +11,7 @@ use App\Models\InventoryMovement;
 use App\Models\JournalEntry;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductFamily;
 use App\Models\ProductStock;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseReceipt;
@@ -66,14 +67,24 @@ class OperationsController extends Controller
     public function inventoryMovements(Request $request): View
     {
         $this->authorizeOperation('inventory_movements.view', ['inventory_pro', 'accounting_lite']);
-        $query = InventoryMovement::query()->with(['product', 'productStock', 'order'])->latest();
+        $query = InventoryMovement::query()->with(['product.productFamily', 'product.productSubFamily', 'productStock', 'order'])->latest();
         foreach (['movement_type', 'direction', 'product_id'] as $filter) {
             if ($request->filled($filter)) $query->where($filter, $request->input($filter));
+        }
+        if ($request->filled('product_family_id')) {
+            $query->whereHas('product', fn ($product) => $product->where('product_family_id', $request->integer('product_family_id')));
+        }
+        if ($request->filled('product_sub_family_id')) {
+            $query->whereHas('product', fn ($product) => $product->where('product_sub_family_id', $request->integer('product_sub_family_id')));
         }
         if ($request->filled('from')) $query->whereDate('created_at', '>=', $request->input('from'));
         if ($request->filled('to')) $query->whereDate('created_at', '<=', $request->input('to'));
 
-        return view('backend.operations.inventory-movements', ['movements' => $query->paginate(30)->withQueryString(), 'products' => Product::query()->orderBy('name')->limit(250)->get()]);
+        return view('backend.operations.inventory-movements', [
+            'movements' => $query->paginate(30)->withQueryString(),
+            'products' => Product::query()->orderBy('name')->limit(250)->get(),
+            'families' => ProductFamily::query()->families()->active()->with(['children' => fn ($children) => $children->active()])->orderBy('name')->get(),
+        ]);
     }
 
     public function inventoryDashboard(InventoryProService $inventory): View
@@ -85,7 +96,10 @@ class OperationsController extends Controller
     public function inventoryStock(Request $request, InventoryProService $inventory): View
     {
         $this->authorizeOperation('inventory.stock.view', ['inventory_pro']);
-        return view('backend.operations.inventory.stock', ['rows' => $inventory->stockRows($request->only(['search', 'status', 'low_stock_only']))]);
+        return view('backend.operations.inventory.stock', [
+            'rows' => $inventory->stockRows($request->only(['search', 'status', 'low_stock_only', 'product_family_id', 'product_sub_family_id'])),
+            'families' => ProductFamily::query()->families()->active()->with(['children' => fn ($children) => $children->active()])->orderBy('name')->get(),
+        ]);
     }
 
     public function barcodeLookup(Request $request, ProductIdentityLookupService $lookup, InventoryProService $inventory): View

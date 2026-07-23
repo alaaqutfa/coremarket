@@ -141,6 +141,7 @@
                                                         class="text-muted">{{ translate("You can choose a brand if you'd like to display your product by brand.") }}</small>
                                                 </div>
                                             </div>
+                                            @include('backend.product.products.family_fields')
                                             <!-- Unit -->
                                             <div class="form-group row">
                                                 <label class="col-xxl-3 col-from-label fs-13">{{ translate('Unit') }}
