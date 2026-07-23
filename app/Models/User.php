@@ -94,6 +94,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(LoyaltyPointMovement::class);
     }
 
+    public function priceList()
+    {
+        return $this->belongsTo(PriceList::class);
+    }
+
     public function seller_orders()
     {
         return $this->hasMany(Order::class, "seller_id");

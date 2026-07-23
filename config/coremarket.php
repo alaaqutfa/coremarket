@@ -17,6 +17,10 @@ return [
         'strict_inventory_mode' => false,
         'allow_negative_stock' => false,
     ],
+    'pricing' => [
+        'priority' => 'customer_price_first',
+        'priorities' => ['customer_price_first', 'sale_price_first', 'lowest_price'],
+    ],
 
     'plan' => [
         'code' => env('COREMARKET_PLAN_CODE', env('COREMARKET_APPLIED_PLAN_CODE', 'starter')),
@@ -588,6 +592,7 @@ return [
             'accounting.core.view', 'accounting.accounts.view', 'accounting.journals.view', 'accounting.journals.post', 'accounting.tax.view', 'accounting.tax.audit', 'accounting.general_ledger.view', 'accounting.trial_balance.view', 'accounting.profit_loss.view', 'accounting.events.view',
             'cashboxes.view','cashboxes.create','cashboxes.edit','cash_shifts.view','cash_shifts.open','cash_shifts.close','cash_movements.view','cash_movements.create',
             'pos.view', 'pos.sell', 'pos.receipts.view', 'pos.redeem_loyalty',
+            'price_lists.manage',
 
             'loyalty.view',
             'loyalty.rules.manage',
@@ -641,6 +646,7 @@ return [
             'purchase_returns.create',
             'purchase_returns.complete',
             'purchase_returns.cancel',
+            'price_lists.manage',
             'sales_returns.view',
             'sales_returns.create',
             'sales_returns.complete',

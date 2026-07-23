@@ -41,9 +41,11 @@ class WebPosController extends Controller
 
         $data = $request->validate([
             'q' => 'required|string|max:255',
+            'customer_id' => 'nullable|integer|min:1',
         ]);
+        $customer = $pos->validatePosCustomer(isset($data['customer_id']) ? (int) $data['customer_id'] : null);
 
-        return response()->json($pos->searchProducts($data['q'])->values());
+        return response()->json($pos->searchProducts($data['q'], $customer)->values());
     }
 
     public function customersSearch(Request $request, WebPosService $pos): JsonResponse

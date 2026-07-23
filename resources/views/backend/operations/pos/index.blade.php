@@ -265,7 +265,8 @@
         if (!q) return;
         results.innerHTML = `<div class="text-center text-muted py-3">{{ translate('Searching...') }}</div>`;
         try {
-            const response = await fetch(`${app.dataset.searchUrl}?q=${encodeURIComponent(q)}`, {headers: {'Accept': 'application/json'}});
+            const customerParam = selectedCustomerData ? `&customer_id=${encodeURIComponent(selectedCustomerData.id)}` : '';
+            const response = await fetch(`${app.dataset.searchUrl}?q=${encodeURIComponent(q)}${customerParam}`, {headers: {'Accept': 'application/json'}});
             if (!response.ok) throw new Error('Search unavailable');
             const items = await response.json();
             results.innerHTML = '';

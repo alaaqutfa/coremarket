@@ -30,15 +30,23 @@ class PosApiController extends Controller
 
         $validator = Validator::make($request->query(), [
             'q' => ['required', 'string', 'min:1', 'max:100'],
+            'customer_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         if ($validator->fails()) {
             return $this->validationError($validator->errors()->toArray());
         }
 
-        return $this->success([
-            'items' => $pos->searchPayload($pos->searchProducts($validator->validated()['q'])),
-        ]);
+        try {
+            $data = $validator->validated();
+            $customer = $pos->validatePosCustomer(isset($data['customer_id']) ? (int) $data['customer_id'] : null);
+
+            return $this->success([
+                'items' => $pos->searchPayload($pos->searchProducts($data['q'], $customer)),
+            ]);
+        } catch (DomainException $exception) {
+            return $this->domainError($exception);
+        }
     }
 
     public function customersSearch(Request $request, WebPosService $pos, CoreMarketFeatureAccessService $features): JsonResponse

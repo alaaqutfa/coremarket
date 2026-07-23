@@ -197,6 +197,23 @@ Step 51 uses the existing business-settings mechanism with config fallbacks; it 
 
 Strict inventory mode protects inventory and costing discipline. Negative-stock permission is a per-instance policy. Price Lists A/B/C and Family/Sub Family remain outside Step 51.
 
+## Customer price lists
+
+Step 52 adds customer-level Retail, Wholesale A/B/C, VIP, and custom price lists. A customer may be assigned one active list, whose product or variant item can resolve a fixed price, margin over cost, or discount from regular price.
+
+- The default resolution priority is `customer_price_first`; `sale_price_first` and `lowest_price` remain configurable alternatives.
+- `sale_price` remains a temporary product promotion and is not a customer level.
+- Legacy product-stock wholesale tiers remain quantity-based and separate from customer price lists.
+- POS search and checkout resolve customer prices server-side and retain a pricing snapshot in POS metadata.
+- Web cart price calculation uses the same resolver while preserving auction prices, legacy quantity wholesale, and coupon handling.
+- Broad customer-specific storefront catalog/listing display remains deferred because cache and anonymous-session behavior require a dedicated review.
+
+Next delivery phases remain:
+
+- 53 Product Family / Sub Family + Inventory Classification.
+- 54 Purchase Invoice PDF + Supplier Statement PDF.
+- 55 Accounting Reports Foundation.
+
 ## Explicit non-goals for this step
 
 - No complete accounting or purchasing workflow.

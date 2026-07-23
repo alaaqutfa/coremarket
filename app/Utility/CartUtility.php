@@ -3,6 +3,7 @@
 namespace App\Utility;
 
 use App\Models\Cart;
+use App\Services\CoreMarketPriceListService;
 use Cookie;
 
 class CartUtility
@@ -30,7 +31,8 @@ class CartUtility
 
     public static function get_price($product, $product_stock, $quantity)
     {
-        $price = $product_stock->price;
+        $regularPrice = $product_stock->price;
+        $price = $regularPrice;
         if ($product->auction_product == 1) {
             $price = $product->bids->max('amount');
         }
@@ -45,7 +47,19 @@ class CartUtility
         }
 
         $price = self::discount_calculation($product, $price);
-        return $price;
+        if ($product->auction_product == 1) {
+            return $price;
+        }
+
+        return app(CoreMarketPriceListService::class)->resolvePrice(
+            $product_stock,
+            auth()->user(),
+            [
+                'regular_price' => $regularPrice,
+                // Keep legacy quantity wholesale and promotions as the existing sale candidate.
+                'sale_price' => (float) $price !== (float) $regularPrice ? $price : null,
+            ]
+        );
     }
 
     public static function discount_calculation($product, $price)

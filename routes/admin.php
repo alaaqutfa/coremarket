@@ -41,6 +41,7 @@ use App\Http\Controllers\PickupPointController;
 use App\Http\Controllers\ProductBulkUploadController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductQueryController;
+use App\Http\Controllers\PriceListController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
@@ -164,6 +165,18 @@ Route::controller(WebPosController::class)->middleware(['auth', 'admin', 'restri
     Route::get('/operations/pos/customers/search', 'customersSearch')->name('operations.pos.customers.search');
     Route::post('/operations/pos/checkout', 'checkout')->name('operations.pos.checkout');
     Route::get('/operations/pos/orders/{order}/receipt', 'receipt')->name('operations.pos.receipt');
+});
+
+Route::controller(PriceListController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/pricing/price-lists', 'index')->name('operations.price-lists.index');
+    Route::get('/operations/pricing/price-lists/create', 'create')->name('operations.price-lists.create');
+    Route::post('/operations/pricing/price-lists', 'store')->name('operations.price-lists.store');
+    Route::get('/operations/pricing/price-lists/{priceList}', 'show')->name('operations.price-lists.show');
+    Route::get('/operations/pricing/price-lists/{priceList}/edit', 'edit')->name('operations.price-lists.edit');
+    Route::put('/operations/pricing/price-lists/{priceList}', 'update')->name('operations.price-lists.update');
+    Route::post('/operations/pricing/price-lists/{priceList}/items', 'storeItem')->name('operations.price-lists.items.store');
+    Route::delete('/operations/pricing/price-lists/{priceList}/items/{item}', 'destroyItem')->name('operations.price-lists.items.destroy');
+    Route::post('/operations/pricing/price-lists/{priceList}/customers', 'assignCustomer')->name('operations.price-lists.customers.assign');
 });
 
 Route::controller(LoyaltyPointsController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {

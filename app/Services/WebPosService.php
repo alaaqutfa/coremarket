@@ -24,6 +24,7 @@ class WebPosService
         private LoyaltyPointsService $loyalty,
         private CoreMarketFeatureAccessService $features,
         private CoreMarketInventoryPolicyService $inventoryPolicy,
+        private CoreMarketPriceListService $priceLists,
     ) {
     }
 
@@ -32,7 +33,7 @@ class WebPosService
         return $this->openShiftForUser($user);
     }
 
-    public function searchProducts(string $query): Collection
+    public function searchProducts(string $query, ?User $customer = null): Collection
     {
         $query = trim($query);
         if ($query === '') {
@@ -40,7 +41,7 @@ class WebPosService
         }
 
         if ($identity = $this->identityLookup->find($query)) {
-            return collect([$this->lineForProductStock($identity['product'], $identity['product_stock'], $identity['matched_by'])]);
+            return collect([$this->lineForProductStock($identity['product'], $identity['product_stock'], $identity['matched_by'], $customer)]);
         }
 
         return Product::query()
@@ -49,14 +50,14 @@ class WebPosService
             ->orderBy('name')
             ->limit(30)
             ->get()
-            ->flatMap(function (Product $product) {
+            ->flatMap(function (Product $product) use ($customer) {
                 $stocks = $product->stocks;
 
                 if ($stocks->isEmpty()) {
-                    return [$this->lineForProductStock($product, null, 'name')];
+                    return [$this->lineForProductStock($product, null, 'name', $customer)];
                 }
 
-                return $stocks->map(fn (ProductStock $stock) => $this->lineForProductStock($product, $stock, 'name'));
+                return $stocks->map(fn (ProductStock $stock) => $this->lineForProductStock($product, $stock, 'name', $customer));
             })
             ->values();
     }
@@ -108,6 +109,7 @@ class WebPosService
             'loyalty_balance' => $this->features->enabled('loyalty_points')
                 ? $this->loyalty->balanceForCustomerWithoutCreatingAccount($customer)
                 : null,
+            'price_list' => $this->priceLists->getCustomerPriceList($customer)?->only(['id', 'name', 'code']),
         ];
     }
 
@@ -171,7 +173,7 @@ class WebPosService
         ])->values()->all();
     }
 
-    public function buildCartLine(Product|ProductStock $subject, mixed $quantity): array
+    public function buildCartLine(Product|ProductStock $subject, mixed $quantity, ?User $customer = null): array
     {
         $stock = $subject instanceof ProductStock
             ? $subject->loadMissing('product.taxes')
@@ -183,7 +185,8 @@ class WebPosService
         }
 
         $quantity = $this->normalizeQuantity($quantity);
-        $unitPrice = $this->unitPrice($product, $stock);
+        $pricing = $this->priceLists->pricingSnapshot($stock ?? $product, $customer);
+        $unitPrice = $pricing['resolved_price'];
         $unitTax = $this->legacyTaxForUnit($product, $unitPrice);
 
         return [
@@ -196,6 +199,7 @@ class WebPosService
             'tax' => $this->round($unitTax * $quantity),
             'available_stock' => $stock ? (float) $stock->qty : (float) $product->current_stock,
             'tax_source' => 'legacy_product_taxes',
+            'pricing_snapshot' => $pricing,
         ];
     }
 
@@ -250,7 +254,7 @@ class WebPosService
 
                 $customer = $this->validatePosCustomer($customerId);
                 $shift = $this->openShiftForUser($user, true);
-                $lines = $this->normalizeCart($cart, true);
+                $lines = $this->normalizeCart($cart, true, $customer);
                 $this->assertStockIsAvailable($lines);
                 $totals = $this->totalsForLines($lines);
                 $redemptionPreview = $this->previewRedemptionForCheckout($customer, $pointsToRedeem, $totals['grand_total']);
@@ -417,7 +421,7 @@ class WebPosService
         return Str::substr($local, 0, 1) . '***@' . $domain;
     }
 
-    private function normalizeCart(array $cart, bool $lockStocks = false): array
+    private function normalizeCart(array $cart, bool $lockStocks = false, ?User $customer = null): array
     {
         if ($cart === []) {
             throw new DomainException('POS cart cannot be empty.');
@@ -450,10 +454,11 @@ class WebPosService
             Product::query()->whereIn('id', $productIds)->lockForUpdate()->get();
         }
 
-        return $quantities->map(function (float $quantity, int $stockId) use ($stocks) {
+        return $quantities->map(function (float $quantity, int $stockId) use ($stocks, $customer) {
             $stock = $stocks->get($stockId);
             $product = $stock->product;
-            $unitPrice = $this->unitPrice($product, $stock);
+            $pricing = $this->priceLists->pricingSnapshot($stock, $customer);
+            $unitPrice = $pricing['resolved_price'];
             $unitTax = $this->legacyTaxForUnit($product, $unitPrice);
 
             return [
@@ -464,6 +469,7 @@ class WebPosService
                 'line_price' => $this->round($unitPrice * $quantity),
                 'tax' => $this->round($unitTax * $quantity),
                 'variation' => $stock->variant ?? '',
+                'pricing_snapshot' => $pricing,
             ];
         })->values()->all();
     }
@@ -604,6 +610,11 @@ class WebPosService
             'cashier_shift_id' => $shift->id,
             'cashbox_id' => $shift->cashbox_id,
             'customer_id' => $customer?->id,
+            'pricing' => collect($lines)->map(fn (array $line) => [
+                'product_id' => $line['product']->id,
+                'product_stock_id' => $line['stock']->id,
+                'snapshot' => $line['pricing_snapshot'],
+            ])->values()->all(),
         ];
         $order->save();
 
@@ -655,8 +666,10 @@ class WebPosService
         }
     }
 
-    private function lineForProductStock(Product $product, ?ProductStock $stock, string $matchedBy): array
+    private function lineForProductStock(Product $product, ?ProductStock $stock, string $matchedBy, ?User $customer = null): array
     {
+        $pricing = $this->priceLists->pricingSnapshot($stock ?? $product, $customer);
+
         return [
             'product_id' => $product->id,
             'product_stock_id' => $stock?->id,
@@ -665,24 +678,11 @@ class WebPosService
             'sku' => $stock?->sku,
             'barcode' => $stock?->barcode ?? $product->barcode,
             'available_stock' => $stock ? (float) $stock->qty : (float) $product->current_stock,
-            'price' => $this->unitPrice($product, $stock),
+            'price' => $pricing['resolved_price'],
+            'pricing' => $pricing,
             'taxes' => $product->taxes->map(fn ($tax) => ['type' => $tax->tax_type, 'value' => (float) $tax->tax])->values()->all(),
             'matched_by' => $matchedBy,
         ];
-    }
-
-    private function unitPrice(Product $product, ?ProductStock $stock): float
-    {
-        $price = $stock?->price;
-        if (! is_numeric($price)) {
-            $price = $product->unit_price;
-        }
-
-        if (! is_numeric($price) || (float) $price < 0) {
-            throw new DomainException('Product price is invalid for POS sale.');
-        }
-
-        return $this->round($price);
     }
 
     private function legacyTaxForUnit(Product $product, float $price): float
