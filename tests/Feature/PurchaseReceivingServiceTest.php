@@ -81,6 +81,44 @@ class PurchaseReceivingServiceTest extends TestCase
         $service->receive($order, [['purchase_order_item_id' => $item->id, 'quantity_received' => 1]], ['receipt_key' => 'receipt-over-' . uniqid()]);
     }
 
+    public function test_receiving_applies_pricing_snapshot_once_with_idempotent_stock_movement(): void
+    {
+        [, $productId, $stockId] = $this->makeSupplierAndProduct();
+        $service = app(PurchaseReceivingService::class);
+        $order = $service->createPurchaseOrder(['status' => 'ordered'], [[
+            'product_id' => $productId,
+            'product_stock_id' => $stockId,
+            'quantity_ordered' => 2,
+            'unit_cost' => 8,
+            'regular_price' => 12,
+            'sale_price' => 10,
+            'tax_enabled' => true,
+            'tax_rate' => 11,
+        ]]);
+        $item = $order->items->first();
+        $receiptKey = 'pricing-receipt-' . uniqid();
+
+        $service->receive($order, [[
+            'purchase_order_item_id' => $item->id,
+            'quantity_received' => 2,
+        ]], ['receipt_key' => $receiptKey]);
+        $service->receive($order, [[
+            'purchase_order_item_id' => $item->id,
+            'quantity_received' => 2,
+        ]], ['receipt_key' => $receiptKey]);
+
+        $product = DB::table('products')->where('id', $productId)->first();
+        $stock = DB::table('product_stocks')->where('id', $stockId)->first();
+        $this->assertSame(8.0, (float) $product->purchase_price);
+        $this->assertSame(12.0, (float) $product->unit_price);
+        $this->assertSame(2.0, (float) $product->discount);
+        $this->assertSame('amount', $product->discount_type);
+        $this->assertSame(12.0, (float) $stock->price);
+        $this->assertSame(4.0, (float) $stock->qty);
+        $this->assertSame(50.0, (float) $item->metadata['pricing_snapshot']['margin_percent']);
+        $this->assertSame(1, DB::table('inventory_movements')->where('product_stock_id', $stockId)->count());
+    }
+
     private function makePurchaseOrder(PurchaseReceivingService $service, int $productId, int $stockId): PurchaseOrder
     {
         return $service->createPurchaseOrder(['status' => 'ordered'], [[

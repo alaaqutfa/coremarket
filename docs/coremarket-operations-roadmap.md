@@ -173,17 +173,18 @@ Settings such as strict inventory and negative stock should use the established 
 | 47 | Audit, roadmap, Add Item rendering fix | Roadmap approved; focused regression passes |
 | 48 | Money, currency, and tax foundation | USD base/rate policy, LBP conversion tests, two-decimal money helpers, tax calculation snapshot |
 | 49 | Purchase Invoice + Barcode + Cost/Regular/Sale Price workflow | Scanner lookup, tax selection, fixed/margin pricing, atomic stock and cost snapshots |
-| 50 | Price Lists + customer pricing levels A/B/C | Explicit customer/segment price lists without overloading `sale_price` |
-| 51 | Product Family / Sub Family + inventory classification | Approved hierarchy, migration, filters, imports, and reporting |
-| 52 | Supplier accounting | Payable ledger, cash/credit/partial payments, allocations and statements |
-| 53 | Purchase returns | Cost-based supplier return, stock-out, payable credit and idempotency |
-| 54 | Strict inventory policies | Central negative-stock and purchase-only inbound enforcement |
-| 55 | Purchase PDF | Branded snapshot-based A4/receipt document output as approved |
-| 56 | Sidebar and dashboard | Permission-aware navigation order and quick actions |
-| 57 | Phone normalization | Shared E.164 flow and web/API regression coverage |
-| 58 | Accounting reports | Valuation, balance sheet, aging, tax, and reconciliation in approved order |
-| 59 | Unified channel regression | POS/storefront purchasing, stock, money, tax and accounting contract tests |
+| 50 | Supplier Accounting + Purchase Returns foundation | Payable ledger design, cash/credit/partial payments, statements, and cost-based return policy |
+| 51 | Price Lists + customer pricing levels A/B/C | Explicit customer/segment price lists without overloading `sale_price` |
+| 52 | Product Family / Sub Family + inventory classification | Approved internal hierarchy, migration, filters, imports, and reporting; this is not a storefront category |
+| 53 | Strict inventory policies | Central negative-stock and purchase-only inbound enforcement |
+| 54 | Purchase PDF | Branded snapshot-based A4/receipt document output as approved |
+| 55 | Sidebar and dashboard | Permission-aware navigation order and quick actions |
+| 56 | Phone normalization | Shared E.164 flow and web/API regression coverage |
+| 57 | Accounting reports | Valuation, balance sheet, aging, tax, and reconciliation in approved order |
+| 58 | Unified channel regression | POS/storefront purchasing, stock, money, tax and accounting contract tests |
 | Later | Flutter mobile POS | Camera barcode scanning after backend contracts are stable |
+
+Step 49 intentionally reuses `products.unit_price` as the regular retail price and the existing product promotion discount fields for an explicitly supplied temporary `sale_price`. Price Lists A/B/C remain a separate Step 51 concept. Purchase PDF remains deferred until Step 54 because the current receipt does not yet preserve supplier invoice identity, payment status, or a complete immutable printable document snapshot.
 
 ## Explicit non-goals for this step
 

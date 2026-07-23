@@ -94,6 +94,7 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::put('/operations/suppliers/{supplier}', 'updateSupplier')->name('operations.suppliers.update');
     Route::get('/operations/purchase-orders', 'purchaseOrders')->name('operations.purchase-orders');
     Route::get('/operations/purchase-orders/create', 'createPurchaseOrder')->name('operations.purchase-orders.create');
+    Route::get('/operations/purchase-orders/product-lookup', 'purchaseOrderProductLookup')->name('operations.purchase-orders.product-lookup');
     Route::post('/operations/purchase-orders', 'storePurchaseOrder')->name('operations.purchase-orders.store');
     Route::get('/operations/purchase-orders/{purchaseOrder}', 'showPurchaseOrder')->name('operations.purchase-orders.show');
     Route::post('/operations/purchase-orders/{purchaseOrder}/receive', 'receivePurchaseOrder')->name('operations.purchase-orders.receive');

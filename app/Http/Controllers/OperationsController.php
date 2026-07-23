@@ -21,13 +21,16 @@ use App\Services\AccountingReportService;
 use App\Services\AccountingEventService;
 use App\Services\AccountingSummaryService;
 use App\Services\CoreMarketFeatureAccessService;
+use App\Services\CoreMarketTaxService;
 use App\Services\InventoryProService;
 use App\Services\ProductIdentityLookupService;
+use App\Services\PurchaseItemPricingService;
 use App\Services\PurchaseReceivingService;
 use App\Services\PurchasingUiService;
 use App\Services\SalesReturnService;
 use App\Services\SalesReturnUiService;
 use DomainException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -134,20 +137,67 @@ class OperationsController extends Controller
             'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
-    public function createPurchaseOrder(): View
+    public function createPurchaseOrder(CoreMarketTaxService $tax): View
     {
         $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']);
         return view('backend.operations.purchase-orders.form', [
             'suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(),
             'products' => Product::query()->orderBy('name')->limit(500)->get(),
             'productStocks' => ProductStock::query()->with('product')->orderBy('product_id')->get(),
+            'defaultTaxRate' => $tax->getDefaultTaxRate(),
+        ]);
+    }
+    public function purchaseOrderProductLookup(
+        Request $request,
+        ProductIdentityLookupService $lookup,
+        PurchaseItemPricingService $pricing
+    ): JsonResponse {
+        $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']);
+        $data = $request->validate(['q' => 'required|string|max:100']);
+        $result = $lookup->find($data['q']);
+        if (! $result) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Product not found. Create product first or use manual item entry.',
+            ], 404);
+        }
+
+        $product = $result['product'];
+        $stock = $result['product_stock'];
+        $regularPrice = is_numeric($stock?->price) ? (float) $stock->price : (float) $product->unit_price;
+        $itemPricing = $pricing->calculate([
+            'quantity_ordered' => 1,
+            'unit_cost' => $product->purchase_price,
+            'regular_price' => $regularPrice,
+            'tax_enabled' => false,
+        ], $regularPrice);
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'product_id' => $product->id,
+                'product_stock_id' => $stock?->id,
+                'name' => $product->name,
+                'variant' => $result['variant'],
+                'sku' => $stock?->sku,
+                'barcode' => $stock?->barcode ?: $product->barcode,
+                'cost_price' => $itemPricing['cost_price'],
+                'regular_price' => $itemPricing['regular_price'],
+                'sale_price' => null,
+                'margin_percent' => $itemPricing['margin_percent'],
+                'matched_by' => $result['matched_by'],
+            ],
         ]);
     }
     public function storePurchaseOrder(Request $request, PurchaseReceivingService $service): RedirectResponse
     {
         $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']);
-        $data = $request->validate(['supplier_id' => 'nullable|exists:suppliers,id', 'ordered_at' => 'nullable|date', 'currency' => 'nullable|string|max:10', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 'items.*.product_stock_id' => 'nullable|exists:product_stocks,id', 'items.*.variant' => 'nullable|string|max:255', 'items.*.quantity_ordered' => 'required|numeric|min:0.000001', 'items.*.unit_cost' => 'nullable|numeric|min:0', 'items.*.tax_amount' => 'nullable|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 'items.*.notes' => 'nullable|string|max:1000']);
-        $order = $service->createPurchaseOrder($data, $data['items'], auth()->id());
+        $data = $request->validate(['supplier_id' => 'nullable|exists:suppliers,id', 'ordered_at' => 'nullable|date', 'currency' => 'nullable|string|max:10', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 'items.*.product_stock_id' => 'nullable|exists:product_stocks,id', 'items.*.variant' => 'nullable|string|max:255', 'items.*.quantity_ordered' => 'required|numeric|min:0.000001', 'items.*.unit_cost' => 'nullable|numeric|min:0', 'items.*.regular_price' => 'nullable|numeric|min:0', 'items.*.sale_price' => 'nullable|numeric|min:0', 'items.*.margin_percent' => 'nullable|numeric', 'items.*.tax_enabled' => 'nullable|boolean', 'items.*.tax_rate' => 'nullable|numeric|min:0|max:100', 'items.*.tax_amount' => 'nullable|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 'items.*.notes' => 'nullable|string|max:1000']);
+        try {
+            $order = $service->createPurchaseOrder($data, $data['items'], auth()->id());
+        } catch (\InvalidArgumentException $exception) {
+            return back()->withErrors(['items' => $exception->getMessage()])->withInput();
+        }
         return redirect()->route('operations.purchase-orders.show', $order)->with('success', translate('Purchase order created successfully'));
     }
     public function showPurchaseOrder(PurchaseOrder $purchaseOrder, PurchasingUiService $purchasing): View

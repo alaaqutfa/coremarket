@@ -39,8 +39,9 @@ class PurchasingUiTest extends TestCase
             $this->actingAs($user)->get(route('operations.purchase-orders.create'))
                 ->assertOk()
                 ->assertSee('id="add-purchase-item"', false)
+                ->assertSee('id="purchase-barcode-input"', false)
                 ->assertSee("document.getElementById('add-purchase-item').addEventListener", false)
-                ->assertSee('function addRow()', false);
+                ->assertSee('function addRow(initial = {})', false);
 
             $response = $this->actingAs($user)->post(route('operations.purchase-orders.store'), [
                 'supplier_id' => $supplier->id,
@@ -51,13 +52,44 @@ class PurchasingUiTest extends TestCase
                     'product_stock_id' => $stockId,
                     'quantity_ordered' => 4,
                     'unit_cost' => 7.5,
-                    'tax_amount' => 0,
+                    'regular_price' => 12,
+                    'sale_price' => 10,
+                    'tax_enabled' => 1,
+                    'tax_rate' => 11,
                     'discount_amount' => 0,
                 ]],
             ]);
 
             $response->assertRedirect();
             $this->assertDatabaseHas('purchase_order_items', ['product_id' => $productId, 'product_stock_id' => $stockId, 'quantity_ordered' => 4]);
+            $item = DB::table('purchase_order_items')->where('product_id', $productId)->latest('id')->first();
+            $metadata = json_decode($item->metadata, true);
+            $this->assertSame(12.0, (float) $metadata['pricing_snapshot']['regular_price']);
+            $this->assertSame(10.0, (float) $metadata['pricing_snapshot']['sale_price']);
+            $this->assertSame(11.0, (float) $metadata['tax_snapshot']['rate']);
+            $this->assertSame(3.3, (float) $item->tax_amount);
+        } finally { DB::rollBack(); }
+    }
+
+    public function test_purchase_barcode_lookup_reuses_product_identity_and_returns_safe_error(): void
+    {
+        DB::beginTransaction();
+        try {
+            [, $productId, $stockId, $identity] = $this->fixtures();
+            $user = $this->user(['purchase_orders.create']);
+
+            $this->actingAs($user)
+                ->getJson(route('operations.purchase-orders.product-lookup', ['q' => $identity]))
+                ->assertOk()
+                ->assertJsonPath('ok', true)
+                ->assertJsonPath('data.product_id', $productId)
+                ->assertJsonPath('data.product_stock_id', $stockId)
+                ->assertJsonPath('data.regular_price', 20);
+
+            $this->actingAs($user)
+                ->getJson(route('operations.purchase-orders.product-lookup', ['q' => 'UNKNOWN-BARCODE']))
+                ->assertNotFound()
+                ->assertJsonPath('message', 'Product not found. Create product first or use manual item entry.');
         } finally { DB::rollBack(); }
     }
 
@@ -114,8 +146,9 @@ class PurchasingUiTest extends TestCase
         $now = now();
         $supplier = Supplier::query()->create(['name' => 'Purchasing UI '.uniqid(), 'is_active' => true]);
         $productId = DB::table('products')->insertGetId(['name' => 'Purchasing UI Product', 'user_id' => 1, 'category_id' => 1, 'unit_price' => 20, 'purchase_price' => 5, 'current_stock' => 2, 'slug' => 'purchasing-ui-'.uniqid(), 'created_at' => $now, 'updated_at' => $now]);
-        $stockId = DB::table('product_stocks')->insertGetId(['product_id' => $productId, 'variant' => 'Purchasing Variant', 'sku' => 'PUR-'.uniqid(), 'price' => 20, 'qty' => 2, 'created_at' => $now, 'updated_at' => $now]);
-        return [$supplier, $productId, $stockId];
+        $identity = 'PUR-'.uniqid();
+        $stockId = DB::table('product_stocks')->insertGetId(['product_id' => $productId, 'variant' => 'Purchasing Variant', 'sku' => $identity, 'barcode' => 'BAR-'.$identity, 'price' => 20, 'qty' => 2, 'created_at' => $now, 'updated_at' => $now]);
+        return [$supplier, $productId, $stockId, $identity];
     }
 
     private function user(array $permissions): User

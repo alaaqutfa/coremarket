@@ -15,8 +15,11 @@ use InvalidArgumentException;
 
 class PurchaseReceivingService
 {
-    public function __construct(private InventoryMovementService $inventoryMovements)
-    {
+    public function __construct(
+        private InventoryMovementService $inventoryMovements,
+        private PurchaseItemPricingService $itemPricing,
+        private CoreMarketMoneyService $money
+    ) {
     }
 
     public function createPurchaseOrder(array $attributes, array $items, ?int $createdBy = null): PurchaseOrder
@@ -39,12 +42,21 @@ class PurchaseReceivingService
 
             $totals = ['subtotal_amount' => 0, 'tax_amount' => 0, 'discount_amount' => 0];
             foreach ($items as $item) {
-                $quantity = $this->quantity($item['quantity_ordered'] ?? null);
-                $unitCost = $this->numberOrNull($item['unit_cost'] ?? null);
-                $totalCost = $unitCost === null ? null : $unitCost * $quantity;
-                $tax = $this->numberOrNull($item['tax_amount'] ?? null) ?? 0;
-                $discount = $this->numberOrNull($item['discount_amount'] ?? null) ?? 0;
                 $stock = $this->findStock($item['product_id'] ?? null, $item['product_stock_id'] ?? null, $item['variant'] ?? null);
+                $fallbackRegularPrice = $stock && is_numeric($stock->price)
+                    ? (float) $stock->price
+                    : $this->productRegularPrice($item['product_id'] ?? null);
+                $pricing = $this->itemPricing->calculate($item, $fallbackRegularPrice);
+                $quantity = $pricing['quantity'];
+                $unitCost = $pricing['cost_price'];
+                $totalCost = $pricing['line_subtotal'];
+                $tax = $pricing['tax_amount'];
+                $discount = $pricing['discount_amount'];
+                $metadata = is_array($item['metadata'] ?? null) ? $item['metadata'] : [];
+                $metadata['pricing_snapshot'] = $pricing['pricing_snapshot'];
+                $metadata['tax_snapshot'] = $pricing['tax_snapshot'];
+                $metadata['line_subtotal'] = $pricing['line_subtotal'];
+                $metadata['line_total'] = $pricing['line_total'];
 
                 $order->items()->create([
                     'product_id' => $item['product_id'],
@@ -56,7 +68,7 @@ class PurchaseReceivingService
                     'discount_amount' => $discount,
                     'total_cost' => $totalCost,
                     'notes' => $item['notes'] ?? null,
-                    'metadata' => $item['metadata'] ?? null,
+                    'metadata' => $metadata,
                 ]);
                 $totals['subtotal_amount'] += $totalCost ?? 0;
                 $totals['tax_amount'] += $tax;
@@ -65,7 +77,9 @@ class PurchaseReceivingService
 
             $order->purchase_number = 'PO-' . str_pad((string) $order->id, 8, '0', STR_PAD_LEFT);
             $order->fill($totals);
-            $order->total_amount = $totals['subtotal_amount'] + $totals['tax_amount'] + (float) $order->shipping_amount - $totals['discount_amount'];
+            $order->total_amount = $this->money->normalizeMoney(
+                $totals['subtotal_amount'] + $totals['tax_amount'] + (float) $order->shipping_amount - $totals['discount_amount']
+            );
             $order->save();
 
             return $order->load('items');
@@ -126,10 +140,10 @@ class PurchaseReceivingService
                     'product_stock_id' => $stock->id,
                     'quantity_received' => $quantity,
                     'unit_cost' => $unitCost,
-                    'total_cost' => $unitCost === null ? null : $unitCost * $quantity,
+                    'total_cost' => $unitCost === null ? null : $this->money->normalizeMoney($unitCost * $quantity),
                 ]);
 
-                $this->increaseStock($stock, $quantity, $unitCost);
+                $this->increaseStock($stock, $orderItem, $quantity, $unitCost);
                 $movement = $this->inventoryMovements->recordPurchaseReceipt($receiptItem, $receivedBy);
                 $receiptItem->inventory_movement_id = $movement->id;
                 $receiptItem->save();
@@ -148,7 +162,7 @@ class PurchaseReceivingService
         });
     }
 
-    private function increaseStock(ProductStock $stock, float $quantity, ?float $unitCost): void
+    private function increaseStock(ProductStock $stock, PurchaseOrderItem $orderItem, float $quantity, ?float $unitCost): void
     {
         $product = Product::query()->lockForUpdate()->findOrFail($stock->product_id);
         if ($product->digital) {
@@ -161,9 +175,34 @@ class PurchaseReceivingService
             $product->increment('current_stock', $quantity);
         }
 
-        // Keep the current legacy cost source current for future order snapshots.
+        // Keep the existing last-purchase-cost policy and apply explicit pricing
+        // snapshots only when stock is actually received.
+        $productUpdates = [];
         if ($unitCost !== null) {
-            Product::query()->whereKey($product->id)->update(['purchase_price' => $unitCost]);
+            $productUpdates['purchase_price'] = $unitCost;
+        }
+
+        $pricing = $orderItem->metadata['pricing_snapshot'] ?? [];
+        $regularPrice = is_numeric($pricing['regular_price'] ?? null)
+            ? $this->money->normalizeMoney($pricing['regular_price'])
+            : null;
+        if ($regularPrice !== null) {
+            $productUpdates['unit_price'] = $regularPrice;
+            ProductStock::query()->whereKey($stock->id)->update(['price' => $regularPrice]);
+        }
+
+        $salePrice = is_numeric($pricing['sale_price'] ?? null)
+            ? $this->money->normalizeMoney($pricing['sale_price'])
+            : null;
+        if ($salePrice !== null && $regularPrice !== null) {
+            $productUpdates['discount'] = $this->money->normalizeMoney($regularPrice - $salePrice);
+            $productUpdates['discount_type'] = 'amount';
+            $productUpdates['discount_start_date'] = null;
+            $productUpdates['discount_end_date'] = null;
+        }
+
+        if ($productUpdates !== []) {
+            Product::query()->whereKey($product->id)->update($productUpdates);
         }
     }
 
@@ -211,5 +250,12 @@ class PurchaseReceivingService
     private function numberOrNull(mixed $value): ?float
     {
         return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function productRegularPrice(mixed $productId): ?float
+    {
+        $price = Product::query()->whereKey($productId)->value('unit_price');
+
+        return is_numeric($price) ? (float) $price : null;
     }
 }
