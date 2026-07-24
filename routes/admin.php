@@ -126,6 +126,7 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/expenses/{expense}', 'showExpense')->name('operations.expenses.show');
     Route::post('/operations/expenses/{expense}/approve', 'approveExpense')->name('operations.expenses.approve');
     Route::get('/operations/accounting-summary', 'accountingSummary')->name('operations.accounting-summary');
+    Route::get('/operations/accounting/reports', 'accountingReports')->name('operations.accounting.reports');
     Route::get('/operations/accounting', 'accountingDashboard')->name('operations.accounting.dashboard');
     Route::get('/operations/accounting/core', 'accountingDashboard')->name('operations.accounting.core');
     Route::get('/operations/accounting/accounts', 'accountingAccounts')->name('operations.accounting.accounts');

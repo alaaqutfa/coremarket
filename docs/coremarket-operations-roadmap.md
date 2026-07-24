@@ -245,9 +245,27 @@ Step 54 reuses the existing Laravel PDF/mPDF engine to add printable Purchase Or
 
 Next:
 
-- 55 Accounting Reports Foundation.
 - 56 Sidebar + Quick Actions UX.
 - 57 Release Packaging + Hardware QA.
+- 58 Storefront Price List Display Review.
+- 59 First Client Offer.
+
+## Accounting and operations reports
+
+Step 55 adds a read-only operational reporting layer over the existing accounting events, tax snapshots, supplier ledger, inventory, cashbox, and purchasing records.
+
+- Profit and COGS use posted operational events and stored cost snapshots. Results remain estimated when historical costs are missing.
+- Inventory valuation is a current point-in-time estimate based on variant quantities and each product's current purchase cost; it does not reconstruct historical inventory.
+- Supplier balances follow credits minus debits from Step 50 onward, with no historical backfill.
+- Tax summary is informational only and is not an official VAT filing.
+- Existing double-entry journals, posting policy, and formal accounting reports are unchanged.
+
+Next:
+
+- 56 Sidebar + Quick Actions UX.
+- 57 Release Packaging + Hardware QA.
+- 58 Storefront Price List Display Review.
+- 59 First Client Offer.
 
 ## Explicit non-goals for this step
 

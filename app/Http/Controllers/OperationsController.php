@@ -24,6 +24,7 @@ use App\Services\AccountingReportService;
 use App\Services\AccountingEventService;
 use App\Services\AccountingSummaryService;
 use App\Services\CoreMarketFeatureAccessService;
+use App\Services\CoreMarketAccountingReportService;
 use App\Services\CoreMarketInventoryPolicyService;
 use App\Services\CoreMarketTaxService;
 use App\Services\InventoryProService;
@@ -536,6 +537,16 @@ class OperationsController extends Controller
     public function showExpense(Expense $expense): View { $this->authorizeOperation('expenses.view', ['accounting_lite']); return view('backend.operations.expenses.show', compact('expense')); }
     public function approveExpense(Expense $expense, AccountingEventService $service): RedirectResponse { $this->authorizeOperation('expenses.approve', ['accounting_lite']); $service->approveExpense($expense, auth()->id()); return back()->with('success', translate('Expense approved successfully')); }
     public function accountingSummary(): View { $this->authorizeOperation('accounting_summary.view', ['accounting_lite']); return view('backend.operations.accounting-summary', ['summary' => app(AccountingSummaryService::class)->summary()]); }
+    public function accountingReports(Request $request, CoreMarketAccountingReportService $reports): View
+    {
+        $this->authorizeOperation('accounting_summary.view', ['accounting_lite', 'accounting_core']);
+        $filters = $request->validate([
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        return view('backend.operations.accounting.reports', $reports->report($filters));
+    }
     public function accountingDashboard(AccountingReportService $reports): View
     {
         $this->authorizeOperation('accounting.core.view', ['accounting_core', 'accounting_lite']);
