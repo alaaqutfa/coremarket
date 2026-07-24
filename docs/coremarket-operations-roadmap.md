@@ -267,10 +267,24 @@ Next:
 - 58 Storefront Price List Display Review.
 - 59 First Client Offer.
 
+## Operations navigation UX
+
+Step 56 reorganizes existing Operations links into Sales, Inventory, Purchasing, Pricing, and Accounting groups, and adds permission-aware dashboard shortcuts to existing routes.
+
+- Product Families remains an operational Inventory classification and is not moved into Storefront categories.
+- Sales Returns and Purchase Returns remain separate workflows under Sales and Purchasing.
+- Supplier Payment and Supplier Statement shortcuts lead to the existing supplier selection page because both actions require a specific supplier.
+- No routes, permissions, accounting rules, inventory rules, or business features are created or renamed.
+
+Next:
+
+- 57 Release Packaging + Hardware QA.
+- 58 Storefront Price List Display Review.
+- 59 First Client Offer.
+
 ## Explicit non-goals for this step
 
-- No complete accounting or purchasing workflow.
-- No tax/VAT posting policy change.
+- No new accounting, inventory, purchasing, pricing, or storefront behavior.
+- No route, permission, feature, or active-state contract changes.
 - No baseline, CorePilotOS, Flutter, payment gateway, or generated asset changes.
-- No broad sidebar/dashboard redesign.
-- No email/WhatsApp delivery, supplier portal, scheduled exports, or mobile barcode implementation.
+- No new navigation framework, heavy JavaScript, or sidebar component system.

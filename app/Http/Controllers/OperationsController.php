@@ -58,6 +58,7 @@ class OperationsController extends Controller
         $this->authorizeOperation('operations.view', ['inventory_pro', 'purchasing_suppliers', 'returns_management', 'accounting_lite']);
 
         return view('backend.operations.overview', [
+            'quickActions' => $this->operationsQuickActions(),
             'movementCount' => InventoryMovement::count(),
             'recentProductCount' => InventoryMovement::query()->where('created_at', '>=', now()->subDays(30))->distinct('product_id')->count('product_id'),
             'openPurchaseOrders' => PurchaseOrder::query()->whereIn('status', ['draft', 'ordered', 'partially_received'])->count(),
@@ -622,5 +623,37 @@ class OperationsController extends Controller
         if (! $user || ($user->user_type !== 'admin' && ! $user->can($permission))) abort(403);
         if ($user->user_type !== 'admin' && ! collect($features)->contains(fn ($feature) => $this->features->enabled($feature))) abort(404);
     }
+
+    private function operationsQuickActions(): array
+    {
+        $user = auth()->user();
+        $owner = $user?->user_type === 'admin';
+        $can = fn (string $permission): bool => $owner || (bool) $user?->can($permission);
+        $canAll = fn (array $permissions): bool => $owner
+            || collect($permissions)->every(fn (string $permission) => (bool) $user?->can($permission));
+        $inventory = $this->features->enabled('inventory_pro') || $this->features->enabled('accounting_lite');
+        $purchasing = $this->features->enabled('purchasing_suppliers');
+        $accounting = $this->features->enabled('accounting_lite') || $this->features->enabled('accounting_core');
+        $pos = $this->features->enabled('pos') && $this->features->enabled('cashbox_shifts');
+
+        return collect([
+            ['show' => $pos && $can('pos.view'), 'label' => 'POS Sale', 'description' => 'Start a cashier sale', 'route' => 'operations.pos'],
+            ['show' => $purchasing && $can('purchase_orders.create'), 'label' => 'Purchase Stock', 'description' => 'Create a purchase order', 'route' => 'operations.purchase-orders.create'],
+            ['show' => $purchasing && $canAll(['purchase_orders.view', 'purchase_orders.receive']), 'label' => 'Receive Purchase', 'description' => 'Select an order to receive', 'route' => 'operations.purchase-orders'],
+            ['show' => $purchasing && $can('purchase_returns.create'), 'label' => 'Return to Supplier', 'description' => 'Create a purchase return', 'route' => 'operations.purchase-returns.create'],
+            ['show' => $purchasing && $canAll(['suppliers.view', 'supplier_ledger.view', 'supplier_payments.create']), 'label' => 'Supplier Payment', 'description' => 'Choose a supplier and record payment', 'route' => 'operations.suppliers'],
+            ['show' => $purchasing && $canAll(['suppliers.view', 'supplier_ledger.view']), 'label' => 'Supplier Statement', 'description' => 'Choose a supplier and export statement', 'route' => 'operations.suppliers'],
+            ['show' => (bool) $user?->can('add_new_product'), 'label' => 'Add Product', 'description' => 'Create a catalog product', 'route' => 'products.create'],
+            ['show' => $inventory && $can('inventory.stock.view'), 'label' => 'Manage Stock', 'description' => 'Review products and variants', 'route' => 'operations.inventory.stock'],
+            ['show' => $can('price_lists.manage'), 'label' => 'Price Lists', 'description' => 'Manage customer pricing levels', 'route' => 'operations.price-lists.index'],
+            ['show' => $inventory && $can('inventory.stock.adjust'), 'label' => 'Inventory Policy', 'description' => 'Review stock control rules', 'route' => 'operations.inventory.policy'],
+            ['show' => $accounting && $can('accounting_summary.view'), 'label' => 'Accounting Reports', 'description' => 'Open operational reports', 'route' => 'operations.accounting.reports'],
+        ])->where('show', true)->map(fn (array $action) => [
+            'label' => $action['label'],
+            'description' => $action['description'],
+            'url' => route($action['route']),
+        ])->values()->all();
+    }
+
     private function supplierData(Request $request): array { return $request->validate(['name' => 'required|string|max:255', 'company_name' => 'nullable|string|max:255', 'contact_name' => 'nullable|string|max:255', 'phone' => 'nullable|string|max:100', 'email' => 'nullable|email|max:255', 'address' => 'nullable|string|max:2000', 'tax_number' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:2000', 'is_active' => 'nullable|boolean']) + ['is_active' => $request->boolean('is_active')]; }
 }
