@@ -232,10 +232,27 @@ Next:
 - 56 Sidebar + Quick Actions UX.
 - 57 Release Packaging + Hardware QA.
 
+## Purchase and supplier PDF exports
+
+Step 54 reuses the existing Laravel PDF/mPDF engine to add printable Purchase Order, Purchase Receipt, and Supplier Statement downloads.
+
+- Purchase PDFs render stored purchase totals and saved pricing/tax metadata; missing supplier invoice identifiers remain blank rather than being fabricated.
+- Receipt PDFs use stored receipt quantities and costs. Tax and discount values are derived proportionally from the saved purchase item snapshots because receipts do not have independent tax total columns.
+- Supplier statements use `supplier_ledger_entries` only. Opening balance is credits minus debits before the selected start date; running and closing balances continue with the same formula.
+- No historical purchase or supplier ledger backfill is created.
+- These downloads are export/print documents, not full double-entry statements or VAT filings.
+- Email, WhatsApp delivery, supplier portal access, and scheduled exports remain future work.
+
+Next:
+
+- 55 Accounting Reports Foundation.
+- 56 Sidebar + Quick Actions UX.
+- 57 Release Packaging + Hardware QA.
+
 ## Explicit non-goals for this step
 
 - No complete accounting or purchasing workflow.
 - No tax/VAT posting policy change.
 - No baseline, CorePilotOS, Flutter, payment gateway, or generated asset changes.
 - No broad sidebar/dashboard redesign.
-- No purchase PDF or mobile barcode implementation.
+- No email/WhatsApp delivery, supplier portal, scheduled exports, or mobile barcode implementation.

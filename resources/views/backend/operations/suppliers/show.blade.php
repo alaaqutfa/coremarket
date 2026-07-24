@@ -21,6 +21,14 @@
     </div></div></div>
 </div>
 
+<div class="card"><div class="card-body">
+    <form method="GET" action="{{ route('operations.suppliers.statement.pdf', $supplier) }}" class="row align-items-end">
+        <div class="col-md-4 form-group mb-md-0"><label>{{ translate('Statement From') }}</label><input class="form-control" type="date" name="date_from"></div>
+        <div class="col-md-4 form-group mb-md-0"><label>{{ translate('Statement To') }}</label><input class="form-control" type="date" name="date_to"></div>
+        <div class="col-md-4"><button class="btn btn-soft-primary">{{ translate('Download Statement PDF') }}</button></div>
+    </form>
+</div></div>
+
 @can('supplier_payments.create')
 <div class="card"><div class="card-header"><h6 class="mb-0">{{ translate('Record Supplier Payment') }}</h6></div><div class="card-body">
     @if($errors->has('payment'))<div class="alert alert-danger">{{ $errors->first('payment') }}</div>@endif

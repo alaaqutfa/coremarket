@@ -95,6 +95,7 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/suppliers/create', 'createSupplier')->name('operations.suppliers.create');
     Route::post('/operations/suppliers', 'storeSupplier')->name('operations.suppliers.store');
     Route::get('/operations/suppliers/{supplier}', 'showSupplier')->name('operations.suppliers.show');
+    Route::get('/operations/suppliers/{supplier}/statement/pdf', 'supplierStatementPdf')->name('operations.suppliers.statement.pdf');
     Route::post('/operations/suppliers/{supplier}/payments', 'storeSupplierPayment')->name('operations.suppliers.payments.store');
     Route::get('/operations/suppliers/{supplier}/edit', 'editSupplier')->name('operations.suppliers.edit');
     Route::put('/operations/suppliers/{supplier}', 'updateSupplier')->name('operations.suppliers.update');
@@ -103,9 +104,11 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/purchase-orders/product-lookup', 'purchaseOrderProductLookup')->name('operations.purchase-orders.product-lookup');
     Route::post('/operations/purchase-orders', 'storePurchaseOrder')->name('operations.purchase-orders.store');
     Route::get('/operations/purchase-orders/{purchaseOrder}', 'showPurchaseOrder')->name('operations.purchase-orders.show');
+    Route::get('/operations/purchase-orders/{purchaseOrder}/pdf', 'purchaseOrderPdf')->name('operations.purchase-orders.pdf');
     Route::post('/operations/purchase-orders/{purchaseOrder}/receive', 'receivePurchaseOrder')->name('operations.purchase-orders.receive');
     Route::get('/operations/purchase-receipts', 'purchaseReceipts')->name('operations.purchase-receipts');
     Route::get('/operations/purchase-receipts/{purchaseReceipt}', 'showPurchaseReceipt')->name('operations.purchase-receipts.show');
+    Route::get('/operations/purchase-receipts/{purchaseReceipt}/pdf', 'purchaseReceiptPdf')->name('operations.purchase-receipts.pdf');
     Route::get('/operations/purchase-returns', 'purchaseReturns')->name('operations.purchase-returns');
     Route::get('/operations/purchase-returns/create', 'createPurchaseReturn')->name('operations.purchase-returns.create');
     Route::post('/operations/purchase-returns', 'storePurchaseReturn')->name('operations.purchase-returns.store');

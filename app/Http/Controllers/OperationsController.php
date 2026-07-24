@@ -27,6 +27,7 @@ use App\Services\CoreMarketFeatureAccessService;
 use App\Services\CoreMarketInventoryPolicyService;
 use App\Services\CoreMarketTaxService;
 use App\Services\InventoryProService;
+use App\Services\OperationsPdfService;
 use App\Services\ProductIdentityLookupService;
 use App\Services\PurchaseItemPricingService;
 use App\Services\PurchaseReceivingService;
@@ -43,6 +44,7 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use PDF;
 
 class OperationsController extends Controller
 {
@@ -188,6 +190,28 @@ class OperationsController extends Controller
             'paymentKey' => (string) Str::uuid(),
         ]);
     }
+    public function supplierStatementPdf(Request $request, Supplier $supplier, OperationsPdfService $pdf)
+    {
+        $this->authorizeOperation('supplier_ledger.view', ['purchasing_suppliers']);
+        $filters = $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+        $data = $pdf->supplierStatement(
+            $supplier,
+            $filters['date_from'] ?? null,
+            $filters['date_to'] ?? null
+        );
+
+        $contents = PDF::loadView('backend.operations.pdf.supplier-statement', $data, [], [
+            'format' => 'A4',
+        ])->output();
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="supplier-statement-'.$supplier->id.'.pdf"',
+        ]);
+    }
     public function editSupplier(Supplier $supplier): View { $this->authorizeOperation('suppliers.edit', ['purchasing_suppliers']); return view('backend.operations.suppliers.form', compact('supplier')); }
     public function storeSupplier(Request $request): RedirectResponse { $this->authorizeOperation('suppliers.create', ['purchasing_suppliers']); $supplier = Supplier::create($this->supplierData($request)); return redirect()->route('operations.suppliers.edit', $supplier)->with('success', translate('Supplier saved successfully')); }
     public function updateSupplier(Request $request, Supplier $supplier): RedirectResponse { $this->authorizeOperation('suppliers.edit', ['purchasing_suppliers']); $supplier->update($this->supplierData($request)); return back()->with('success', translate('Supplier saved successfully')); }
@@ -297,6 +321,20 @@ class OperationsController extends Controller
             'movements' => InventoryMovement::query()->with(['product', 'productStock'])->whereIn('id', $movementIds)->latest()->get(),
         ]);
     }
+    public function purchaseOrderPdf(PurchaseOrder $purchaseOrder, OperationsPdfService $pdf)
+    {
+        $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
+        $data = $pdf->purchaseDocument($purchaseOrder);
+
+        $contents = PDF::loadView('backend.operations.pdf.purchase-document', $data, [], [
+            'format' => 'A4',
+        ])->output();
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="purchase-'.$purchaseOrder->purchase_number.'.pdf"',
+        ]);
+    }
     public function receivePurchaseOrder(Request $request, PurchaseOrder $purchaseOrder, PurchaseReceivingService $service): RedirectResponse
     {
         $this->authorizeOperation('purchase_orders.receive', ['purchasing_suppliers']);
@@ -329,6 +367,20 @@ class OperationsController extends Controller
             ->latest()->get();
 
         return view('backend.operations.purchase-receipts.show', compact('purchaseReceipt', 'movements'));
+    }
+    public function purchaseReceiptPdf(PurchaseReceipt $purchaseReceipt, OperationsPdfService $pdf)
+    {
+        $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
+        $data = $pdf->purchaseDocument($purchaseReceipt->purchaseOrder, $purchaseReceipt);
+
+        $contents = PDF::loadView('backend.operations.pdf.purchase-document', $data, [], [
+            'format' => 'A4',
+        ])->output();
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="purchase-receipt-'.$purchaseReceipt->id.'.pdf"',
+        ]);
     }
 
     public function purchaseReturns(Request $request): View
