@@ -282,6 +282,22 @@ Next:
 - 58 Storefront Price List Display Review.
 - 59 First Client Offer.
 
+## Pilot release readiness
+
+Step 57 validates release packaging and hardware readiness without adding business features. The detailed Go/No-Go checklist is maintained in `docs/coremarket-pilot-release-checklist.md`.
+
+- Backend and Flutter automated checks are release gates, not substitutes for live hardware verification.
+- The isolated demo application and `_demo` database must match the approved backend revision before a client pilot.
+- USB scanner and thermal printer checks require the actual client-class hardware.
+- Build artifacts, local environment files, demo databases, and secrets remain outside Git.
+- No deployment, route changes, accounting logic, inventory logic, or POS features are part of this step.
+
+Next:
+
+- 58 Storefront Price List Display Review.
+- 59 First Client Offer.
+- 60 Client Pilot Deployment Plan.
+
 ## Explicit non-goals for this step
 
 - No new accounting, inventory, purchasing, pricing, or storefront behavior.
