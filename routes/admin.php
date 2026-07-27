@@ -99,6 +99,10 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::post('/operations/suppliers', 'storeSupplier')->name('operations.suppliers.store');
     Route::get('/operations/suppliers/{supplier}', 'showSupplier')->name('operations.suppliers.show');
     Route::get('/operations/suppliers/{supplier}/statement/pdf', 'supplierStatementPdf')->name('operations.suppliers.statement.pdf');
+    Route::get('/operations/orders/{order}/invoice-pdf', 'salesInvoicePdf')->name('operations.orders.invoice.pdf');
+    Route::get('/operations/orders/{order}/delivery-note-pdf', 'deliveryNotePdf')->name('operations.orders.delivery-note.pdf');
+    Route::get('/operations/orders/{order}/packing-slip-pdf', 'packingSlipPdf')->name('operations.orders.packing-slip.pdf');
+    Route::get('/operations/customers/{customer}/statement/pdf', 'customerStatementPdf')->name('operations.customers.statement.pdf');
     Route::post('/operations/suppliers/{supplier}/payments', 'storeSupplierPayment')->name('operations.suppliers.payments.store');
     Route::get('/operations/suppliers/{supplier}/edit', 'editSupplier')->name('operations.suppliers.edit');
     Route::put('/operations/suppliers/{supplier}', 'updateSupplier')->name('operations.suppliers.update');

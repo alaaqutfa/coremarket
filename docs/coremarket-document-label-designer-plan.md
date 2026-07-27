@@ -13,6 +13,15 @@ This document records the Step 60 audit and the safe foundation implemented in S
 - Label selection generates PDF previews for selected products. Barcode values are human-readable text for now because no stable 1D barcode renderer is currently part of the application.
 - `document_templates.view`, `document_templates.manage`, and `document_templates.preview` use the existing Spatie permission system.
 
+## Expanded in Step 65
+
+- Safe template types now include `sales_invoice`, `customer_statement`, `delivery_note`, and `packing_slip`.
+- Sales Invoice PDF uses stored order lines and totals through `OperationsPdfService`; it never reads product cost, profit, supplier balances, or another customer's Price List.
+- Customer Statement PDF is explicitly an operational statement built from available orders, paid status/amounts, and completed sales returns. It is not an official accounts receivable ledger.
+- Delivery Note and Packing Slip include fulfillment data, customer contact/address, product identity, and quantities without prices, cost, profit, supplier, or accounting details.
+- Existing purchase, supplier, POS receipt, price-label, and barcode-label templates remain unchanged.
+- The `template_type` column is already a string, so no schema migration was required.
+
 ## Safe Settings Contract
 
 Allowed settings include logo visibility and position, validated hexadecimal colors, bounded font size, store/party visibility, SKU/barcode/tax/discount/family visibility, plain-text footer content, allowlisted columns, and bounded label-grid values.
@@ -112,8 +121,8 @@ No email/WhatsApp sending, printer driver integration, native receipt/label hard
 ## Future Work
 
 - Advanced drag-and-drop blocks with a fixed safe component catalog.
-- Customer sales invoice designer expansion.
 - Template publishing/version snapshots for immutable historical output.
+- Full customer accounts receivable ledger and payment allocation.
 - Native receipt and label printer integration.
 - Per-client/store/branch template assignment.
 - Email and WhatsApp delivery after explicit security and audit work.

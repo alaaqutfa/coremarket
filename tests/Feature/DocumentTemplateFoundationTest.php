@@ -36,7 +36,7 @@ class DocumentTemplateFoundationTest extends TestCase
             $firstCount = DocumentTemplate::query()->count();
             $this->seed(DocumentTemplateSeeder::class);
 
-            $this->assertSame(7, $firstCount);
+            $this->assertSame(11, $firstCount);
             $this->assertSame($firstCount, DocumentTemplate::query()->count());
             $this->assertSame('purchase_order', app(CoreMarketDocumentTemplateService::class)->defaultTemplate('purchase_order')->template_type);
         } finally {

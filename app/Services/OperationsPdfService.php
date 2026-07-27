@@ -4,11 +4,16 @@ namespace App\Services;
 
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseReceipt;
+use App\Models\Order;
+use App\Models\SalesReturn;
 use App\Models\Supplier;
 use App\Models\SupplierLedgerEntry;
 use App\Models\Upload;
+use App\Models\User;
 use Carbon\CarbonImmutable;
+use DomainException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class OperationsPdfService
 {
@@ -141,6 +146,250 @@ class OperationsPdfService
                 'closingBalance' => $this->money->normalizeMoney($opening + $credits - $debits),
             ],
         ];
+    }
+
+    public function salesInvoice(Order $order): array
+    {
+        $order->loadMissing([
+            'user',
+            'orderDetails.product.stocks',
+            'delivery.deliveryUser',
+        ]);
+
+        $rows = $this->salesRows($order);
+        $subtotal = $this->money->normalizeMoney($order->orderDetails->sum('price'));
+        $tax = $this->money->normalizeMoney($order->orderDetails->sum('tax'));
+        $shipping = $this->money->normalizeMoney($order->orderDetails->sum('shipping_cost'));
+        $discount = $this->money->normalizeMoney($order->coupon_discount);
+        $total = $this->money->normalizeMoney($order->grand_total);
+        $paid = $this->paidAmount($order);
+        $template = $this->templates->templateSettingsSnapshot(
+            $this->templates->defaultTemplate('sales_invoice')
+        );
+
+        return [
+            'branding' => $this->branding($template),
+            'template' => $template,
+            'order' => $order,
+            'customer' => $this->customerSnapshot($order),
+            'documentTitle' => 'SALES INVOICE',
+            'documentNumber' => $order->code ?: '#'.$order->id,
+            'documentDate' => $this->orderDate($order)?->format('Y-m-d H:i'),
+            'currency' => $this->money->baseCurrency(),
+            'rows' => $rows,
+            'totals' => [
+                'subtotal' => $subtotal,
+                'tax' => $tax,
+                'discount' => $discount,
+                'shipping' => $shipping,
+                'total' => $total,
+                'paid' => $paid,
+                'outstanding' => max(0, $this->money->normalizeMoney($total - $paid)),
+            ],
+        ];
+    }
+
+    public function customerStatement(User $customer, ?string $dateFrom = null, ?string $dateTo = null): array
+    {
+        $from = $dateFrom ? CarbonImmutable::parse($dateFrom)->startOfDay() : null;
+        $to = $dateTo ? CarbonImmutable::parse($dateTo)->endOfDay() : null;
+        $opening = 0.0;
+
+        if ($from) {
+            $openingOrders = Order::query()
+                ->where('user_id', $customer->id)
+                ->where('created_at', '<', $from)
+                ->get();
+            $opening = $this->money->normalizeMoney(
+                $openingOrders->sum(fn (Order $order) => (float) $order->grand_total - $this->paidAmount($order))
+                - $this->completedReturnTotal($customer, null, $from->subMicrosecond())
+            );
+        }
+
+        $orders = Order::query()
+            ->where('user_id', $customer->id)
+            ->when($from, fn ($query) => $query->where('created_at', '>=', $from))
+            ->when($to, fn ($query) => $query->where('created_at', '<=', $to))
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+        $returns = $this->completedReturns($customer, $from, $to);
+
+        $events = collect();
+        foreach ($orders as $order) {
+            $events->push([
+                'sort_at' => $order->created_at,
+                'date' => $this->orderDate($order)?->format('Y-m-d H:i'),
+                'entry_type' => 'order',
+                'reference' => $order->code ?: '#'.$order->id,
+                'description' => 'Order - '.ucwords(str_replace('_', ' ', (string) $order->payment_status)),
+                'debit' => $this->money->normalizeMoney($order->grand_total),
+                'credit' => $this->paidAmount($order),
+            ]);
+        }
+        foreach ($returns as $return) {
+            $events->push([
+                'sort_at' => $return->completed_at ?: $return->updated_at,
+                'date' => ($return->completed_at ?: $return->updated_at)?->format('Y-m-d H:i'),
+                'entry_type' => 'sales_return',
+                'reference' => $return->return_number ?: '#'.$return->id,
+                'description' => 'Completed sales return',
+                'debit' => 0.0,
+                'credit' => $this->money->normalizeMoney($return->total_amount),
+            ]);
+        }
+
+        $running = $opening;
+        $rows = $events->sortBy('sort_at')->values()->map(function (array $event) use (&$running) {
+            $running = $this->money->normalizeMoney($running + $event['debit'] - $event['credit']);
+            unset($event['sort_at']);
+            $event['running_balance'] = $running;
+
+            return $event;
+        });
+
+        $template = $this->templates->templateSettingsSnapshot(
+            $this->templates->defaultTemplate('customer_statement')
+        );
+        $charges = $this->money->normalizeMoney($rows->sum('debit'));
+        $credits = $this->money->normalizeMoney($rows->sum('credit'));
+
+        return [
+            'branding' => $this->branding($template),
+            'template' => $template,
+            'customer' => $customer,
+            'dateFrom' => $from?->toDateString(),
+            'dateTo' => $to?->toDateString(),
+            'openingBalance' => $opening,
+            'rows' => $rows,
+            'totals' => [
+                'charges' => $charges,
+                'credits' => $credits,
+                'closingBalance' => $this->money->normalizeMoney($opening + $charges - $credits),
+            ],
+            'isOperationalStatement' => true,
+        ];
+    }
+
+    public function deliveryDocument(Order $order, string $type = 'delivery_note'): array
+    {
+        if (! in_array($type, ['delivery_note', 'packing_slip'], true)) {
+            throw new DomainException('Unsupported delivery document type.');
+        }
+
+        $order->loadMissing([
+            'user',
+            'orderDetails.product.stocks',
+            'delivery.deliveryUser',
+        ]);
+        $template = $this->templates->templateSettingsSnapshot(
+            $this->templates->defaultTemplate($type)
+        );
+
+        return [
+            'branding' => $this->branding($template),
+            'template' => $template,
+            'order' => $order,
+            'customer' => $this->customerSnapshot($order),
+            'documentTitle' => $type === 'packing_slip' ? 'PACKING SLIP' : 'DELIVERY NOTE',
+            'documentNumber' => $order->code ?: '#'.$order->id,
+            'documentDate' => $this->orderDate($order)?->format('Y-m-d H:i'),
+            'rows' => $this->salesRows($order)->map(fn (array $row) => [
+                'product_name' => $row['product_name'],
+                'variant' => $row['variant'],
+                'sku' => $row['sku'],
+                'barcode' => $row['barcode'],
+                'quantity' => $row['quantity'],
+            ]),
+            'delivery' => $order->delivery,
+        ];
+    }
+
+    private function salesRows(Order $order): Collection
+    {
+        return $order->orderDetails->map(function ($detail) {
+            $quantity = (float) $detail->quantity;
+            $stock = $detail->product?->stocks?->firstWhere('variant', $detail->variation)
+                ?? $detail->product?->stocks?->first();
+            $linePrice = $this->money->normalizeMoney($detail->price);
+            $tax = $this->money->normalizeMoney($detail->tax);
+
+            return [
+                'product_name' => $detail->product?->name ?: 'Product unavailable',
+                'variant' => $detail->variation,
+                'sku' => $stock?->sku,
+                'barcode' => $stock?->barcode ?: $detail->product?->barcode,
+                'quantity' => $quantity,
+                'unit_price' => $quantity > 0
+                    ? $this->money->normalizeMoney($linePrice / $quantity)
+                    : 0.0,
+                'tax_amount' => $tax,
+                'discount' => 0.0,
+                'line_total' => $this->money->normalizeMoney($linePrice + $tax),
+            ];
+        });
+    }
+
+    private function customerSnapshot(Order $order): array
+    {
+        $shipping = json_decode((string) $order->shipping_address, true);
+        if (! is_array($shipping)) {
+            $shipping = [];
+        }
+
+        return [
+            'id' => $order->user_id,
+            'name' => $order->user?->name ?: ($shipping['name'] ?? 'Walk-in customer'),
+            'email' => $order->user?->email ?: ($shipping['email'] ?? null),
+            'phone' => $order->user?->phone ?: ($shipping['phone'] ?? null),
+            'address' => $shipping['address'] ?? $order->user?->address,
+            'city' => $shipping['city'] ?? $order->user?->city,
+            'country' => $shipping['country'] ?? $order->user?->country,
+        ];
+    }
+
+    private function paidAmount(Order $order): float
+    {
+        if ($order->payment_status === 'paid') {
+            return $this->money->normalizeMoney($order->grand_total);
+        }
+
+        return max(0, min(
+            $this->money->normalizeMoney($order->grand_total),
+            $this->money->normalizeMoney($order->paid_amount ?? 0)
+        ));
+    }
+
+    private function completedReturns(User $customer, ?CarbonImmutable $from, ?CarbonImmutable $to): Collection
+    {
+        if (! Schema::hasTable('sales_returns')) {
+            return collect();
+        }
+
+        return SalesReturn::query()
+            ->where('status', 'completed')
+            ->whereHas('order', fn ($query) => $query->where('user_id', $customer->id))
+            ->when($from, fn ($query) => $query->where('completed_at', '>=', $from))
+            ->when($to, fn ($query) => $query->where('completed_at', '<=', $to))
+            ->orderBy('completed_at')
+            ->orderBy('id')
+            ->get();
+    }
+
+    private function completedReturnTotal(User $customer, ?CarbonImmutable $from, ?CarbonImmutable $to): float
+    {
+        return $this->money->normalizeMoney(
+            $this->completedReturns($customer, $from, $to)->sum('total_amount')
+        );
+    }
+
+    private function orderDate(Order $order): ?CarbonImmutable
+    {
+        if (is_numeric($order->date) && (int) $order->date > 0) {
+            return CarbonImmutable::createFromTimestamp((int) $order->date);
+        }
+
+        return $order->created_at ? CarbonImmutable::instance($order->created_at) : null;
     }
 
     private function orderRows(PurchaseOrder $purchaseOrder): Collection

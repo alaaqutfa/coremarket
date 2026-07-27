@@ -26,6 +26,7 @@ use App\Utility\NotificationUtility;
 use CoreComponentRepository;
 use App\Utility\SmsUtility;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\RedirectResponse;
 use Maatwebsite\Excel\Facades\Excel;
 
 class OrderController extends Controller
@@ -40,6 +41,11 @@ class OrderController extends Controller
     }
 
     // All Orders
+    public function index(): RedirectResponse
+    {
+        return redirect()->route('all_orders.index');
+    }
+
     public function all_orders(Request $request)
     {
         // CoreComponentRepository::instantiateShopRepository();

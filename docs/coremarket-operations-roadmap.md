@@ -401,3 +401,19 @@ Next:
 - 65 Customer Invoice / Sales Document Designer Expansion.
 - 66 Branch-specific Inventory/Price Implementation if needed.
 - 67 Delivery Mobile View/App later.
+
+## Sales document templates and customer statements
+
+Step 65 extends the safe Document Template system to Sales Invoices, Operational Customer Statements, Delivery Notes, and Packing Slips.
+
+- `/admin/all_orders` remains the official order list; `/admin/orders` is now a safe compatibility redirect instead of a broken resource endpoint.
+- Sales Invoice PDFs use stored order items and totals without exposing cost, profit, supplier data, or other customer Price Lists.
+- Customer Statements use available orders, recorded paid status/amounts, and completed sales returns. They are operational documents, not an official accounts receivable ledger.
+- Delivery Notes and Packing Slips are assignment-aware and exclude price/cost/profit details.
+- No migration, payment workflow, accounting journal, AR ledger, email/WhatsApp sending, or printer integration was added.
+
+Next:
+
+- 66 Customer Receivables / AR Ledger Foundation if needed.
+- 67 Branch-specific Inventory/Price Implementation if needed.
+- 68 Delivery Mobile View/App later.

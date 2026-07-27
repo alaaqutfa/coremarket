@@ -339,8 +339,19 @@
                             <button class="btn btn-soft-primary">{{ translate('Prepare Delivery') }}</button>
                         </form>
                     @endif
-                    <a href="{{ route('invoice.download', $order->id) }}" type="button" class="btn btn-icon btn-light"><i
-                            class="las la-print"></i></a>
+                    @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('sales_invoices.export'))
+                        <a href="{{ route('operations.orders.invoice.pdf', $order) }}" class="btn btn-soft-info">
+                            {{ translate('Sales Invoice PDF') }}
+                        </a>
+                    @endif
+                    @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('delivery_notes.export'))
+                        <a href="{{ route('operations.orders.delivery-note.pdf', $order) }}" class="btn btn-soft-secondary">
+                            {{ translate('Delivery Note PDF') }}
+                        </a>
+                        <a href="{{ route('operations.orders.packing-slip.pdf', $order) }}" class="btn btn-soft-secondary">
+                            {{ translate('Packing Slip PDF') }}
+                        </a>
+                    @endif
                 </div>
             </div>
 

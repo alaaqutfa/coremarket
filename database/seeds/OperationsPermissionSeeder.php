@@ -41,6 +41,9 @@ class OperationsPermissionSeeder extends Seeder
             'deliveries.view', 'deliveries.assign', 'deliveries.update_status',
             'deliveries.collect_cod', 'deliveries.view_all', 'deliveries.view_assigned',
             'deliveries.settle_cod', 'deliveries.view_cod_summary',
+            'sales_invoices.view', 'sales_invoices.export',
+            'customer_statements.view', 'customer_statements.export',
+            'delivery_notes.view', 'delivery_notes.export',
         ];
     }
 }

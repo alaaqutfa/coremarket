@@ -80,6 +80,11 @@
                                 </td>
                                 <td>{{single_price($user->balance)}}</td>
                                 <td class="text-right">
+                                    @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('customer_statements.export'))
+                                        <a href="{{ route('operations.customers.statement.pdf', $user) }}" class="btn btn-soft-info btn-icon btn-circle btn-sm" title="{{ translate('Operational Customer Statement') }}">
+                                            <i class="las la-file-invoice-dollar"></i>
+                                        </a>
+                                    @endif
                                     @can('login_as_customer')
                                         <a href="{{route('customers.login', encrypt($user->id))}}" class="btn btn-soft-primary btn-icon btn-circle btn-sm" title="{{ translate('Log in as this Customer') }}">
                                             <i class="las la-edit"></i>

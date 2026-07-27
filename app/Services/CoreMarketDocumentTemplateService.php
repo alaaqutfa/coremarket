@@ -18,6 +18,10 @@ class CoreMarketDocumentTemplateService
         'pos_receipt',
         'price_label',
         'barcode_label',
+        'sales_invoice',
+        'customer_statement',
+        'delivery_note',
+        'packing_slip',
     ];
 
     public const PAPER_TYPES = ['a4', 'receipt_80mm', 'receipt_58mm', 'label', 'custom'];
@@ -50,6 +54,7 @@ class CoreMarketDocumentTemplateService
         'family',
         'quantity',
         'unit_cost',
+        'unit_price',
         'regular_price',
         'sale_price',
         'tax',
@@ -303,7 +308,9 @@ class CoreMarketDocumentTemplateService
     private function presets(): array
     {
         $a4Columns = ['product', 'sku', 'barcode', 'quantity', 'unit_cost', 'regular_price', 'sale_price', 'tax', 'discount', 'line_total'];
+        $salesColumns = ['product', 'sku', 'barcode', 'quantity', 'unit_price', 'tax', 'discount', 'line_total'];
         $statementColumns = ['date', 'entry_type', 'reference', 'description', 'debit', 'credit', 'running_balance'];
+        $deliveryColumns = ['product', 'sku', 'barcode', 'quantity'];
 
         return [
             $this->preset('Default Purchase Order A4', 'default-purchase-order-a4', 'purchase_order', 'a4', $a4Columns),
@@ -313,6 +320,10 @@ class CoreMarketDocumentTemplateService
             $this->preset('Default POS Receipt 58mm', 'default-pos-receipt-58mm', 'pos_receipt', 'receipt_58mm', ['product', 'quantity', 'regular_price', 'line_total'], 58, 200, false),
             $this->preset('Default Price Label', 'default-price-label', 'price_label', 'label', ['product', 'sku', 'regular_price', 'sale_price'], 50, 30),
             $this->preset('Default Barcode Label', 'default-barcode-label', 'barcode_label', 'label', ['product', 'sku', 'barcode'], 50, 30),
+            $this->preset('Default Sales Invoice A4', 'default-sales-invoice-a4', 'sales_invoice', 'a4', $salesColumns),
+            $this->preset('Default Customer Statement A4', 'default-customer-statement-a4', 'customer_statement', 'a4', $statementColumns),
+            $this->preset('Default Delivery Note A4', 'default-delivery-note-a4', 'delivery_note', 'a4', $deliveryColumns),
+            $this->preset('Default Packing Slip A4', 'default-packing-slip-a4', 'packing_slip', 'a4', $deliveryColumns),
         ];
     }
 

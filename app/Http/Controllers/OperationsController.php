@@ -21,6 +21,7 @@ use App\Models\PurchaseReturn;
 use App\Models\SalesReturn;
 use App\Models\Supplier;
 use App\Models\TaxRate;
+use App\Models\User;
 use App\Services\AccountingPostingService;
 use App\Services\AccountingReportService;
 use App\Services\AccountingEventService;
@@ -219,6 +220,41 @@ class OperationsController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="supplier-statement-'.$supplier->id.'.pdf"',
         ]);
+    }
+    public function salesInvoicePdf(Order $order, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
+    {
+        $this->authorizeSalesInvoice($order);
+        $data = $pdf->salesInvoice($order);
+        $contents = PDF::loadView('backend.operations.pdf.sales-invoice', $data, [], $templates->paperConfig($data['template']))->output();
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="sales-invoice-'.$order->code.'.pdf"',
+        ]);
+    }
+    public function customerStatementPdf(Request $request, User $customer, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
+    {
+        $this->authorizeDocumentPermission('customer_statements.export');
+        abort_unless($customer->user_type === 'customer', 404);
+        $filters = $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+        $data = $pdf->customerStatement($customer, $filters['date_from'] ?? null, $filters['date_to'] ?? null);
+        $contents = PDF::loadView('backend.operations.pdf.customer-statement', $data, [], $templates->paperConfig($data['template']))->output();
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="customer-statement-'.$customer->id.'.pdf"',
+        ]);
+    }
+    public function deliveryNotePdf(Order $order, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
+    {
+        return $this->deliveryDocumentResponse($order, 'delivery_note', $pdf, $templates);
+    }
+    public function packingSlipPdf(Order $order, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
+    {
+        return $this->deliveryDocumentResponse($order, 'packing_slip', $pdf, $templates);
     }
     public function editSupplier(Supplier $supplier): View { $this->authorizeOperation('suppliers.edit', ['purchasing_suppliers']); return view('backend.operations.suppliers.form', compact('supplier')); }
     public function storeSupplier(Request $request): RedirectResponse { $this->authorizeOperation('suppliers.create', ['purchasing_suppliers']); $supplier = Supplier::create($this->supplierData($request)); return redirect()->route('operations.suppliers.edit', $supplier)->with('success', translate('Supplier saved successfully')); }
@@ -689,6 +725,55 @@ class OperationsController extends Controller
         $user = auth()->user();
         if (! $user || ($user->user_type !== 'admin' && ! $user->can($permission))) abort(403);
         if ($user->user_type !== 'admin' && ! collect($features)->contains(fn ($feature) => $this->features->enabled($feature))) abort(404);
+    }
+
+    private function authorizeDocumentPermission(string $permission): void
+    {
+        $user = auth()->user();
+        if (! $user || ($user->user_type !== 'admin' && ! $user->can($permission))) {
+            abort(403);
+        }
+    }
+
+    private function authorizeSalesInvoice(Order $order): void
+    {
+        $this->authorizeDocumentPermission('sales_invoices.export');
+        $user = auth()->user();
+        if (
+            $user->user_type !== 'admin'
+            && $user->hasRole('cashier')
+            && ! $user->hasAnyRole(['owner_general_manager', 'store_admin', 'accountant'])
+            && (int) $order->cashier_id !== (int) $user->id
+        ) {
+            abort(403);
+        }
+    }
+
+    private function deliveryDocumentResponse(
+        Order $order,
+        string $type,
+        OperationsPdfService $pdf,
+        CoreMarketDocumentTemplateService $templates
+    ) {
+        $this->authorizeDocumentPermission('delivery_notes.export');
+        $user = auth()->user();
+        $order->loadMissing('delivery');
+        if (
+            $user->user_type !== 'admin'
+            && $user->hasRole('delivery_distribution')
+            && ! $user->hasAnyRole(['owner_general_manager', 'store_admin'])
+            && (int) $order->delivery?->delivery_user_id !== (int) $user->id
+        ) {
+            abort(403);
+        }
+
+        $data = $pdf->deliveryDocument($order, $type);
+        $contents = PDF::loadView('backend.operations.pdf.delivery-document', $data, [], $templates->paperConfig($data['template']))->output();
+
+        return response($contents, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$type.'-'.$order->code.'.pdf"',
+        ]);
     }
 
     private function operationsQuickActions(): array
