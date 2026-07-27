@@ -126,9 +126,21 @@ class CoreMarketSeedDemoCommandTest extends TestCase
         foreach (['pos', 'cashbox_shifts', 'loyalty_points', 'inventory_pro', 'purchasing_suppliers', 'returns_management', 'accounting_lite', 'accounting_core'] as $feature) {
             $this->assertTrue($features[$feature] ?? false, "Demo snapshot should enable [{$feature}].");
         }
-        $this->assertDemoRoleHasPermissions('demo_cashier', ['pos.view', 'pos.sell', 'cash_shifts.view']);
-        $this->assertDemoRoleHasPermissions('demo_inventory_manager', ['inventory.dashboard.view', 'inventory.stock.view', 'purchase_orders.view']);
-        $this->assertDemoRoleHasPermissions('demo_accountant', ['expenses.view', 'accounting.core.view', 'accounting.journals.view']);
+        $this->assertDemoRoleHasPermissions('cashier', ['pos.view', 'pos.sell', 'cash_shifts.view']);
+        $this->assertDemoRoleHasPermissions('warehouse_keeper', ['inventory.dashboard.view', 'inventory.stock.view', 'purchase_orders.view']);
+        $this->assertDemoRoleHasPermissions('accountant', ['expenses.view', 'accounting.core.view', 'accounting.journals.view']);
+        foreach ([
+            'owner@coremarket.demo',
+            'accountant@coremarket.demo',
+            'cashier@coremarket.demo',
+            'data.entry@coremarket.demo',
+            'warehouse@coremarket.demo',
+            'delivery@coremarket.demo',
+            'marketing@coremarket.demo',
+            'designer@coremarket.demo',
+        ] as $email) {
+            $this->assertDatabaseHas('users', ['email' => $email, 'user_type' => 'staff']);
+        }
         $this->assertSame(0, DB::table('business_settings')->where(function ($query) {
             $query->where('type', 'like', '%token%')->orWhere('type', 'like', '%secret%');
         })->whereNotNull('value')->where('value', '!=', '')->count());

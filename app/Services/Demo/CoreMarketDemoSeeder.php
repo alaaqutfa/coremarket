@@ -142,15 +142,25 @@ class CoreMarketDemoSeeder
     {
         $staff = [
             'admin' => ['CoreMarket Demo Admin', 'admin@coremarket.demo', 'admin', 'Super Admin'],
-            'cashier' => ['Maya Demo Cashier', 'cashier@coremarket.demo', 'staff', 'demo_cashier'],
-            'inventory' => ['Omar Demo Inventory', 'inventory@coremarket.demo', 'staff', 'demo_inventory_manager'],
-            'accountant' => ['Lina Demo Accountant', 'accountant@coremarket.demo', 'staff', 'demo_accountant'],
+            'owner' => ['CoreMarket Demo Owner', 'owner@coremarket.demo', 'staff', 'owner_general_manager'],
+            'cashier' => ['Maya Demo Cashier', 'cashier@coremarket.demo', 'staff', 'cashier'],
+            'inventory' => ['Omar Demo Inventory', 'inventory@coremarket.demo', 'staff', 'warehouse_keeper'],
+            'accountant' => ['Lina Demo Accountant', 'accountant@coremarket.demo', 'staff', 'accountant'],
+            'data_entry' => ['Rami Demo Purchasing', 'data.entry@coremarket.demo', 'staff', 'data_entry_purchasing'],
+            'warehouse' => ['Nadine Demo Warehouse', 'warehouse@coremarket.demo', 'staff', 'warehouse_keeper'],
+            'delivery' => ['Karim Demo Delivery', 'delivery@coremarket.demo', 'staff', 'delivery_distribution'],
+            'marketing' => ['Sara Demo Marketing', 'marketing@coremarket.demo', 'staff', 'marketing_employee'],
+            'designer' => ['Jad Demo Designer', 'designer@coremarket.demo', 'staff', 'designer_content'],
         ];
         $result = [];
 
         foreach ($staff as $key => [$name, $email, $type, $roleName]) {
             $roleId = $this->upsertId('roles', ['name' => $roleName, 'guard_name' => 'web'], []);
             $userId = $this->upsertUser($name, $email, $type, '+96170000' . str_pad((string) count($result), 2, '0', STR_PAD_LEFT));
+            DB::table('model_has_roles')
+                ->where('model_type', User::class)
+                ->where('model_id', $userId)
+                ->delete();
             DB::table('model_has_roles')->updateOrInsert([
                 'role_id' => $roleId,
                 'model_type' => User::class,
@@ -160,28 +170,7 @@ class CoreMarketDemoSeeder
             $result[$key] = $userId;
         }
 
-        $rolePermissions = [
-            'demo_cashier' => [
-                'pos.view', 'pos.sell', 'pos.receipts.view', 'pos.redeem_loyalty',
-                'cashboxes.view', 'cash_shifts.view', 'cash_shifts.open', 'cash_shifts.close',
-                'cash_movements.view',
-            ],
-            'demo_inventory_manager' => [
-                'operations.view', 'inventory_movements.view',
-                'inventory.view', 'inventory.dashboard.view', 'inventory.stock.view',
-                'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',
-                'inventory.barcode_lookup.view',
-                'suppliers.view', 'suppliers.create', 'suppliers.edit',
-                'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.receive',
-            ],
-            'demo_accountant' => [
-                'operations.view', 'expenses.view', 'expenses.create', 'expenses.approve',
-                'accounting_summary.view', 'accounting.core.view', 'accounting.accounts.view',
-                'accounting.journals.view', 'accounting.tax.view', 'accounting.tax.audit',
-                'accounting.general_ledger.view', 'accounting.trial_balance.view',
-                'accounting.profit_loss.view', 'accounting.events.view',
-            ],
-        ];
+        $rolePermissions = config('coremarket.access.staff_role_presets', []);
 
         foreach ($rolePermissions as $roleName => $permissions) {
             $roleId = DB::table('roles')->where('name', $roleName)->where('guard_name', 'web')->value('id');
@@ -782,7 +771,7 @@ class CoreMarketDemoSeeder
         $large = $profile === 'large';
 
         return [
-            ['area' => 'Users', 'records' => $large ? 35 : 14, 'marker' => '@coremarket.demo'],
+            ['area' => 'Users', 'records' => $large ? 41 : 20, 'marker' => '@coremarket.demo'],
             ['area' => 'Catalog', 'records' => $large ? 260 : 45, 'marker' => 'DEMO-* SKU/barcode'],
             ['area' => 'Operations', 'records' => $large ? 240 : 32, 'marker' => 'demo: POS references'],
             ['area' => 'Loyalty', 'records' => $large ? 180 : 30, 'marker' => 'demo: loyalty idempotency keys'],
