@@ -598,7 +598,6 @@ class HomeController extends Controller
         $product = Product::find($request->id);
         $str = '';
         $quantity = 0;
-        $tax = 0;
         $max_limit = 0;
 
         if ($request->has('color')) {
@@ -645,36 +644,14 @@ class HomeController extends Controller
             }
         }
 
-        //discount calculation
-        $discount_applicable = false;
-
-        if ($product->discount_start_date == null) {
-            $discount_applicable = true;
-        } elseif (
-            strtotime(date('d-m-Y H:i:s')) >= $product->discount_start_date &&
-            strtotime(date('d-m-Y H:i:s')) <= $product->discount_end_date
-        ) {
-            $discount_applicable = true;
-        }
-
-        if ($discount_applicable) {
-            if ($product->discount_type == 'percent') {
-                $price -= ($price * $product->discount) / 100;
-            } elseif ($product->discount_type == 'amount') {
-                $price -= $product->discount;
-            }
-        }
-
-        // taxes
-        foreach ($product->taxes as $product_tax) {
-            if ($product_tax->tax_type == 'percent') {
-                $tax += ($price * $product_tax->tax) / 100;
-            } elseif ($product_tax->tax_type == 'amount') {
-                $tax += $product_tax->tax;
-            }
-        }
-
-        $price += $tax;
+        $saleCandidate = \App\Utility\CartUtility::discount_calculation($product, $price);
+        $price = app(\App\Services\CoreMarketStorefrontPriceDisplayService::class)
+            ->display($product_stock, null, [
+                'regular_price' => $product_stock->price,
+                'sale_price' => (float) $saleCandidate !== (float) $product_stock->price
+                    ? $saleCandidate
+                    : null,
+            ])['display_price'];
 
         return array(
             'price' => single_price($price * $request->quantity),

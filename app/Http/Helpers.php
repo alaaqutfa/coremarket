@@ -411,20 +411,21 @@ if (! function_exists('currency_symbol')) {
 if (! function_exists('format_price')) {
     function format_price($price, $isMinimize = false)
     {
+        $decimals = max(0, min(2, (int) get_setting('no_of_decimals', 2)));
         if (get_setting('decimal_separator') == 1) {
-            $fomated_price = number_format($price, get_setting('no_of_decimals'));
+            $fomated_price = number_format($price, $decimals);
         } else {
-            $fomated_price = number_format($price, get_setting('no_of_decimals'), ',', '.');
+            $fomated_price = number_format($price, $decimals, ',', '.');
         }
 
         // Minimize the price
         if ($isMinimize) {
-            $temp = number_format($price / 1000000000, get_setting('no_of_decimals'), ".", "");
+            $temp = number_format($price / 1000000000, $decimals, ".", "");
 
             if ($temp >= 1) {
                 $fomated_price = $temp . "B";
             } else {
-                $temp = number_format($price / 1000000, get_setting('no_of_decimals'), ".", "");
+                $temp = number_format($price / 1000000, $decimals, ".", "");
                 if ($temp >= 1) {
                     $fomated_price = $temp . "M";
                 }
@@ -475,6 +476,14 @@ if (! function_exists('coremarket_quantity')) {
     function coremarket_quantity($quantity): string
     {
         return app(\App\Services\CoreMarketMoneyService::class)->formatQuantity($quantity);
+    }
+}
+
+if (! function_exists('coremarket_storefront_price')) {
+    function coremarket_storefront_price($product, $customer = null, array $context = []): array
+    {
+        return app(\App\Services\CoreMarketStorefrontPriceDisplayService::class)
+            ->display($product, $customer, $context);
     }
 }
 
@@ -806,60 +815,10 @@ if (! function_exists('home_price')) {
 if (! function_exists('home_discounted_price')) {
     function home_discounted_price($product, $formatted = true)
     {
-        $lowest_price  = $product->unit_price;
-        $highest_price = $product->unit_price;
+        $range = app(\App\Services\CoreMarketStorefrontPriceDisplayService::class)
+            ->displayRange($product);
 
-        if ($product->variant_product) {
-            foreach ($product->stocks as $key => $stock) {
-                if ($lowest_price > $stock->price) {
-                    $lowest_price = $stock->price;
-                }
-                if ($highest_price < $stock->price) {
-                    $highest_price = $stock->price;
-                }
-            }
-        }
-
-        $discount_applicable = false;
-
-        if ($product->discount_start_date == null) {
-            $discount_applicable = true;
-        } elseif (
-            strtotime(date('d-m-Y H:i:s')) >= $product->discount_start_date &&
-            strtotime(date('d-m-Y H:i:s')) <= $product->discount_end_date
-        ) {
-            $discount_applicable = true;
-        }
-
-        if ($discount_applicable) {
-            if ($product->discount_type == 'percent') {
-                $lowest_price -= ($lowest_price * $product->discount) / 100;
-                $highest_price -= ($highest_price * $product->discount) / 100;
-            } elseif ($product->discount_type == 'amount') {
-                $lowest_price -= $product->discount;
-                $highest_price -= $product->discount;
-            }
-        }
-
-        foreach ($product->taxes as $product_tax) {
-            if ($product_tax->tax_type == 'percent') {
-                $lowest_price += ($lowest_price * $product_tax->tax) / 100;
-                $highest_price += ($highest_price * $product_tax->tax) / 100;
-            } elseif ($product_tax->tax_type == 'amount') {
-                $lowest_price += $product_tax->tax;
-                $highest_price += $product_tax->tax;
-            }
-        }
-
-        if ($formatted) {
-            if ($lowest_price == $highest_price) {
-                return format_price(convert_price($lowest_price));
-            } else {
-                return format_price(convert_price($lowest_price)) . ' - ' . format_price(convert_price($highest_price));
-            }
-        } else {
-            return $lowest_price . ' - ' . $highest_price;
-        }
+        return $formatted ? $range['formatted'] : $range['raw'];
     }
 }
 
@@ -906,39 +865,8 @@ if (! function_exists('home_discounted_base_price_by_stock_id')) {
     function home_discounted_base_price_by_stock_id($id)
     {
         $product_stock = ProductStock::findOrFail($id);
-        $product       = $product_stock->product;
-        $price         = $product_stock->price;
-        $tax           = 0;
-
-        $discount_applicable = false;
-
-        if ($product->discount_start_date == null) {
-            $discount_applicable = true;
-        } elseif (
-            strtotime(date('d-m-Y H:i:s')) >= $product->discount_start_date &&
-            strtotime(date('d-m-Y H:i:s')) <= $product->discount_end_date
-        ) {
-            $discount_applicable = true;
-        }
-
-        if ($discount_applicable) {
-            if ($product->discount_type == 'percent') {
-                $price -= ($price * $product->discount) / 100;
-            } elseif ($product->discount_type == 'amount') {
-                $price -= $product->discount;
-            }
-        }
-
-        foreach ($product->taxes as $product_tax) {
-            if ($product_tax->tax_type == 'percent') {
-                $tax += ($price * $product_tax->tax) / 100;
-            } elseif ($product_tax->tax_type == 'amount') {
-                $tax += $product_tax->tax;
-            }
-        }
-        $price += $tax;
-
-        return format_price(convert_price($price));
+        return app(\App\Services\CoreMarketStorefrontPriceDisplayService::class)
+            ->display($product_stock)['formatted_display_price'];
     }
 }
 
@@ -946,38 +874,9 @@ if (! function_exists('home_discounted_base_price_by_stock_id')) {
 if (! function_exists('home_discounted_base_price')) {
     function home_discounted_base_price($product, $formatted = true)
     {
-        $price = $product->unit_price;
-        $tax   = 0;
+        $display = coremarket_storefront_price($product);
 
-        $discount_applicable = false;
-
-        if ($product->discount_start_date == null) {
-            $discount_applicable = true;
-        } elseif (
-            strtotime(date('d-m-Y H:i:s')) >= $product->discount_start_date &&
-            strtotime(date('d-m-Y H:i:s')) <= $product->discount_end_date
-        ) {
-            $discount_applicable = true;
-        }
-
-        if ($discount_applicable) {
-            if ($product->discount_type == 'percent') {
-                $price -= ($price * $product->discount) / 100;
-            } elseif ($product->discount_type == 'amount') {
-                $price -= $product->discount;
-            }
-        }
-
-        foreach ($product->taxes as $product_tax) {
-            if ($product_tax->tax_type == 'percent') {
-                $tax += ($price * $product_tax->tax) / 100;
-            } elseif ($product_tax->tax_type == 'amount') {
-                $tax += $product_tax->tax;
-            }
-        }
-        $price += $tax;
-
-        return $formatted ? format_price(convert_price($price)) : convert_price($price);
+        return $formatted ? $display['formatted_display_price'] : convert_price($display['display_price']);
     }
 }
 

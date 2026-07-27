@@ -352,3 +352,19 @@ Next:
 - 63 Branch-specific Inventory/Price Implementation if needed.
 - 64 Customer Invoice / Sales Document Designer Expansion.
 - 65 Label Printer Hardware Integration later.
+
+## Safe storefront price-list display
+
+Step 62 applies the existing customer Price List resolver to storefront product cards, search results, related products, product details, and variant-price responses through the shared price helpers.
+
+- Guests and customers without an assigned list see only the public sale or regular price.
+- Assigned customers receive their own list price only while `pricing.price_lists_enabled` is enabled and according to the configured priority.
+- Product collections may remain cached, but final display prices are resolved per request and are never placed in shared public cache.
+- Sale prices remain temporary promotions, while Web cart and checkout continue to recalculate the authoritative final price.
+- No branch-specific pricing, manual POS override, migration, or new pricing engine is included.
+
+Next:
+
+- 63 Branch-specific Inventory/Price Implementation if needed.
+- 64 Customer Invoice / Sales Document Designer Expansion.
+- 65 Delivery Workflow Foundation.
