@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\RoleTranslation;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use App\Services\CoreMarketStaffGovernanceService;
 
 class RoleController extends Controller
 {
@@ -26,6 +27,7 @@ class RoleController extends Controller
      */
     public function index()
     {
+        $this->authorizePlatformRoleManagement();
         $roles = Role::where('id', '!=', 1)->paginate(10);
         return view('backend.staff.staff_roles.index', compact('roles'));
 
@@ -40,6 +42,7 @@ class RoleController extends Controller
      */
     public function create()
     {
+        $this->authorizePlatformRoleManagement();
         return view('backend.staff.staff_roles.create');
     }
 
@@ -51,6 +54,7 @@ class RoleController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorizePlatformRoleManagement();
         // dd($request->permissions);
         $role = Role::create(['name' => $request->name]);
         $role->givePermissionTo($request->permissions);
@@ -82,6 +86,7 @@ class RoleController extends Controller
      */
     public function edit(Request $request, $id)
     {
+        $this->authorizePlatformRoleManagement();
         $lang = $request->lang;
         $role = Role::findOrFail($id);
         return view('backend.staff.staff_roles.edit', compact('role', 'lang'));
@@ -96,6 +101,7 @@ class RoleController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->authorizePlatformRoleManagement();
         $role = Role::findOrFail($id);
         if ($request->lang == env("DEFAULT_LANGUAGE")) {
             $role->name = $request->name;
@@ -121,6 +127,7 @@ class RoleController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorizePlatformRoleManagement();
         if(env('DEMO_MODE') == 'On'){
             flash(translate('Data can not change in demo mode.'))->info();
             return back();
@@ -134,11 +141,17 @@ class RoleController extends Controller
 
     public function add_permission(Request $request)
     {
+        $this->authorizePlatformRoleManagement();
         $permission = Permission::create(['name' => $request->name, 'section' => $request->parent]);
         return redirect()->route('roles.index');
     }
 
     public function create_admin_permissions()
     {
+    }
+
+    private function authorizePlatformRoleManagement(): void
+    {
+        abort_unless(app(CoreMarketStaffGovernanceService::class)->canManageRawPermissions(auth()->user()), 403);
     }
 }

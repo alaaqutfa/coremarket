@@ -25,6 +25,7 @@
         $coremarketAccountingCoreEnabled = $coremarketAccountingCoreFeatureEnabled || $coremarketAccountingOperationsEnabled;
         $coremarketOperationsOwner = auth()->user()?->user_type === 'admin';
         $coremarketCanOperationsOverview = $coremarketOperationsOwner || auth()->user()?->can('operations.view');
+        $coremarketCanBranches = $coremarketOperationsOwner || auth()->user()?->can('branches.manage');
         $coremarketCanInventoryDashboard = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.dashboard.view'));
         $coremarketCanInventoryStock = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.stock.view'));
         $coremarketCanInventoryLookup = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.barcode_lookup.view'));
@@ -58,7 +59,8 @@
         $coremarketCanCashMovements = $coremarketCashboxEnabled && ($coremarketOperationsOwner || auth()->user()?->can('cash_movements.view'));
         $coremarketPosEnabled = coremarket_feature_enabled('pos') && $coremarketCashboxEnabled;
         $coremarketCanPos = $coremarketPosEnabled && ($coremarketOperationsOwner || auth()->user()?->can('pos.view'));
-        $coremarketCanPriceLists = $coremarketOperationsOwner || auth()->user()?->can('price_lists.manage');
+        $coremarketPriceListsEnabled = app(\App\Services\CoreMarketPricingFeatureService::class)->priceListsEnabled();
+        $coremarketCanPriceLists = $coremarketOperationsOwner || ($coremarketPriceListsEnabled && auth()->user()?->can('price_lists.manage'));
         $coremarketLoyaltyEnabled = coremarket_feature_enabled('loyalty_points');
         $coremarketCanLoyaltyView = $coremarketLoyaltyEnabled && ($coremarketOperationsOwner || auth()->user()?->can('loyalty.view'));
         $coremarketCanLoyaltyRules = $coremarketLoyaltyEnabled && ($coremarketOperationsOwner || auth()->user()?->can('loyalty.rules.manage'));
@@ -68,7 +70,7 @@
         $coremarketCanSalesOperations = $coremarketCanPos || $coremarketCanSalesReturns;
         $coremarketCanAccountingOperations = $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingReports || $coremarketCanAccountingCore || $coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements;
         $coremarketCanInventory = $coremarketCanInventoryDashboard || $coremarketCanInventoryStock || $coremarketCanInventoryLookup || $coremarketCanInventoryLowStock || $coremarketCanInventoryMovements || $coremarketCanInventoryAudit || $coremarketCanInventoryPolicy || $coremarketCanInventoryFamilies;
-        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingReports || $coremarketCanAccountingCore || $coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements || $coremarketCanPos || $coremarketCanPriceLists || $coremarketCanLoyalty;
+        $coremarketHasOperationsLinks = $coremarketCanOperationsOverview || $coremarketCanBranches || $coremarketCanInventory || $coremarketCanPurchasing || $coremarketCanSalesReturns || $coremarketCanExpenses || $coremarketCanAccountingSummary || $coremarketCanAccountingReports || $coremarketCanAccountingCore || $coremarketCanCashboxes || $coremarketCanCashShifts || $coremarketCanCashMovements || $coremarketCanPos || $coremarketCanPriceLists || $coremarketCanLoyalty;
         $coremarketOwnerNavigationEnabled = ! $coremarketStoreAdmin;
     @endphp
     <div class="aiz-sidebar left c-scrollbar">
@@ -143,6 +145,9 @@
                     <ul class="aiz-side-nav-list level-2">
                         @if ($coremarketCanOperationsOverview)
                         <li class="aiz-side-nav-item"><a href="{{ route('operations.overview') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.overview']) }}"><span class="aiz-side-nav-text">{{ translate('Overview') }}</span></a></li>
+                        @endif
+                        @if ($coremarketCanBranches)
+                        <li class="aiz-side-nav-item"><a href="{{ route('operations.branches.index') }}" class="aiz-side-nav-link {{ areActiveRoutes(['operations.branches.index']) }}"><span class="aiz-side-nav-text">{{ translate('Branches') }}</span></a></li>
                         @endif
                         @if ($coremarketCanSalesOperations)
                         <li class="aiz-side-nav-item" data-coremarket-nav-group="sales">

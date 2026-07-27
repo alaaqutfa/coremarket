@@ -20,6 +20,15 @@ return [
     'pricing' => [
         'priority' => 'customer_price_first',
         'priorities' => ['customer_price_first', 'sale_price_first', 'lowest_price'],
+        'price_lists_enabled' => false,
+        'flexible_selling_price_enabled' => false,
+    ],
+
+    'branch' => [
+        'enabled' => false,
+        'price_policy' => 'unified',
+        'inventory_policy' => 'unified',
+        'policies' => ['unified', 'branch_specific_future'],
     ],
 
     'plan' => [
@@ -582,6 +591,7 @@ return [
 
         'operations_permissions' => [
             'operations.view', 'inventory_movements.view',
+            'branches.manage',
             'suppliers.view', 'suppliers.create', 'suppliers.edit',
             'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.receive',
             'supplier_ledger.view', 'supplier_payments.create',
@@ -634,6 +644,7 @@ return [
             'edit_website_page',
 
             'operations.view',
+            'branches.manage',
             'inventory_movements.view',
             'suppliers.view',
             'suppliers.create',
@@ -682,12 +693,12 @@ return [
                 'view_product_categories', 'add_product_category', 'edit_product_category',
                 'view_all_orders', 'view_inhouse_orders', 'view_order_details', 'update_order_delivery_status', 'update_order_payment_status', 'export_order',
                 'view_all_customers',
-                'view_all_staffs', 'add_staff', 'edit_staff', 'view_staff_roles', 'add_staff_role', 'edit_staff_role',
+                'view_all_staffs', 'add_staff', 'edit_staff',
                 'view_all_coupons', 'add_coupon', 'edit_coupon',
                 'view_all_flash_deals', 'add_flash_deal', 'edit_flash_deal', 'publish_flash_deal',
                 'view_blogs', 'add_blog', 'edit_blog', 'publish_blog', 'view_blog_categories',
                 'website_appearance', 'header_setup', 'footer_setup', 'view_all_website_pages', 'add_website_page', 'edit_website_page',
-                'operations.view', 'inventory_movements.view',
+                'operations.view', 'branches.manage', 'inventory_movements.view',
                 'suppliers.view', 'suppliers.create', 'suppliers.edit',
                 'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.receive',
                 'supplier_ledger.view', 'supplier_payments.create',
@@ -759,6 +770,16 @@ return [
                 'view_all_website_pages', 'add_website_page', 'edit_website_page',
                 'view_blogs', 'add_blog', 'edit_blog', 'view_blog_categories',
             ],
+        ],
+
+        'client_assignable_staff_roles' => [
+            'accountant',
+            'cashier',
+            'data_entry_purchasing',
+            'warehouse_keeper',
+            'delivery_distribution',
+            'marketing_employee',
+            'designer_content',
         ],
 
         'store_admin_allowed_business_setting_types' => [

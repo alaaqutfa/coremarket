@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use App\Services\CoreMarketPricingFeatureService;
 
 class PriceListController extends Controller
 {
@@ -180,6 +181,7 @@ class PriceListController extends Controller
     private function authorizeManagement(): void
     {
         $user = auth()->user();
-        abort_unless($user && ($user->user_type === 'admin' || $user->can('price_lists.manage')), 403);
+        $enabled = app(CoreMarketPricingFeatureService::class)->priceListsEnabled();
+        abort_unless($user && ($user->user_type === 'admin' || ($enabled && $user->can('price_lists.manage'))), 403);
     }
 }

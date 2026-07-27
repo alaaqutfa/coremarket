@@ -304,3 +304,13 @@ Next:
 - No route, permission, feature, or active-state contract changes.
 - No baseline, CorePilotOS, Flutter, payment gateway, or generated asset changes.
 - No new navigation framework, heavy JavaScript, or sidebar component system.
+
+## Branch and staff governance foundation
+
+Step 59 introduces operational branches, multi-branch staff assignments, client-safe role preset assignment, staff suspension, plan staff-limit enforcement, and pricing policy flags. It does not make stock, orders, purchases, or prices branch-specific.
+
+Next:
+
+- 60 Purchase Quick Product Create Modal + Product Pricing Consistency.
+- 61 Branch-specific Inventory/Price Implementation if needed.
+- 62 Storefront Price List Display Review.

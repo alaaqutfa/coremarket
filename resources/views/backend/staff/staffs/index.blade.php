@@ -30,6 +30,8 @@
                     <th data-breakpoints="lg">{{translate('Email')}}</th>
                     <th data-breakpoints="lg">{{translate('Phone')}}</th>
                     <th data-breakpoints="lg">{{translate('Role')}}</th>
+                    <th data-breakpoints="lg">{{translate('Branches')}}</th>
+                    <th data-breakpoints="lg">{{translate('Status')}}</th>
                     <th width="10%" class="text-right">{{translate('Options')}}</th>
                 </tr>
             </thead>
@@ -46,17 +48,30 @@
 									{{ $staff->role->getTranslation('name') }}
 								@endif
 							</td>
+                            <td>{{ $staff->user->branches->pluck('name')->join(', ') ?: translate('Default branch') }}</td>
+                            <td>{{ $staff->user->banned ? translate('Suspended') : translate('Active') }}</td>
                             <td class="text-right">
                                 @can('edit_staff')
                                     <a class="btn btn-soft-primary btn-icon btn-circle btn-sm" href="{{route('staffs.edit', encrypt($staff->id))}}" title="{{ translate('Edit') }}">
                                         <i class="las la-edit"></i>
                                     </a>
                                 @endcan
-                                @can('delete_staff')
+                                @can('edit_staff')
+                                    @if (auth()->id() !== $staff->user_id)
+                                        <form action="{{ route('staffs.suspend', $staff) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-soft-warning btn-icon btn-circle btn-sm" title="{{ $staff->user->banned ? translate('Activate') : translate('Suspend') }}">
+                                                <i class="las {{ $staff->user->banned ? 'la-unlock' : 'la-user-slash' }}"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endcan
+                                @if ($canHardDeleteStaff && auth()->user()->can('delete_staff'))
                                     <a href="#" class="btn btn-soft-danger btn-icon btn-circle btn-sm confirm-delete" data-href="{{route('staffs.destroy', $staff->id)}}" title="{{ translate('Delete') }}">
                                         <i class="las la-trash"></i>
                                     </a>
-                                @endcan
+                                @endif
                             </td>
                         </tr>
                     @endif

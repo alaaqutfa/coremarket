@@ -11,7 +11,10 @@ use DomainException;
 
 class CoreMarketPriceListService
 {
-    public function __construct(private CoreMarketMoneyService $money)
+    public function __construct(
+        private CoreMarketMoneyService $money,
+        private CoreMarketPricingFeatureService $features
+    )
     {
     }
 
@@ -81,7 +84,9 @@ class CoreMarketPriceListService
         $salePrice = array_key_exists('sale_price', $context)
             ? $this->nullableMoney($context['sale_price'])
             : $this->activeSalePrice($product, $regularPrice);
-        $priceList = $this->getCustomerPriceList($customer);
+        $priceList = $this->features->priceListsEnabled()
+            ? $this->getCustomerPriceList($customer)
+            : null;
         $item = $priceList ? $this->activePriceListItem($priceList, $product, $stock) : null;
         $listPrice = null;
         $currency = strtoupper((string) ($context['currency'] ?? $this->money->baseCurrency()));

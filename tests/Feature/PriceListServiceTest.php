@@ -25,6 +25,7 @@ class PriceListServiceTest extends TestCase
     {
         parent::setUp();
         $this->assertSame('coremarket_testing', DB::getDatabaseName());
+        config()->set('coremarket.pricing.price_lists_enabled', true);
         $this->prices = app(CoreMarketPriceListService::class);
     }
 
@@ -52,6 +53,19 @@ class PriceListServiceTest extends TestCase
         $this->assertSame(60.0, $snapshot['resolved_price']);
         $this->assertSame(75.0, $snapshot['sale_price']);
         $this->assertSame(100.0, $snapshot['base_regular_price']);
+    }
+
+    public function test_disabled_price_lists_fall_back_to_sale_or_regular_price(): void
+    {
+        config()->set('coremarket.pricing.price_lists_enabled', false);
+        [$stock, $customer, $list] = $this->subject('fixed_price', ['discount' => 25, 'discount_type' => 'percent']);
+        $this->item($list, $stock, ['fixed_price' => 60]);
+
+        $snapshot = $this->prices->pricingSnapshot($stock, $customer);
+
+        $this->assertSame('sale_price', $snapshot['source']);
+        $this->assertSame(75.0, $snapshot['resolved_price']);
+        $this->assertNull($snapshot['price_list_id']);
     }
 
     public function test_margin_and_discount_methods_calculate_from_cost_and_regular(): void

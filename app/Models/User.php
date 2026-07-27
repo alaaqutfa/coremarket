@@ -79,6 +79,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(Staff::class);
     }
 
+    public function branches()
+    {
+        return $this->belongsToMany(StoreBranch::class, 'staff_branch_assignments')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class);

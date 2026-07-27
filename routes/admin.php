@@ -51,6 +51,7 @@ use App\Http\Controllers\SellerController;
 use App\Http\Controllers\SellerWithdrawRequestController;
 use App\Http\Controllers\SizeChartController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\StoreBranchController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\SubscriberController;
 use App\Http\Controllers\SupportTicketController;
@@ -141,6 +142,13 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/accounting/profit-loss', 'profitLoss')->name('operations.accounting.profit-loss');
     Route::get('/operations/accounting/vat-snapshots', 'vatSnapshots')->name('operations.accounting.vat-snapshots');
     Route::get('/operations/accounting/vat-audit', 'vatAudit')->name('operations.accounting.vat-audit');
+});
+
+Route::controller(StoreBranchController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/branches', 'index')->name('operations.branches.index');
+    Route::post('/operations/branches', 'store')->name('operations.branches.store');
+    Route::put('/operations/branches/{storeBranch}', 'update')->name('operations.branches.update');
+    Route::put('/operations/branch-settings', 'updateSettings')->name('operations.branches.settings');
 });
 
 Route::controller(ProductFamilyController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
@@ -485,6 +493,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     // Staff
     Route::resource('staffs', StaffController::class)->middleware('coremarket_feature:staff_management,1');
     Route::get('/staffs/destroy/{id}', [StaffController::class, 'destroy'])->name('staffs.destroy')->middleware('coremarket_feature:staff_management,1');
+    Route::patch('/staffs/{staff}/suspend', [StaffController::class, 'suspend'])->name('staffs.suspend')->middleware('coremarket_feature:staff_management,1');
 
     // Flash Deal
     Route::resource('flash_deals', FlashDealController::class)->middleware('coremarket_feature:marketing_basic,0');
