@@ -365,6 +365,24 @@ Step 62 applies the existing customer Price List resolver to storefront product 
 
 Next:
 
-- 63 Branch-specific Inventory/Price Implementation if needed.
-- 64 Customer Invoice / Sales Document Designer Expansion.
-- 65 Delivery Workflow Foundation.
+- 63 Delivery Workflow Foundation.
+- 64 COD Accounting/Cashbox Integration if needed.
+- 65 Customer Invoice / Sales Document Designer Expansion.
+- 66 Branch-specific Inventory/Price Implementation if needed.
+
+## Delivery workflow foundation
+
+Step 63 extends existing Orders, staff role presets, and branches with an auditable delivery record, assigned delivery employee, status timeline, and operational COD tracking.
+
+- Existing orders continue to work without a delivery record.
+- Delivery employees see assigned deliveries only and receive only the customer contact/address and collection amount needed for delivery.
+- Valid status transitions are enforced and recorded as delivery events.
+- Branch assignment is respected when branch support is enabled.
+- COD collection does not mark an order paid and does not post to cashbox or accounting.
+- No GPS, maps, route optimization, mobile app, notifications, payment gateway, or branch-specific inventory/pricing is included.
+
+Next:
+
+- 64 COD Accounting/Cashbox Integration if needed.
+- 65 Customer Invoice / Sales Document Designer Expansion.
+- 66 Branch-specific Inventory/Price Implementation if needed.

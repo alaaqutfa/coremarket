@@ -26,6 +26,7 @@ use App\Http\Controllers\CustomerPackageController;
 use App\Http\Controllers\CustomerProductController;
 use App\Http\Controllers\DigitalProductController;
 use App\Http\Controllers\DocumentTemplateController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DynamicPopupController;
 use App\Http\Controllers\FlashDealController;
 use App\Http\Controllers\LanguageController;
@@ -151,6 +152,15 @@ Route::controller(StoreBranchController::class)->middleware(['auth', 'admin', 'r
     Route::post('/operations/branches', 'store')->name('operations.branches.store');
     Route::put('/operations/branches/{storeBranch}', 'update')->name('operations.branches.update');
     Route::put('/operations/branch-settings', 'updateSettings')->name('operations.branches.settings');
+});
+
+Route::controller(DeliveryController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/deliveries', 'index')->name('operations.deliveries.index');
+    Route::get('/operations/deliveries/{orderDelivery}', 'show')->name('operations.deliveries.show');
+    Route::post('/operations/orders/{order}/delivery', 'ensure')->name('operations.deliveries.ensure');
+    Route::post('/operations/deliveries/{orderDelivery}/assign', 'assign')->name('operations.deliveries.assign');
+    Route::patch('/operations/deliveries/{orderDelivery}/status', 'updateStatus')->name('operations.deliveries.status');
+    Route::post('/operations/deliveries/{orderDelivery}/cod', 'collectCod')->name('operations.deliveries.cod');
 });
 
 Route::controller(DocumentTemplateController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {

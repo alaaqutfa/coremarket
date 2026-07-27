@@ -705,6 +705,7 @@ class OperationsController extends Controller
 
         return collect([
             ['show' => $pos && $can('pos.view'), 'label' => 'POS Sale', 'description' => 'Start a cashier sale', 'route' => 'operations.pos'],
+            ['show' => $can('deliveries.view') || $can('deliveries.view_all') || $can('deliveries.view_assigned'), 'label' => 'Delivery Board', 'description' => 'Assign and track order deliveries', 'route' => 'operations.deliveries.index'],
             ['show' => $purchasing && $can('purchase_orders.create'), 'label' => 'Purchase Stock', 'description' => 'Create a purchase order', 'route' => 'operations.purchase-orders.create'],
             ['show' => $purchasing && $canAll(['purchase_orders.view', 'purchase_orders.receive']), 'label' => 'Receive Purchase', 'description' => 'Select an order to receive', 'route' => 'operations.purchase-orders'],
             ['show' => $purchasing && $can('purchase_returns.create'), 'label' => 'Return to Supplier', 'description' => 'Create a purchase return', 'route' => 'operations.purchase-returns.create'],

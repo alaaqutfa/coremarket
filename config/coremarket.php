@@ -618,6 +618,8 @@ return [
             'inventory.barcode_lookup.view',
             'inventory.families.manage',
             'document_templates.view', 'document_templates.manage', 'document_templates.preview',
+            'deliveries.view', 'deliveries.assign', 'deliveries.update_status',
+            'deliveries.collect_cod', 'deliveries.view_all', 'deliveries.view_assigned',
         ],
 
         'store_admin_permissions' => [
@@ -688,6 +690,11 @@ return [
             'document_templates.view',
             'document_templates.manage',
             'document_templates.preview',
+            'deliveries.view',
+            'deliveries.assign',
+            'deliveries.update_status',
+            'deliveries.collect_cod',
+            'deliveries.view_all',
         ],
 
         'staff_role_presets' => [
@@ -723,6 +730,8 @@ return [
                 'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',
                 'inventory.barcode_lookup.view', 'inventory.families.manage',
                 'document_templates.view', 'document_templates.manage', 'document_templates.preview',
+                'deliveries.view', 'deliveries.assign', 'deliveries.update_status',
+                'deliveries.collect_cod', 'deliveries.view_all',
             ],
             'accountant' => [
                 'admin_dashboard', 'operations.view',
@@ -736,6 +745,7 @@ return [
                 'accounting.profit_loss.view', 'accounting.events.view',
                 'cashboxes.view', 'cash_shifts.view', 'cash_movements.view',
                 'document_templates.view', 'document_templates.preview',
+                'deliveries.view', 'deliveries.collect_cod',
             ],
             'cashier' => [
                 'admin_dashboard',
@@ -763,7 +773,8 @@ return [
                 'purchase_returns.view', 'purchase_returns.create', 'purchase_returns.complete',
             ],
             'delivery_distribution' => [
-                'admin_dashboard', 'view_inhouse_orders', 'view_order_details', 'update_order_delivery_status',
+                'admin_dashboard',
+                'deliveries.view_assigned', 'deliveries.update_status',
             ],
             'marketing_employee' => [
                 'admin_dashboard', 'show_all_products', 'show_in_house_products',

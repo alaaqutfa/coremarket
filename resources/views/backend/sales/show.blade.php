@@ -328,6 +328,17 @@
                     </tbody>
                 </table>
                 <div class="no-print text-right">
+                    @php($coremarketOrderDelivery = $order->delivery)
+                    @if($coremarketOrderDelivery && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('deliveries.view') || auth()->user()?->can('deliveries.view_all') || auth()->user()?->can('deliveries.view_assigned')))
+                        <a href="{{ route('operations.deliveries.show', $coremarketOrderDelivery) }}" class="btn btn-soft-primary">
+                            {{ translate('Open Delivery') }}
+                        </a>
+                    @elseif(auth()->user()?->user_type === 'admin' || auth()->user()?->can('deliveries.assign'))
+                        <form method="POST" action="{{ route('operations.deliveries.ensure', $order) }}" class="d-inline">
+                            @csrf
+                            <button class="btn btn-soft-primary">{{ translate('Prepare Delivery') }}</button>
+                        </form>
+                    @endif
                     <a href="{{ route('invoice.download', $order->id) }}" type="button" class="btn btn-icon btn-light"><i
                             class="las la-print"></i></a>
                 </div>
