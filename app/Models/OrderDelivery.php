@@ -40,4 +40,9 @@ class OrderDelivery extends Model
     {
         return $this->hasMany(OrderDeliveryEvent::class)->orderByDesc('created_at')->orderByDesc('id');
     }
+
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(DeliveryCodSettlement::class);
+    }
 }

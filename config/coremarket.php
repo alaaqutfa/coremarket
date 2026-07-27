@@ -620,6 +620,7 @@ return [
             'document_templates.view', 'document_templates.manage', 'document_templates.preview',
             'deliveries.view', 'deliveries.assign', 'deliveries.update_status',
             'deliveries.collect_cod', 'deliveries.view_all', 'deliveries.view_assigned',
+            'deliveries.settle_cod', 'deliveries.view_cod_summary',
         ],
 
         'store_admin_permissions' => [
@@ -694,6 +695,8 @@ return [
             'deliveries.assign',
             'deliveries.update_status',
             'deliveries.collect_cod',
+            'deliveries.settle_cod',
+            'deliveries.view_cod_summary',
             'deliveries.view_all',
         ],
 
@@ -732,6 +735,7 @@ return [
                 'document_templates.view', 'document_templates.manage', 'document_templates.preview',
                 'deliveries.view', 'deliveries.assign', 'deliveries.update_status',
                 'deliveries.collect_cod', 'deliveries.view_all',
+                'deliveries.settle_cod', 'deliveries.view_cod_summary',
             ],
             'accountant' => [
                 'admin_dashboard', 'operations.view',
@@ -746,12 +750,14 @@ return [
                 'cashboxes.view', 'cash_shifts.view', 'cash_movements.view',
                 'document_templates.view', 'document_templates.preview',
                 'deliveries.view', 'deliveries.collect_cod',
+                'deliveries.settle_cod', 'deliveries.view_cod_summary',
             ],
             'cashier' => [
                 'admin_dashboard',
                 'pos.view', 'pos.sell', 'pos.receipts.view', 'pos.redeem_loyalty',
                 'cashboxes.view', 'cash_shifts.view', 'cash_shifts.open', 'cash_shifts.close',
                 'cash_movements.view', 'view_order_details',
+                'deliveries.settle_cod', 'deliveries.view_cod_summary',
             ],
             'data_entry_purchasing' => [
                 'admin_dashboard', 'operations.view',
@@ -774,7 +780,7 @@ return [
             ],
             'delivery_distribution' => [
                 'admin_dashboard',
-                'deliveries.view_assigned', 'deliveries.update_status',
+                'deliveries.view_assigned', 'deliveries.update_status', 'deliveries.collect_cod',
             ],
             'marketing_employee' => [
                 'admin_dashboard', 'show_all_products', 'show_in_house_products',

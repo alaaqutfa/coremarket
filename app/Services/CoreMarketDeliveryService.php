@@ -196,6 +196,13 @@ class CoreMarketDeliveryService
             return true;
         }
 
+        if (
+            $user->can('deliveries.view_cod_summary')
+            && in_array($delivery->cod_collection_status, ['partially_collected', 'collected'], true)
+        ) {
+            return true;
+        }
+
         return $user->can('deliveries.view_assigned')
             && (int) $delivery->delivery_user_id === (int) $user->id;
     }

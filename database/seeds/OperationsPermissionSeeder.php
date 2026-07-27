@@ -38,6 +38,9 @@ class OperationsPermissionSeeder extends Seeder
             'inventory.barcode_lookup.view',
             'inventory.families.manage',
             'document_templates.view', 'document_templates.manage', 'document_templates.preview',
+            'deliveries.view', 'deliveries.assign', 'deliveries.update_status',
+            'deliveries.collect_cod', 'deliveries.view_all', 'deliveries.view_assigned',
+            'deliveries.settle_cod', 'deliveries.view_cod_summary',
         ];
     }
 }

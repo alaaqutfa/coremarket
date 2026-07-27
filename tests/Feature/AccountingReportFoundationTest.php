@@ -73,6 +73,7 @@ class AccountingReportFoundationTest extends TestCase
         $this->assertSame(25.0, $report['purchases']['supplier_payments_total']);
         $this->assertSame(10.0, $report['purchases']['purchase_returns_total']);
         $this->assertSame(65.0, $report['purchases']['outstanding_supplier_balance']);
+        $this->assertArrayHasKey('pending_settlement', $report['cod']);
         $this->assertSame($beforeLedger + 4, SupplierLedgerEntry::query()->count());
 
         DB::table('product_stocks')->where('product_id', $productId)->delete();

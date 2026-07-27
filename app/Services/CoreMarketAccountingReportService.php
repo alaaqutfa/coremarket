@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\AccountingEvent;
 use App\Models\CashierShift;
 use App\Models\CashMovement;
+use App\Models\DeliveryCodSettlement;
+use App\Models\OrderDelivery;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\Supplier;
@@ -37,6 +39,7 @@ class CoreMarketAccountingReportService
             'tax' => $this->taxSummary($from, $to),
             'cashbox' => $this->cashboxSummary($from, $to),
             'purchases' => $this->purchaseSummary($from, $to),
+            'cod' => $this->codSummary($from, $to),
         ];
     }
 
@@ -192,6 +195,24 @@ class CoreMarketAccountingReportService
                     ->selectRaw("COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount_usd ELSE -amount_usd END), 0) AS balance")
                     ->value('balance')
             ),
+        ];
+    }
+
+    private function codSummary(?CarbonImmutable $from, ?CarbonImmutable $to): array
+    {
+        $deliveries = OrderDelivery::query()->whereNotNull('cod_amount');
+        $this->applyDateFilter($deliveries, 'updated_at', $from, $to);
+        $settlements = DeliveryCodSettlement::query()->where('status', 'posted');
+        $this->applyDateFilter($settlements, 'created_at', $from, $to);
+
+        $collected = $this->amount((clone $deliveries)->sum('cod_collected_amount'));
+        $settled = $this->amount((clone $settlements)->sum('amount'));
+
+        return [
+            'collected' => $collected,
+            'settled' => $settled,
+            'pending_settlement' => max(0, $this->amount($collected - $settled)),
+            'failed_count' => (clone $deliveries)->where('cod_collection_status', 'failed')->count(),
         ];
     }
 

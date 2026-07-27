@@ -88,7 +88,7 @@ class DeliveryWorkflowTest extends TestCase
         $this->assertNull($order->fresh()->cashbox_id);
     }
 
-    public function test_delivery_employee_sees_only_assigned_records_and_cashier_is_denied(): void
+    public function test_delivery_employee_sees_only_assigned_records_and_cashier_has_settlement_only_access(): void
     {
         $driver = $this->staff('assigned-driver-'.uniqid().'@example.test', 'delivery_distribution');
         $otherDriver = $this->staff('other-driver-'.uniqid().'@example.test', 'delivery_distribution');
@@ -119,9 +119,18 @@ class DeliveryWorkflowTest extends TestCase
             ->get(route('operations.deliveries.show', $other))
             ->assertForbidden();
 
+        $assigned = $service->collectCod($assigned, (float) $assigned->cod_amount, $driver);
+
         $this->actingAs($cashier)
             ->get(route('operations.deliveries.index'))
-            ->assertForbidden();
+            ->assertOk();
+
+        $this->actingAs($cashier)
+            ->get(route('operations.deliveries.show', $assigned))
+            ->assertOk()
+            ->assertSee('COD Settlement')
+            ->assertDontSee('Assign Delivery Employee')
+            ->assertDontSee('Update Status');
     }
 
     public function test_accountant_has_safe_delivery_visibility_and_driver_assignment_respects_branch(): void
@@ -153,8 +162,9 @@ class DeliveryWorkflowTest extends TestCase
 
         $this->assertTrue($driver->can('deliveries.view_assigned'));
         $this->assertTrue($driver->can('deliveries.update_status'));
+        $this->assertTrue($driver->can('deliveries.collect_cod'));
         $this->assertFalse($driver->can('deliveries.view_all'));
-        $this->assertFalse($driver->can('deliveries.collect_cod'));
+        $this->assertFalse($driver->can('deliveries.settle_cod'));
         $this->assertFalse($driver->can('view_inhouse_orders'));
         $this->assertFalse($driver->can('view_order_details'));
         $this->assertFalse($cashier->can('deliveries.view_assigned'));

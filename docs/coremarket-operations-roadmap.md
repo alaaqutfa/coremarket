@@ -383,6 +383,21 @@ Step 63 extends existing Orders, staff role presets, and branches with an audita
 
 Next:
 
-- 64 COD Accounting/Cashbox Integration if needed.
 - 65 Customer Invoice / Sales Document Designer Expansion.
 - 66 Branch-specific Inventory/Price Implementation if needed.
+- 67 Delivery Mobile View/App later.
+
+## COD cashbox settlement foundation
+
+Step 64 separates delivery COD collection from authorized cashbox settlement.
+
+- Managers, Store Admins, Accountants, and authorized Cashiers can post partial or full remittances into an open cashbox shift.
+- Each settlement creates one idempotent cash-in movement and updates expected shift cash.
+- Delivery employees can record collection for assigned deliveries but cannot settle funds or see cashbox/accounting internals.
+- Settlement does not change order payment status and does not create an accounting journal.
+
+Next:
+
+- 65 Customer Invoice / Sales Document Designer Expansion.
+- 66 Branch-specific Inventory/Price Implementation if needed.
+- 67 Delivery Mobile View/App later.

@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Cashbox;
 use App\Models\CashierShift;
 use App\Models\CashMovement;
+use App\Models\DeliveryCodSettlement;
 use App\Models\Order;
+use App\Models\OrderDelivery;
 use App\Models\User;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
@@ -204,6 +206,58 @@ class CashboxService
 
             return $movement;
         });
+    }
+
+    /**
+     * Records a reserved COD remittance movement. The settlement service owns
+     * authorization, partial-balance validation, and request idempotency.
+     */
+    public function recordDeliveryCodSettlementMovement(
+        DeliveryCodSettlement $settlement,
+        OrderDelivery $delivery,
+        CashierShift $shift,
+        User|int $receiver
+    ): CashMovement {
+        $receiver = $this->resolveUser($receiver);
+        $lockedShift = CashierShift::query()->lockForUpdate()->findOrFail($shift->id);
+        $this->ensureShiftIsOpen($lockedShift);
+
+        if (
+            (int) $settlement->order_delivery_id !== (int) $delivery->id
+            || (int) $settlement->cashier_shift_id !== (int) $lockedShift->id
+            || (int) $settlement->cashbox_id !== (int) $lockedShift->cashbox_id
+        ) {
+            throw new DomainException('COD settlement does not match the selected cashbox shift.');
+        }
+
+        if ($settlement->cash_movement_id) {
+            return CashMovement::query()->findOrFail($settlement->cash_movement_id);
+        }
+
+        $delivery->loadMissing('order');
+        $movement = $this->createMovement(
+            $lockedShift,
+            'delivery_cod_settlement',
+            'in',
+            $this->normalizePositiveAmount($settlement->amount),
+            'COD settlement for order '.($delivery->order?->code ?: $delivery->order_id),
+            now(),
+            $receiver,
+            [
+                'settlement_id' => $settlement->id,
+                'order_delivery_id' => $delivery->id,
+                'order_id' => $delivery->order_id,
+                'delivery_user_id' => $delivery->delivery_user_id,
+                'accounting_pending' => true,
+            ],
+            false,
+            OrderDelivery::class,
+            $delivery->id
+        );
+
+        $this->refreshExpectedCash($lockedShift);
+
+        return $movement;
     }
 
     public function calculateExpectedCash(CashierShift $shift): float

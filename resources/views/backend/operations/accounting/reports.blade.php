@@ -57,6 +57,11 @@
             'supplier_payments_total' => 'Supplier payments',
             'outstanding_supplier_balance' => 'Outstanding supplier balance',
         ],
+        'cod' => [
+            'collected' => 'COD collected',
+            'settled' => 'COD settled',
+            'pending_settlement' => 'COD pending settlement',
+        ],
     ];
 @endphp
 
@@ -89,6 +94,19 @@
                 <small class="text-muted">{{ translate('Inventory valuation is a current point-in-time estimate using each product current purchase cost; date filters do not reconstruct historical stock.') }}</small>
             </div>
         </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header"><h6 class="mb-0">{{ translate('COD Settlement Summary') }}</h6></div>
+    <div class="card-body table-responsive">
+        <table class="table mb-0">
+            @foreach($moneyRows['cod'] as $key => $label)
+            <tr><th>{{ translate($label) }}</th><td class="text-right">{{ coremarket_money($cod[$key]) }}</td></tr>
+            @endforeach
+            <tr><th>{{ translate('Failed COD records') }}</th><td class="text-right">{{ coremarket_number($cod['failed_count'], 0) }}</td></tr>
+        </table>
+        <small class="text-muted">{{ translate('COD settlement is operational cashbox tracking. No accounting journal or payment gateway posting is created.') }}</small>
     </div>
 </div>
 

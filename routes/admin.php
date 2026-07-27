@@ -161,6 +161,7 @@ Route::controller(DeliveryController::class)->middleware(['auth', 'admin', 'rest
     Route::post('/operations/deliveries/{orderDelivery}/assign', 'assign')->name('operations.deliveries.assign');
     Route::patch('/operations/deliveries/{orderDelivery}/status', 'updateStatus')->name('operations.deliveries.status');
     Route::post('/operations/deliveries/{orderDelivery}/cod', 'collectCod')->name('operations.deliveries.cod');
+    Route::post('/operations/deliveries/{orderDelivery}/cod-settlements', 'settleCod')->name('operations.deliveries.cod-settlements.store');
 });
 
 Route::controller(DocumentTemplateController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {

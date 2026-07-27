@@ -50,27 +50,36 @@ Every creation, assignment, status change, and COD update creates an `order_deli
 - The delivery list can be filtered by branch.
 - Step 63 does not implement branch-specific inventory or branch-specific pricing.
 
-## COD safety
+## COD collection and settlement
 
-COD tracking in Step 63 is operational:
+COD collection and cashbox settlement are intentionally separate:
 
 - COD amount is snapshotted from the order total for `cash_on_delivery` orders.
-- Collection can be recorded as pending, partial, or collected.
-- Delivering an order with pending COD does not silently mark it paid.
-- No cashbox movement, accounting event, journal, or payment-status update is created.
-- COD accounting/cashbox posting requires a later explicit integration with reconciliation and idempotency rules.
+- The assigned delivery employee records a pending, partial, collected, or failed collection state.
+- Collection means the delivery employee is holding cash; it is not yet cashbox money.
+- A Manager, Store Admin, Accountant, or authorized Cashier receives the money through **Receive COD / Settle COD**.
+- The receiver must select an open cashbox shift. A Cashier can use only their own open shift.
+- Each posted settlement creates one reserved `delivery_cod_settlement` cash-in movement.
+- Partial settlement is supported, and collected, settled, and remaining amounts remain visible.
+- An idempotency key and locked balance validation prevent duplicate or excessive posting.
+- If no eligible shift is open, settlement is blocked with `No open cashbox shift available.`
+
+The settlement does not update `orders.payment_status`. The existing payment-status path invokes broader commission, notification, and order-detail behavior, so it remains separate until a dedicated COD payment integration is approved. No accounting journal is created; the cash movement is marked as accounting pending.
+
+Delivery employees see only the amount to collect and collection status for assigned deliveries. They do not see settlement controls, cashbox internals, product cost, profit, supplier balances, or accounting reports.
 
 ## Not included
 
 - GPS tracking, maps, route optimization, proof of delivery, signature, or photo.
 - Delivery mobile application.
 - WhatsApp or SMS sending.
-- Payment gateway or automatic COD financial posting.
+- Payment gateway or automatic accounting journal posting.
+- Cash drawer or hardware integration.
 - Branch-specific stock/pricing.
 
 ## Future work
 
-- COD reconciliation and controlled cashbox/accounting posting.
+- Optional COD payment-status and accounting-journal integration after reconciliation policy approval.
 - Mobile-friendly delivery view or dedicated delivery app.
 - Route planning and delivery zones.
 - Proof of delivery with signature/photo.

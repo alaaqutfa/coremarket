@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\StoreBranch;
 use App\Services\CoreMarketBranchService;
+use App\Services\CoreMarketCodSettlementService;
 use App\Services\CoreMarketDeliveryService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -17,6 +18,7 @@ class DeliveryController extends Controller
 {
     public function __construct(
         private CoreMarketDeliveryService $deliveries,
+        private CoreMarketCodSettlementService $codSettlements,
         private CoreMarketBranchService $branches
     ) {
     }
@@ -35,7 +37,15 @@ class DeliveryController extends Controller
         ]);
 
         $query = OrderDelivery::query()->with(['order.user', 'deliveryUser', 'branch'])->latest('updated_at');
-        if ($user->user_type !== 'admin' && ! $user->can('deliveries.view_all') && ! $user->can('deliveries.view')) {
+        if (
+            $user->user_type !== 'admin'
+            && $user->can('deliveries.view_cod_summary')
+            && ! $user->can('deliveries.view')
+            && ! $user->can('deliveries.view_all')
+            && ! $user->can('deliveries.view_assigned')
+        ) {
+            $query->whereIn('cod_collection_status', ['partially_collected', 'collected']);
+        } elseif ($user->user_type !== 'admin' && ! $user->can('deliveries.view_all') && ! $user->can('deliveries.view')) {
             $query->where('delivery_user_id', $user->id);
         }
         if (filled($filters['status'] ?? null)) {
@@ -81,6 +91,8 @@ class DeliveryController extends Controller
         $orderDelivery->load(['order.user', 'deliveryUser', 'branch', 'events.user']);
         $user = $request->user();
         $canAssign = $user->user_type === 'admin' || $user->can('deliveries.assign');
+        $canViewCodSummary = $user->user_type === 'admin' || $user->can('deliveries.view_cod_summary');
+        $canSettleCod = $this->codSettlements->canSettle($user, $orderDelivery);
 
         $nextStatuses = $this->deliveries->allowedNextStatuses($orderDelivery);
         if ($user->user_type !== 'admin' && $user->can('deliveries.view_assigned') && ! $user->can('deliveries.view_all')) {
@@ -99,6 +111,15 @@ class DeliveryController extends Controller
             'canAssign' => $canAssign,
             'canUpdateStatus' => $user->user_type === 'admin' || $user->can('deliveries.update_status'),
             'canCollectCod' => $user->user_type === 'admin' || $user->can('deliveries.collect_cod'),
+            'canViewCodSummary' => $canViewCodSummary,
+            'canSettleCod' => $canSettleCod,
+            'codSettlement' => $canViewCodSummary
+                ? $this->codSettlements->settlementSnapshot($orderDelivery)
+                : null,
+            'openCashierShifts' => $canSettleCod
+                ? $this->codSettlements->availableOpenShifts($user)
+                : collect(),
+            'settlementRequestKey' => (string) \Illuminate\Support\Str::uuid(),
         ]);
     }
 
@@ -176,7 +197,36 @@ class DeliveryController extends Controller
             return back()->withErrors(['cod_collected_amount' => $exception->getMessage()]);
         }
 
-        flash(translate('COD collection updated. No accounting or cashbox posting was created.'))->success();
+        flash(translate('COD collection updated. Cashbox posting requires a separate settlement.'))->success();
+
+        return back();
+    }
+
+    public function settleCod(Request $request, OrderDelivery $orderDelivery): RedirectResponse
+    {
+        $this->authorizeDeliveryAccess($request, $orderDelivery);
+        $this->authorizePermission($request, 'deliveries.settle_cod');
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'cashier_shift_id' => ['required', 'integer', Rule::exists('cashier_shifts', 'id')],
+            'settlement_request_key' => ['required', 'string', 'max:64'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        try {
+            $this->codSettlements->settle(
+                $orderDelivery,
+                $data['amount'],
+                $request->user(),
+                \App\Models\CashierShift::query()->findOrFail($data['cashier_shift_id']),
+                $data['settlement_request_key'],
+                $data['notes'] ?? null
+            );
+        } catch (DomainException $exception) {
+            return back()->withErrors(['settlement' => $exception->getMessage()])->withInput();
+        }
+
+        flash(translate('COD funds received and posted to the open cashbox shift.'))->success();
 
         return back();
     }
@@ -188,6 +238,7 @@ class DeliveryController extends Controller
             && ! $user->can('deliveries.view')
             && ! $user->can('deliveries.view_all')
             && ! $user->can('deliveries.view_assigned')
+            && ! $user->can('deliveries.view_cod_summary')
         )) {
             abort(403);
         }
