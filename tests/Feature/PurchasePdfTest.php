@@ -42,6 +42,8 @@ class PurchasePdfTest extends TestCase
             $this->assertSame(20.0, $data['rows']->first()['regular_price']);
             $this->assertSame(18.0, $data['rows']->first()['sale_price']);
             $this->assertSame(11.0, $data['rows']->first()['tax_rate']);
+            $this->assertSame('purchase_order', $data['template']['template_type']);
+            $this->assertSame('purchase_receipt', $receiptData['template']['template_type']);
             $this->assertSame((float) $order->total_amount, $data['totals']['total']);
             $this->assertSame(1.0, $receiptData['rows']->first()['quantity']);
             $this->assertSame('12.34 USD', coremarket_money($data['rows']->first()['unit_cost'], 'USD'));

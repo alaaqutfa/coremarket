@@ -54,6 +54,7 @@ class SupplierStatementPdfTest extends TestCase
             $this->assertSame(20.0, $data['totals']['payments']);
             $this->assertSame(10.0, $data['totals']['returns']);
             $this->assertSame(120.0, $data['totals']['closingBalance']);
+            $this->assertSame('supplier_statement', $data['template']['template_type']);
             $this->assertSame($before, SupplierLedgerEntry::query()->count());
 
             $user = $this->user(['supplier_ledger.view']);

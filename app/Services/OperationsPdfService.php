@@ -12,7 +12,10 @@ use Illuminate\Support\Collection;
 
 class OperationsPdfService
 {
-    public function __construct(private CoreMarketMoneyService $money)
+    public function __construct(
+        private CoreMarketMoneyService $money,
+        private CoreMarketDocumentTemplateService $templates
+    )
     {
     }
 
@@ -48,8 +51,13 @@ class OperationsPdfService
                 'total' => $this->money->normalizeMoney($purchaseOrder->total_amount),
             ];
 
+        $template = $this->templates->templateSettingsSnapshot(
+            $this->templates->defaultTemplate($purchaseReceipt ? 'purchase_receipt' : 'purchase_order')
+        );
+
         return [
-            'branding' => $this->branding(),
+            'branding' => $this->branding($template),
+            'template' => $template,
             'purchaseOrder' => $purchaseOrder,
             'purchaseReceipt' => $purchaseReceipt,
             'documentTitle' => $purchaseReceipt ? 'PURCHASE RECEIPT' : 'PURCHASE INVOICE',
@@ -112,8 +120,13 @@ class OperationsPdfService
         $credits = $this->sumDirection($entries, 'credit');
         $debits = $this->sumDirection($entries, 'debit');
 
+        $template = $this->templates->templateSettingsSnapshot(
+            $this->templates->defaultTemplate('supplier_statement')
+        );
+
         return [
-            'branding' => $this->branding(),
+            'branding' => $this->branding($template),
+            'template' => $template,
             'supplier' => $supplier,
             'dateFrom' => $from?->toDateString(),
             'dateTo' => $to?->toDateString(),
@@ -230,7 +243,7 @@ class OperationsPdfService
         ];
     }
 
-    private function branding(): array
+    private function branding(array $template): array
     {
         $color = (string) get_setting('base_color', '#2563EB');
         if (! preg_match('/^#[0-9a-fA-F]{6}$/', $color)) {
@@ -242,7 +255,8 @@ class OperationsPdfService
             'address' => (string) get_setting('contact_address'),
             'email' => (string) get_setting('contact_email'),
             'phone' => (string) get_setting('contact_phone'),
-            'color' => $color,
+            'color' => $template['settings']['primary_color'] ?? $color,
+            'secondary_color' => $template['settings']['secondary_color'] ?? '#64748B',
             'logo_path' => $this->safeLogoPath(),
         ];
     }

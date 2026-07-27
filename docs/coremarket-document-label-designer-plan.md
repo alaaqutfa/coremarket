@@ -2,7 +2,22 @@
 
 ## Scope
 
-This document records the Step 60 audit and the proposed foundation for a future no-code document designer. Step 60 does not implement a designer, change PDF behavior, or copy code from another application.
+This document records the Step 60 audit and the safe foundation implemented in Step 61. Perfex remains a functional reference only; no code, schema, styles, or assets were copied.
+
+## Implemented in Step 61
+
+- A `document_templates` table stores safe, structured display settings rather than executable templates.
+- Seven idempotent presets cover Purchase Order A4, Purchase Receipt A4, Supplier Statement A4, POS Receipt 80mm/58mm, Price Label, and Barcode Label.
+- Web pages allow authorized staff to list, create, edit, preview, activate, deactivate, and select a default template.
+- Purchase Order, Purchase Receipt, and Supplier Statement PDFs resolve their active default template and fall back to the existing safe layout if the table or template is unavailable.
+- Label selection generates PDF previews for selected products. Barcode values are human-readable text for now because no stable 1D barcode renderer is currently part of the application.
+- `document_templates.view`, `document_templates.manage`, and `document_templates.preview` use the existing Spatie permission system.
+
+## Safe Settings Contract
+
+Allowed settings include logo visibility and position, validated hexadecimal colors, bounded font size, store/party visibility, SKU/barcode/tax/discount/family visibility, plain-text footer content, allowlisted columns, and bounded label-grid values.
+
+Users cannot enter raw HTML, PHP, Blade, JavaScript, remote templates, filesystem paths, or executable expressions. Footer text is escaped by Blade and rejects HTML or executable markers. Colors, columns, dimensions, margins, and paper profiles are validated server-side.
 
 ## Existing CoreMarket Foundation
 
@@ -55,15 +70,11 @@ These ideas should be reimplemented in CoreMarket conventions using Laravel, Bla
 - Quantity-per-product and label-printer paper profiles.
 - No automatic barcode generation without explicit validation and uniqueness checks.
 
-## Proposed Data Model
+## Data Model
 
-A later step can add a small additive template foundation:
-
-- `document_templates`: type, name, scope, paper profile, layout JSON, style JSON, active/default flags.
-- `document_template_assignments`: template, store/client, optional branch, document context.
-- Versioned template snapshots for official documents when layout immutability is required.
-
-The exact schema must be audited against existing settings before migration. Templates should reference safe asset IDs rather than arbitrary filesystem paths.
+- `document_templates`: type, name/code, paper profile, dimensions/margins, safe settings JSON, and active/default flags.
+- Per-store/branch assignments and published version snapshots remain future work.
+- Existing store logo settings are resolved server-side; templates do not accept arbitrary asset paths.
 
 ## Editing Experience
 
@@ -96,4 +107,13 @@ The exact schema must be audited against existing settings before migration. Tem
 5. Add price/barcode label layouts and printer QA.
 6. Add per-branch assignment only after branch-specific policies are implemented.
 
-No email/WhatsApp sending, printer driver integration, or branch-specific inventory/pricing is part of Step 60.
+No email/WhatsApp sending, printer driver integration, native receipt/label hardware integration, or branch-specific assignment is part of Step 61.
+
+## Future Work
+
+- Advanced drag-and-drop blocks with a fixed safe component catalog.
+- Customer sales invoice designer expansion.
+- Template publishing/version snapshots for immutable historical output.
+- Native receipt and label printer integration.
+- Per-client/store/branch template assignment.
+- Email and WhatsApp delivery after explicit security and audit work.

@@ -617,6 +617,7 @@ return [
             'inventory.low_stock.view',
             'inventory.barcode_lookup.view',
             'inventory.families.manage',
+            'document_templates.view', 'document_templates.manage', 'document_templates.preview',
         ],
 
         'store_admin_permissions' => [
@@ -684,6 +685,9 @@ return [
             'inventory.low_stock.view',
             'inventory.barcode_lookup.view',
             'inventory.families.manage',
+            'document_templates.view',
+            'document_templates.manage',
+            'document_templates.preview',
         ],
 
         'staff_role_presets' => [
@@ -718,6 +722,7 @@ return [
                 'inventory.view', 'inventory.dashboard.view', 'inventory.stock.view',
                 'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',
                 'inventory.barcode_lookup.view', 'inventory.families.manage',
+                'document_templates.view', 'document_templates.manage', 'document_templates.preview',
             ],
             'accountant' => [
                 'admin_dashboard', 'operations.view',
@@ -730,6 +735,7 @@ return [
                 'accounting.general_ledger.view', 'accounting.trial_balance.view',
                 'accounting.profit_loss.view', 'accounting.events.view',
                 'cashboxes.view', 'cash_shifts.view', 'cash_movements.view',
+                'document_templates.view', 'document_templates.preview',
             ],
             'cashier' => [
                 'admin_dashboard',
@@ -745,6 +751,7 @@ return [
                 'purchase_orders.view', 'purchase_orders.create', 'purchase_orders.receive',
                 'purchase_returns.view', 'purchase_returns.create',
                 'inventory.view', 'inventory.stock.view', 'inventory.barcode_lookup.view',
+                'document_templates.preview',
             ],
             'warehouse_keeper' => [
                 'admin_dashboard', 'operations.view',
@@ -769,6 +776,7 @@ return [
                 'admin_dashboard', 'website_appearance', 'header_setup', 'footer_setup',
                 'view_all_website_pages', 'add_website_page', 'edit_website_page',
                 'view_blogs', 'add_blog', 'edit_blog', 'view_blog_categories',
+                'document_templates.view', 'document_templates.manage', 'document_templates.preview',
             ],
         ],
 

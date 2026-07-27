@@ -33,6 +33,7 @@ use App\Services\CoreMarketPricingFeatureService;
 use App\Services\CoreMarketProductClassificationService;
 use App\Services\CoreMarketProductQuickCreateService;
 use App\Services\CoreMarketTaxService;
+use App\Services\CoreMarketDocumentTemplateService;
 use App\Services\InventoryProService;
 use App\Services\OperationsPdfService;
 use App\Services\ProductIdentityLookupService;
@@ -199,7 +200,7 @@ class OperationsController extends Controller
             'paymentKey' => (string) Str::uuid(),
         ]);
     }
-    public function supplierStatementPdf(Request $request, Supplier $supplier, OperationsPdfService $pdf)
+    public function supplierStatementPdf(Request $request, Supplier $supplier, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
     {
         $this->authorizeOperation('supplier_ledger.view', ['purchasing_suppliers']);
         $filters = $request->validate([
@@ -212,9 +213,7 @@ class OperationsController extends Controller
             $filters['date_to'] ?? null
         );
 
-        $contents = PDF::loadView('backend.operations.pdf.supplier-statement', $data, [], [
-            'format' => 'A4',
-        ])->output();
+        $contents = PDF::loadView('backend.operations.pdf.supplier-statement', $data, [], $templates->paperConfig($data['template']))->output();
 
         return response($contents, 200, [
             'Content-Type' => 'application/pdf',
@@ -395,14 +394,12 @@ class OperationsController extends Controller
             'movements' => InventoryMovement::query()->with(['product', 'productStock'])->whereIn('id', $movementIds)->latest()->get(),
         ]);
     }
-    public function purchaseOrderPdf(PurchaseOrder $purchaseOrder, OperationsPdfService $pdf)
+    public function purchaseOrderPdf(PurchaseOrder $purchaseOrder, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
     {
         $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
         $data = $pdf->purchaseDocument($purchaseOrder);
 
-        $contents = PDF::loadView('backend.operations.pdf.purchase-document', $data, [], [
-            'format' => 'A4',
-        ])->output();
+        $contents = PDF::loadView('backend.operations.pdf.purchase-document', $data, [], $templates->paperConfig($data['template']))->output();
 
         return response($contents, 200, [
             'Content-Type' => 'application/pdf',
@@ -442,14 +439,12 @@ class OperationsController extends Controller
 
         return view('backend.operations.purchase-receipts.show', compact('purchaseReceipt', 'movements'));
     }
-    public function purchaseReceiptPdf(PurchaseReceipt $purchaseReceipt, OperationsPdfService $pdf)
+    public function purchaseReceiptPdf(PurchaseReceipt $purchaseReceipt, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
     {
         $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
         $data = $pdf->purchaseDocument($purchaseReceipt->purchaseOrder, $purchaseReceipt);
 
-        $contents = PDF::loadView('backend.operations.pdf.purchase-document', $data, [], [
-            'format' => 'A4',
-        ])->output();
+        $contents = PDF::loadView('backend.operations.pdf.purchase-document', $data, [], $templates->paperConfig($data['template']))->output();
 
         return response($contents, 200, [
             'Content-Type' => 'application/pdf',

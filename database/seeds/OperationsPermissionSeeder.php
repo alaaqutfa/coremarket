@@ -37,6 +37,7 @@ class OperationsPermissionSeeder extends Seeder
             'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',
             'inventory.barcode_lookup.view',
             'inventory.families.manage',
+            'document_templates.view', 'document_templates.manage', 'document_templates.preview',
         ];
     }
 }

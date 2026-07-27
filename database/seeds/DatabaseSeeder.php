@@ -12,5 +12,6 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call(\Database\Seeders\PriceListSeeder::class);
+        $this->call(\Database\Seeders\DocumentTemplateSeeder::class);
     }
 }

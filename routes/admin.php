@@ -25,6 +25,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerPackageController;
 use App\Http\Controllers\CustomerProductController;
 use App\Http\Controllers\DigitalProductController;
+use App\Http\Controllers\DocumentTemplateController;
 use App\Http\Controllers\DynamicPopupController;
 use App\Http\Controllers\FlashDealController;
 use App\Http\Controllers\LanguageController;
@@ -150,6 +151,19 @@ Route::controller(StoreBranchController::class)->middleware(['auth', 'admin', 'r
     Route::post('/operations/branches', 'store')->name('operations.branches.store');
     Route::put('/operations/branches/{storeBranch}', 'update')->name('operations.branches.update');
     Route::put('/operations/branch-settings', 'updateSettings')->name('operations.branches.settings');
+});
+
+Route::controller(DocumentTemplateController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/document-templates', 'index')->name('operations.document-templates.index');
+    Route::get('/operations/document-templates/create', 'create')->name('operations.document-templates.create');
+    Route::post('/operations/document-templates', 'store')->name('operations.document-templates.store');
+    Route::get('/operations/document-templates/{documentTemplate}/edit', 'edit')->name('operations.document-templates.edit');
+    Route::put('/operations/document-templates/{documentTemplate}', 'update')->name('operations.document-templates.update');
+    Route::get('/operations/document-templates/{documentTemplate}/preview', 'preview')->name('operations.document-templates.preview');
+    Route::patch('/operations/document-templates/{documentTemplate}/default', 'setDefault')->name('operations.document-templates.default');
+    Route::patch('/operations/document-templates/{documentTemplate}/toggle', 'toggle')->name('operations.document-templates.toggle');
+    Route::get('/operations/labels', 'labels')->name('operations.labels.index');
+    Route::post('/operations/labels/pdf', 'labelPdf')->name('operations.labels.pdf');
 });
 
 Route::controller(ProductFamilyController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {

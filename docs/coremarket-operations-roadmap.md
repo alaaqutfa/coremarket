@@ -331,6 +331,24 @@ Step 60 extends the existing Purchase Order entry screen rather than creating a 
 
 Next:
 
-- 61 Invoice & Price Label Designer Foundation.
 - 62 Storefront Price List Display Review.
 - 63 Branch-specific Inventory/Price Implementation if needed.
+- 64 Customer Invoice / Sales Document Designer Expansion.
+- 65 Label Printer Hardware Integration later.
+
+## Document and label template foundation
+
+Step 61 adds safe no-code settings for purchase documents, supplier statements, POS receipt profiles, price labels, and barcode labels.
+
+- Existing mPDF and operational PDF data services remain in use.
+- Template JSON is allowlisted and cannot contain raw HTML, PHP, Blade, or JavaScript.
+- Purchase Order, Purchase Receipt, and Supplier Statement PDFs resolve active defaults with a safe fallback.
+- Price and barcode labels provide PDF preview/download only; no printer driver or hardware integration was added.
+- Perfex was reviewed only for functional ideas. No Perfex code, schema, or assets were copied.
+
+Next:
+
+- 62 Storefront Price List Display Review.
+- 63 Branch-specific Inventory/Price Implementation if needed.
+- 64 Customer Invoice / Sales Document Designer Expansion.
+- 65 Label Printer Hardware Integration later.
