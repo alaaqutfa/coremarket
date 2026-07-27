@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\AccountingEvent;
 use App\Models\AccountingAccount;
 use App\Models\BusinessSetting;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\InventoryMovement;
@@ -26,12 +28,17 @@ use App\Services\AccountingSummaryService;
 use App\Services\CoreMarketFeatureAccessService;
 use App\Services\CoreMarketAccountingReportService;
 use App\Services\CoreMarketInventoryPolicyService;
+use App\Services\CoreMarketBranchService;
+use App\Services\CoreMarketPricingFeatureService;
+use App\Services\CoreMarketProductClassificationService;
+use App\Services\CoreMarketProductQuickCreateService;
 use App\Services\CoreMarketTaxService;
 use App\Services\InventoryProService;
 use App\Services\OperationsPdfService;
 use App\Services\ProductIdentityLookupService;
 use App\Services\PurchaseItemPricingService;
 use App\Services\PurchaseReceivingService;
+use App\Services\QuickProductValidationException;
 use App\Services\PurchaseReturnService;
 use App\Services\PurchasingUiService;
 use App\Services\SalesReturnService;
@@ -248,7 +255,13 @@ class OperationsController extends Controller
             'suppliers' => Supplier::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
-    public function createPurchaseOrder(CoreMarketTaxService $tax): View
+    public function createPurchaseOrder(
+        CoreMarketTaxService $tax,
+        CoreMarketInventoryPolicyService $inventoryPolicy,
+        CoreMarketProductClassificationService $classification,
+        CoreMarketPricingFeatureService $pricingFeatures,
+        CoreMarketBranchService $branches
+    ): View
     {
         $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']);
         return view('backend.operations.purchase-orders.form', [
@@ -256,6 +269,13 @@ class OperationsController extends Controller
             'products' => Product::query()->orderBy('name')->limit(500)->get(),
             'productStocks' => ProductStock::query()->with('product')->orderBy('product_id')->get(),
             'defaultTaxRate' => $tax->getDefaultTaxRate(),
+            'quickProductAllowed' => auth()->user()?->user_type === 'admin' || (bool) auth()->user()?->can('add_new_product'),
+            'quickProductFamilies' => $classification->families(),
+            'quickProductBrands' => Brand::query()->orderBy('name')->get(['id', 'name']),
+            'quickProductCategories' => Category::query()->where('digital', 0)->orderBy('name')->get(['id', 'name']),
+            'strictInventoryMode' => $inventoryPolicy->strictInventoryMode(),
+            'priceListsEnabled' => $pricingFeatures->priceListsEnabled(),
+            'purchaseBranch' => $branches->branchesEnabled() ? $branches->defaultBranch() : null,
         ]);
     }
     public function purchaseOrderProductLookup(
@@ -270,6 +290,9 @@ class OperationsController extends Controller
             return response()->json([
                 'ok' => false,
                 'message' => 'Product not found. Create product first or use manual item entry.',
+                'reason' => 'not_found',
+                'query' => $data['q'],
+                'suggested_actions' => ['correct_search', 'add_product'],
             ], 404);
         }
 
@@ -299,6 +322,55 @@ class OperationsController extends Controller
                 'matched_by' => $result['matched_by'],
             ],
         ]);
+    }
+
+    public function quickCreatePurchaseProduct(
+        Request $request,
+        CoreMarketProductQuickCreateService $quickCreate
+    ): JsonResponse {
+        $this->authorizeOperation('purchase_orders.create', ['purchasing_suppliers']);
+        $user = auth()->user();
+        if (! $user || ($user->user_type !== 'admin' && ! $user->can('add_new_product'))) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'sku' => ['nullable', 'string', 'max:255'],
+            'barcode' => ['nullable', 'string', 'max:255'],
+            'unit' => ['nullable', 'string', 'max:50'],
+            'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'product_family_id' => ['nullable', 'integer', 'exists:product_families,id'],
+            'product_sub_family_id' => ['nullable', 'integer', 'exists:product_families,id'],
+            'cost_price' => ['required', 'numeric', 'min:0'],
+            'regular_price' => ['nullable', 'numeric', 'gt:0', 'required_without:margin_percent'],
+            'margin_percent' => ['nullable', 'numeric', 'required_without:regular_price'],
+            'sale_price' => ['nullable', 'numeric', 'min:0'],
+            'tax_enabled' => ['nullable', 'boolean'],
+            'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'opening_stock' => ['nullable', 'numeric', 'min:0'],
+            'description' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        try {
+            return response()->json([
+                'ok' => true,
+                'message' => 'Product created and added to the purchase order.',
+                'data' => $quickCreate->create($data, $user),
+            ], 201);
+        } catch (QuickProductValidationException $exception) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Please review the product details.',
+                'errors' => $exception->errors,
+            ], 422);
+        } catch (DomainException|\InvalidArgumentException $exception) {
+            return response()->json([
+                'ok' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
     }
     public function storePurchaseOrder(Request $request, PurchaseReceivingService $service): RedirectResponse
     {

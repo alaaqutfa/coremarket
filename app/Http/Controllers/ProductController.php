@@ -15,6 +15,7 @@ use App\Models\Wishlist;
 use App\Notifications\ShopProductNotification;
 use App\Services\CoreMarketLicenseService;
 use App\Services\CoreMarketProductClassificationService;
+use App\Services\CoreMarketProductPricingService;
 use App\Services\FrequentlyBoughtProductService;
 use App\Services\ProductFlashDealService;
 use App\Services\ProductService;
@@ -38,6 +39,7 @@ class ProductController extends Controller
     protected $productStockService;
     protected $frequentlyBoughtProductService;
     protected $licenseService;
+    protected $productPricingService;
 
     public function __construct(
         ProductService $productService,
@@ -45,7 +47,8 @@ class ProductController extends Controller
         ProductFlashDealService $productFlashDealService,
         ProductStockService $productStockService,
         FrequentlyBoughtProductService $frequentlyBoughtProductService,
-        CoreMarketLicenseService $licenseService
+        CoreMarketLicenseService $licenseService,
+        CoreMarketProductPricingService $productPricingService
     ) {
         $this->productService                 = $productService;
         $this->productTaxService              = $productTaxService;
@@ -53,9 +56,10 @@ class ProductController extends Controller
         $this->productStockService            = $productStockService;
         $this->frequentlyBoughtProductService = $frequentlyBoughtProductService;
         $this->licenseService                 = $licenseService;
+        $this->productPricingService          = $productPricingService;
 
         // Staff Permission Check
-        $this->middleware(['permission:add_new_product'])->only('create');
+        $this->middleware(['permission:add_new_product'])->only('create', 'store');
         $this->middleware(['permission:show_all_products'])->only('all_products');
         $this->middleware(['permission:show_in_house_products'])->only('admin_products');
         $this->middleware(['permission:show_seller_products'])->only('seller_products');
@@ -213,8 +217,17 @@ class ProductController extends Controller
     public function store(ProductRequest $request)
     {
         try {
+            $request->merge($this->productPricingService->productFields(
+                $this->productPricingService->normalize($request->all())
+            ));
+        } catch (\InvalidArgumentException $exception) {
+            return back()->withErrors(['pricing' => $exception->getMessage()])->withInput();
+        }
+
+        try {
             $product = $this->productService->store($request->except([
                 '_token', 'sku', 'choice', 'tax_id', 'tax_value', 'tax_types', 'flash_deal_id', 'flash_discount', 'flash_discount_type',
+                'margin_percent', 'sale_price', 'cost_price', 'regular_price',
             ]));
         } catch (CoreMarketPlanException $exception) {
             flash(translate($exception->getMessage()))->warning();
@@ -334,6 +347,14 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, Product $product): RedirectResponse
     {
+        try {
+            $request->merge($this->productPricingService->productFields(
+                $this->productPricingService->normalize($request->all(), $product)
+            ));
+        } catch (\InvalidArgumentException $exception) {
+            return back()->withErrors(['pricing' => $exception->getMessage()])->withInput();
+        }
+
         $preservedStockQuantities = app(\App\Services\CoreMarketInventoryPolicyService::class)->strictInventoryMode()
             ? $product->stocks()->pluck('qty', 'variant')->all()
             : [];
@@ -341,6 +362,7 @@ class ProductController extends Controller
         //Product
         $product = $this->productService->update($request->except([
             '_token', 'sku', 'choice', 'tax_id', 'tax', 'tax_type', 'flash_deal_id', 'flash_discount', 'flash_discount_type',
+            'margin_percent', 'sale_price', 'cost_price', 'regular_price',
         ]), $product);
 
         $request->merge(['product_id' => $product->id]);

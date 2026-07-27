@@ -537,7 +537,7 @@
                                         <div class="col-md-6">
                                             <input type="number" lang="en" min="0" value="0"
                                                 step="0.01" placeholder="{{ translate('Unit price') }}"
-                                                name="unit_price"
+                                                name="unit_price" id="coremarket-regular-price"
                                                 class="form-control @error('unit_price') is-invalid @enderror">
                                         </div>
                                     </div>
@@ -548,7 +548,26 @@
                                         <div class="col-md-6">
                                             <input type="number" lang="en" min="0" value="0"
                                                 step="0.01" placeholder="{{ translate('Cost price') }}"
-                                                name="wholesale_price" class="form-control" required>
+                                                name="wholesale_price" id="coremarket-cost-price" class="form-control" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label class="col-md-3 col-from-label">{{ translate('Margin') }} %</label>
+                                        <div class="col-md-6">
+                                            <input type="number" lang="en" step="0.01" name="margin_percent"
+                                                id="coremarket-margin-percent" class="form-control"
+                                                placeholder="{{ translate('Calculated from cost and regular price') }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group row">
+                                        <label class="col-md-3 col-from-label">{{ translate('Sale price') }}</label>
+                                        <div class="col-md-6">
+                                            <input type="number" lang="en" min="0" step="0.01" name="sale_price"
+                                                id="coremarket-sale-price" class="form-control"
+                                                placeholder="{{ translate('Optional temporary promotion price') }}">
+                                            <small class="text-muted">{{ translate('Customer Price Lists are configured separately.') }}</small>
                                         </div>
                                     </div>
 
@@ -1171,5 +1190,6 @@
         });
     </script>
 
+    @include('backend.product.products.partials.pricing-consistency-script')
     @include('partials.product.product_temp_data')
 @endsection

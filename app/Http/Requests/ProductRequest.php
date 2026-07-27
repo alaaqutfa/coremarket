@@ -39,6 +39,8 @@ class ProductRequest extends FormRequest
         // $rules['unit']         = 'sometimes|required';
         $rules['min_qty']      = 'sometimes|required|numeric';
         $rules['unit_price']    = 'sometimes|required|numeric|gt:0';
+        $rules['margin_percent'] = 'nullable|numeric';
+        $rules['sale_price'] = 'nullable|numeric|min:0|lte:unit_price';
         if ($this->get('discount_type') == 'amount') {
             $rules['discount'] = 'sometimes|required|numeric|lt:unit_price';
         } else {

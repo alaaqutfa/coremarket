@@ -89,7 +89,11 @@ class PurchasingUiTest extends TestCase
             $this->actingAs($user)
                 ->getJson(route('operations.purchase-orders.product-lookup', ['q' => 'UNKNOWN-BARCODE']))
                 ->assertNotFound()
-                ->assertJsonPath('message', 'Product not found. Create product first or use manual item entry.');
+                ->assertJsonPath('message', 'Product not found. Create product first or use manual item entry.')
+                ->assertJsonPath('reason', 'not_found')
+                ->assertJsonPath('query', 'UNKNOWN-BARCODE')
+                ->assertJsonPath('suggested_actions.0', 'correct_search')
+                ->assertJsonPath('suggested_actions.1', 'add_product');
         } finally { DB::rollBack(); }
     }
 

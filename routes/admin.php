@@ -103,6 +103,7 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/purchase-orders', 'purchaseOrders')->name('operations.purchase-orders');
     Route::get('/operations/purchase-orders/create', 'createPurchaseOrder')->name('operations.purchase-orders.create');
     Route::get('/operations/purchase-orders/product-lookup', 'purchaseOrderProductLookup')->name('operations.purchase-orders.product-lookup');
+    Route::post('/operations/purchase-orders/quick-products', 'quickCreatePurchaseProduct')->name('operations.purchase-orders.quick-products.store')->middleware('coremarket_license:manage_store');
     Route::post('/operations/purchase-orders', 'storePurchaseOrder')->name('operations.purchase-orders.store');
     Route::get('/operations/purchase-orders/{purchaseOrder}', 'showPurchaseOrder')->name('operations.purchase-orders.show');
     Route::get('/operations/purchase-orders/{purchaseOrder}/pdf', 'purchaseOrderPdf')->name('operations.purchase-orders.pdf');

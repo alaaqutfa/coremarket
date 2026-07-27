@@ -314,3 +314,23 @@ Next:
 - 60 Purchase Quick Product Create Modal + Product Pricing Consistency.
 - 61 Branch-specific Inventory/Price Implementation if needed.
 - 62 Storefront Price List Display Review.
+
+## Purchase quick product creation and pricing consistency
+
+Step 60 extends the existing Purchase Order entry screen rather than creating a second product or purchasing module.
+
+- Unknown barcode/SKU lookups return a structured not-found response and offer correct search, quick product creation, or cancel.
+- Authorized purchasing/data-entry staff can create a simple physical product over AJAX and add it immediately to the purchase row.
+- Product identity validation, Family/Sub Family hierarchy, product limits, inventory policy, branch context, and purchase-item pricing are reused.
+- Strict inventory mode forces opening stock to zero; stock should then enter through the Purchase Receipt workflow.
+- Product `purchase_price` and legacy `wholesale_price` are kept aligned as cost, `unit_price` is the regular price, and `sale_price` maps to a separate temporary promotion discount.
+- Price Lists A/B/C remain optional customer pricing and are not required by quick product creation.
+- Branch-specific stock and branch-specific prices are not implemented.
+- Perfex was reviewed only as a functional reference. No Perfex code or schema was copied.
+- The future designer audit is documented in `docs/coremarket-document-label-designer-plan.md`.
+
+Next:
+
+- 61 Invoice & Price Label Designer Foundation.
+- 62 Storefront Price List Display Review.
+- 63 Branch-specific Inventory/Price Implementation if needed.
