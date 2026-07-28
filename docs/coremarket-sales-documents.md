@@ -12,15 +12,16 @@ Step 65 extends the existing mPDF and Document Template foundations. It does not
 - The saved final order price is shown. Other customer Price Lists, product cost, profit, and supplier data are never included.
 - POS receipt and Sales Invoice remain separate: the receipt is cashier/thermal oriented, while the Sales Invoice is an A4 customer document.
 
-## Operational Customer Statement
+## Customer Statement
 
 - Operations route: `/operations/customers/{customer}/statement/pdf`.
 - Template type: `customer_statement`.
 - Supports `date_from` and `date_to`.
-- Uses available customer orders, order payment status/paid amount, and completed sales returns.
-- Opening and running balances are operational estimates from those records only.
+- When `customer_accounts.enabled` is enabled, the statement uses posted AR ledger entries, customer payments, and allocations from Step 66.
+- When the feature is disabled, it retains the operational fallback based on available Orders, order payment status/paid amount, and completed Sales Returns.
+- No historical Orders or returns are backfilled automatically.
 - COD settlement is not counted as a customer payment because Step 64 intentionally leaves order payment status unchanged.
-- This is not a full or official accounts receivable ledger. Payment allocation, customer credits, write-offs, and an immutable AR ledger remain future work.
+- Step 66 is a receivables foundation, not a full double-entry accounting or official VAT system.
 
 ## Delivery Note and Packing Slip
 

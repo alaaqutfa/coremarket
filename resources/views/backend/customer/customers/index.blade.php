@@ -80,6 +80,11 @@
                                 </td>
                                 <td>{{single_price($user->balance)}}</td>
                                 <td class="text-right">
+                                    @if(app(\App\Services\CoreMarketCustomerAccountFeatureService::class)->enabled() && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('customer_ledger.view')))
+                                        <a href="{{ route('operations.customers.receivables.show', $user) }}" class="btn btn-soft-primary btn-icon btn-circle btn-sm" title="{{ translate('Customer Receivables') }}">
+                                            <i class="las la-book"></i>
+                                        </a>
+                                    @endif
                                     @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('customer_statements.export'))
                                         <a href="{{ route('operations.customers.statement.pdf', $user) }}" class="btn btn-soft-info btn-icon btn-circle btn-sm" title="{{ translate('Operational Customer Statement') }}">
                                             <i class="las la-file-invoice-dollar"></i>

@@ -3,6 +3,11 @@
 @section('content')
     @php
         $coremarketDeliveryBoyEnabled = coremarket_feature_enabled('delivery_boy_enabled') && addon_is_activated('delivery_boy');
+        $shippingAddress = json_decode((string) $order->shipping_address);
+        $customerAccountsEnabled = app(\App\Services\CoreMarketCustomerReceivableService::class)->enabled();
+        $customerInvoiceEntry = $customerAccountsEnabled
+            ? $order->customerLedgerEntries()->where('entry_type', 'invoice')->first()
+            : null;
     @endphp
 
     <div class="card">
@@ -10,6 +15,30 @@
             <h1 class="h2 fs-16 mb-0">{{ translate('Order Details') }}</h1>
         </div>
         <div class="card-body">
+            @if($customerAccountsEnabled && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('customer_receivables.manage')))
+                <div class="alert alert-light border d-flex align-items-center justify-content-between">
+                    <div>
+                        <strong>{{ translate('Customer Account') }}</strong><br>
+                        @if($customerInvoiceEntry)
+                            <span class="text-success">{{ translate('Posted to AR ledger') }}</span>
+                        @elseif($order->payment_status === 'paid' || (float) ($order->paid_amount ?? 0) > 0)
+                            <span class="text-muted">{{ translate('Paid or partially paid orders require a matching AR payment before posting.') }}</span>
+                        @else
+                            <span class="text-muted">{{ translate('This sale is not posted to customer receivables yet.') }}</span>
+                        @endif
+                    </div>
+                    @if($customerInvoiceEntry)
+                        <a class="btn btn-soft-primary" href="{{ route('operations.customers.receivables.show', $order->user_id) }}">
+                            {{ translate('View Customer Ledger') }}
+                        </a>
+                    @elseif($order->user_id && $order->payment_status !== 'paid' && (float) ($order->paid_amount ?? 0) <= 0)
+                        <form method="POST" action="{{ route('operations.orders.customer-account.store', $order) }}">
+                            @csrf
+                            <button class="btn btn-primary" type="submit">{{ translate('Post to Customer Account') }}</button>
+                        </form>
+                    @endif
+                </div>
+            @endif
             <div class="row gutters-5">
                 <div class="col text-md-left text-center">
                 </div>
@@ -103,23 +132,24 @@
             </div>
             <div class="row gutters-5">
                 <div class="col text-md-left text-center">
-                    @if(json_decode($order->shipping_address))
+                    @if($shippingAddress)
                         <address>
                             <strong class="text-main">
-                                {{ json_decode($order->shipping_address)->name }}
+                                {{ $shippingAddress->name ?? translate('Not provided') }}
                             </strong><br>
-                            {{ json_decode($order->shipping_address)->email }}<br>
-                            {{ json_decode($order->shipping_address)->phone }}<br>
-                            {{ json_decode($order->shipping_address)->address }}, {{ json_decode($order->shipping_address)->city }}, @if(isset(json_decode($order->shipping_address)->state)) {{ json_decode($order->shipping_address)->state }} - @endif {{ json_decode($order->shipping_address)->postal_code }}<br>
-                            {{ json_decode($order->shipping_address)->country }}
+                            {{ $shippingAddress->email ?? translate('Not provided') }}<br>
+                            {{ $shippingAddress->phone ?? translate('Not provided') }}<br>
+                            {{ $shippingAddress->address ?? translate('Not provided') }}, {{ $shippingAddress->city ?? translate('Not provided') }}, @if(isset($shippingAddress->state)) {{ $shippingAddress->state }} - @endif {{ $shippingAddress->postal_code ?? '' }}<br>
+                            {{ $shippingAddress->country ?? translate('Not provided') }}
                         </address>
                     @else
                         <address>
                             <strong class="text-main">
-                                {{ $order->user->name }}
+                                {{ $order->user?->name ?? translate('Customer not provided') }}
                             </strong><br>
-                            {{ $order->user->email }}<br>
-                            {{ $order->user->phone }}<br>
+                            {{ $order->user?->email ?? translate('Not provided') }}<br>
+                            {{ $order->user?->phone ?? translate('Not provided') }}<br>
+                            {{ translate('Shipping address not provided') }}
                         </address>
                     @endif
                     @if ($order->manual_payment && is_array(json_decode($order->manual_payment_data, true)))

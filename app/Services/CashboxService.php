@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Cashbox;
 use App\Models\CashierShift;
 use App\Models\CashMovement;
+use App\Models\CustomerPayment;
 use App\Models\DeliveryCodSettlement;
 use App\Models\Order;
 use App\Models\OrderDelivery;
@@ -255,6 +256,58 @@ class CashboxService
             $delivery->id
         );
 
+        $this->refreshExpectedCash($lockedShift);
+
+        return $movement;
+    }
+
+    public function recordCustomerPaymentMovement(
+        CustomerPayment $payment,
+        CashierShift $shift,
+        User|int $receiver
+    ): CashMovement {
+        $receiver = $this->resolveUser($receiver);
+        $lockedShift = CashierShift::query()->lockForUpdate()->findOrFail($shift->id);
+        $this->ensureShiftIsOpen($lockedShift);
+
+        if (
+            (int) $payment->cashier_shift_id !== (int) $lockedShift->id
+            || (int) $payment->cashbox_id !== (int) $lockedShift->cashbox_id
+            || $payment->payment_method !== 'cash'
+        ) {
+            throw new DomainException('Customer payment does not match the selected cashbox shift.');
+        }
+        if ($payment->cash_movement_id) {
+            return CashMovement::query()->findOrFail($payment->cash_movement_id);
+        }
+
+        $existing = CashMovement::query()
+            ->where('reference_type', CustomerPayment::class)
+            ->where('reference_id', $payment->id)
+            ->where('movement_type', 'customer_payment')
+            ->lockForUpdate()
+            ->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $movement = $this->createMovement(
+            $lockedShift,
+            'customer_payment',
+            'in',
+            $this->normalizePositiveAmount($payment->amount),
+            'Customer payment '.($payment->reference ?: '#'.$payment->id),
+            now(),
+            $receiver,
+            [
+                'customer_payment_id' => $payment->id,
+                'customer_id' => $payment->customer_id,
+                'accounting_pending' => true,
+            ],
+            false,
+            CustomerPayment::class,
+            $payment->id
+        );
         $this->refreshExpectedCash($lockedShift);
 
         return $movement;

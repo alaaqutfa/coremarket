@@ -19,7 +19,8 @@ class OperationsPdfService
 {
     public function __construct(
         private CoreMarketMoneyService $money,
-        private CoreMarketDocumentTemplateService $templates
+        private CoreMarketDocumentTemplateService $templates,
+        private CoreMarketCustomerReceivableService $receivables
     )
     {
     }
@@ -191,6 +192,20 @@ class OperationsPdfService
 
     public function customerStatement(User $customer, ?string $dateFrom = null, ?string $dateTo = null): array
     {
+        if ($this->receivables->enabled()) {
+            $template = $this->templates->templateSettingsSnapshot(
+                $this->templates->defaultTemplate('customer_statement')
+            );
+
+            return array_merge(
+                [
+                    'branding' => $this->branding($template),
+                    'template' => $template,
+                ],
+                $this->receivables->statementSnapshot($customer, $dateFrom, $dateTo)
+            );
+        }
+
         $from = $dateFrom ? CarbonImmutable::parse($dateFrom)->startOfDay() : null;
         $to = $dateTo ? CarbonImmutable::parse($dateTo)->endOfDay() : null;
         $opening = 0.0;

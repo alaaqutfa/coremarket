@@ -97,6 +97,29 @@
     </div>
 </div>
 
+@if($receivables['enabled'])
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">{{ translate('Customer Receivables Summary') }}</h6>
+        @can('customer_receivables.view')
+            <a href="{{ route('operations.customer-receivables.index') }}" class="btn btn-sm btn-outline-primary">{{ translate('Open Receivables') }}</a>
+        @endcan
+    </div>
+    <div class="card-body table-responsive">
+        <table class="table mb-0">
+            <tr><th>{{ translate('Total outstanding') }}</th><td class="text-right">{{ coremarket_money($receivables['total_outstanding']) }}</td></tr>
+            <tr><th>{{ translate('Customers with balance') }}</th><td class="text-right">{{ coremarket_number($receivables['customers_with_balance'], 0) }}</td></tr>
+            <tr><th>{{ translate('Current') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['current']) }}</td></tr>
+            <tr><th>{{ translate('1-30 days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['1_30']) }}</td></tr>
+            <tr><th>{{ translate('31-60 days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['31_60']) }}</td></tr>
+            <tr><th>{{ translate('61-90 days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['61_90']) }}</td></tr>
+            <tr><th>{{ translate('90+ days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['90_plus']) }}</td></tr>
+        </table>
+        <small class="text-muted">{{ translate('Aging is estimated from posted invoice entry dates. No historical order backfill or accounting journal is created.') }}</small>
+    </div>
+</div>
+@endif
+
 <div class="card mt-3">
     <div class="card-header"><h6 class="mb-0">{{ translate('COD Settlement Summary') }}</h6></div>
     <div class="card-body table-responsive">

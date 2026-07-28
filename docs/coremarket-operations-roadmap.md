@@ -414,6 +414,24 @@ Step 65 extends the safe Document Template system to Sales Invoices, Operational
 
 Next:
 
-- 66 Customer Receivables / AR Ledger Foundation if needed.
-- 67 Branch-specific Inventory/Price Implementation if needed.
-- 68 Delivery Mobile View/App later.
+- 67 Customer Credit Limit / Payment Terms.
+- 68 Branch-specific Inventory/Price Implementation if needed.
+- 69 Delivery Mobile View/App later.
+
+## Customer receivables ledger foundation
+
+Step 66 adds an optional, manually posted Customer AR ledger without changing checkout or historical Orders.
+
+- `customer_accounts.enabled` defaults to disabled.
+- Posted Order invoices create idempotent debit entries.
+- Customer payments create credit entries and may be allocated safely to posted invoices.
+- Cash payments require an open Cashbox shift and create one idempotent cash-in movement.
+- Customer Statements use ledger entries when enabled and retain the operational fallback when disabled.
+- No historical backfill, automatic credit checkout posting, order payment-status rewrite, accounting journal, VAT filing, wallet rewrite, or loyalty rewrite is included.
+- Credit limits and payment terms remain Step 67.
+
+Next:
+
+- 67 Customer Credit Limit / Payment Terms.
+- 68 Branch-specific Inventory/Price Implementation if needed.
+- 69 Delivery Mobile View/App later.

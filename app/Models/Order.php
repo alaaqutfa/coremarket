@@ -72,6 +72,16 @@ class Order extends Model
         return $this->hasOne(OrderDelivery::class);
     }
 
+    public function customerLedgerEntries()
+    {
+        return $this->hasMany(CustomerLedgerEntry::class);
+    }
+
+    public function customerPaymentAllocations()
+    {
+        return $this->hasMany(CustomerPaymentAllocation::class);
+    }
+
     public function proxy_cart_reference_id()
     {
         return $this->hasMany(ProxyPayment::class)->select('reference_id');

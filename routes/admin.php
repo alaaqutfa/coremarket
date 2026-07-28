@@ -22,6 +22,7 @@ use App\Http\Controllers\CouponController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\CustomAlertController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerReceivableController;
 use App\Http\Controllers\CustomerPackageController;
 use App\Http\Controllers\CustomerProductController;
 use App\Http\Controllers\DigitalProductController;
@@ -149,6 +150,13 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/accounting/profit-loss', 'profitLoss')->name('operations.accounting.profit-loss');
     Route::get('/operations/accounting/vat-snapshots', 'vatSnapshots')->name('operations.accounting.vat-snapshots');
     Route::get('/operations/accounting/vat-audit', 'vatAudit')->name('operations.accounting.vat-audit');
+});
+
+Route::controller(CustomerReceivableController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/customer-receivables', 'index')->name('operations.customer-receivables.index');
+    Route::get('/operations/customers/{customer}/receivables', 'show')->name('operations.customers.receivables.show');
+    Route::post('/operations/orders/{order}/customer-account', 'postOrder')->name('operations.orders.customer-account.store');
+    Route::post('/operations/customers/{customer}/payments', 'storePayment')->name('operations.customers.payments.store');
 });
 
 Route::controller(StoreBranchController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {

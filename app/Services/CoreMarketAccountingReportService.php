@@ -20,7 +20,8 @@ class CoreMarketAccountingReportService
 {
     public function __construct(
         private CoreMarketMoneyService $money,
-        private InventoryProService $inventory
+        private InventoryProService $inventory,
+        private CoreMarketCustomerReceivableService $receivables
     ) {
     }
 
@@ -40,6 +41,7 @@ class CoreMarketAccountingReportService
             'cashbox' => $this->cashboxSummary($from, $to),
             'purchases' => $this->purchaseSummary($from, $to),
             'cod' => $this->codSummary($from, $to),
+            'receivables' => $this->receivables->summary(),
         ];
     }
 

@@ -23,6 +23,9 @@ return [
         'price_lists_enabled' => false,
         'flexible_selling_price_enabled' => false,
     ],
+    'customer_accounts' => [
+        'enabled' => false,
+    ],
 
     'branch' => [
         'enabled' => false,
@@ -624,6 +627,9 @@ return [
             'sales_invoices.view', 'sales_invoices.export',
             'customer_statements.view', 'customer_statements.export',
             'delivery_notes.view', 'delivery_notes.export',
+            'customer_receivables.view', 'customer_receivables.manage',
+            'customer_payments.create', 'customer_payments.cancel',
+            'customer_ledger.view', 'customer_statements.ledger_export',
         ],
 
         'store_admin_permissions' => [
@@ -707,6 +713,12 @@ return [
             'customer_statements.export',
             'delivery_notes.view',
             'delivery_notes.export',
+            'customer_receivables.view',
+            'customer_receivables.manage',
+            'customer_payments.create',
+            'customer_payments.cancel',
+            'customer_ledger.view',
+            'customer_statements.ledger_export',
         ],
 
         'staff_role_presets' => [
@@ -748,6 +760,9 @@ return [
                 'sales_invoices.view', 'sales_invoices.export',
                 'customer_statements.view', 'customer_statements.export',
                 'delivery_notes.view', 'delivery_notes.export',
+                'customer_receivables.view', 'customer_receivables.manage',
+                'customer_payments.create', 'customer_payments.cancel',
+                'customer_ledger.view', 'customer_statements.ledger_export',
             ],
             'accountant' => [
                 'admin_dashboard', 'operations.view',
@@ -765,6 +780,9 @@ return [
                 'deliveries.settle_cod', 'deliveries.view_cod_summary',
                 'sales_invoices.view', 'sales_invoices.export',
                 'customer_statements.view', 'customer_statements.export',
+                'customer_receivables.view', 'customer_receivables.manage',
+                'customer_payments.create', 'customer_payments.cancel',
+                'customer_ledger.view', 'customer_statements.ledger_export',
             ],
             'cashier' => [
                 'admin_dashboard',
@@ -773,6 +791,7 @@ return [
                 'cash_movements.view', 'view_order_details',
                 'deliveries.settle_cod', 'deliveries.view_cod_summary',
                 'sales_invoices.view', 'sales_invoices.export',
+                'customer_payments.create',
             ],
             'data_entry_purchasing' => [
                 'admin_dashboard', 'operations.view',

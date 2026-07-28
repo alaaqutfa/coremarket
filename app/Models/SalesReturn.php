@@ -30,4 +30,9 @@ class SalesReturn extends Model
     {
         return $this->hasMany(SalesReturnItem::class);
     }
+
+    public function customerLedgerEntries()
+    {
+        return $this->hasMany(CustomerLedgerEntry::class);
+    }
 }

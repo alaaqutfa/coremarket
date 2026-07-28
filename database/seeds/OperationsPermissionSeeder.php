@@ -44,6 +44,9 @@ class OperationsPermissionSeeder extends Seeder
             'sales_invoices.view', 'sales_invoices.export',
             'customer_statements.view', 'customer_statements.export',
             'delivery_notes.view', 'delivery_notes.export',
+            'customer_receivables.view', 'customer_receivables.manage',
+            'customer_payments.create', 'customer_payments.cancel',
+            'customer_ledger.view', 'customer_statements.ledger_export',
         ];
     }
 }

@@ -120,9 +120,10 @@ class OrderController extends Controller
         $order = Order::findOrFail(decrypt($id));
 
         $order_shipping_address = json_decode($order->shipping_address);
-        $delivery_boys = User::where('city', $order_shipping_address->city)
-                ->where('user_type', 'delivery_boy')
-                ->get();
+        $shipping_city = is_object($order_shipping_address) ? ($order_shipping_address->city ?? null) : null;
+        $delivery_boys = $shipping_city
+            ? User::where('city', $shipping_city)->where('user_type', 'delivery_boy')->get()
+            : collect();
 
         if(env('DEMO_MODE') == 'On') {
             $order->viewed = 1;

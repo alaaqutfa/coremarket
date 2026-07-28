@@ -801,6 +801,7 @@ class OperationsController extends Controller
             ['show' => $can('price_lists.manage'), 'label' => 'Price Lists', 'description' => 'Manage customer pricing levels', 'route' => 'operations.price-lists.index'],
             ['show' => $inventory && $can('inventory.stock.adjust'), 'label' => 'Inventory Policy', 'description' => 'Review stock control rules', 'route' => 'operations.inventory.policy'],
             ['show' => $accounting && $can('accounting_summary.view'), 'label' => 'Accounting Reports', 'description' => 'Open operational reports', 'route' => 'operations.accounting.reports'],
+            ['show' => app(\App\Services\CoreMarketCustomerReceivableService::class)->enabled() && $can('customer_receivables.view'), 'label' => 'Customer Receivables', 'description' => 'Review customer balances and payments', 'route' => 'operations.customer-receivables.index'],
         ])->where('show', true)->map(fn (array $action) => [
             'label' => $action['label'],
             'description' => $action['description'],

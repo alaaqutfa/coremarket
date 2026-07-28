@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Operational Customer Statement - {{ $customer->name }}</title>
+    <title>{{ $isOperationalStatement ? 'Operational Customer Statement' : 'Customer Account Statement' }} - {{ $customer->name }}</title>
     <style>
         @page { margin: {{ $template['margins_mm']['top'] }}mm {{ $template['margins_mm']['right'] }}mm {{ $template['margins_mm']['bottom'] }}mm {{ $template['margins_mm']['left'] }}mm; }
         body { color: #0f172a; font-family: dejavusans, sans-serif; font-size: {{ $template['settings']['font_size'] }}px; }
@@ -29,13 +29,13 @@
             @endif
             <div class="muted">{{ $branding['address'] }}</div>
         </td>
-        <td width="45%" class="title">OPERATIONAL CUSTOMER STATEMENT</td>
+        <td width="45%" class="title">{{ $isOperationalStatement ? 'OPERATIONAL CUSTOMER STATEMENT' : 'CUSTOMER ACCOUNT STATEMENT' }}</td>
     </tr></table>
 
     <table>
         <tr><td><strong>Customer</strong></td><td>{{ $customer->name }}</td><td><strong>Period</strong></td><td>{{ $dateFrom ?: 'Beginning' }} to {{ $dateTo ?: 'Present' }}</td></tr>
         <tr><td><strong>Email</strong></td><td>{{ $customer->email ?: '-' }}</td><td><strong>Phone</strong></td><td>{{ $customer->phone ?: '-' }}</td></tr>
-        <tr><td><strong>Opening operational balance</strong></td><td>{{ coremarket_money($openingBalance) }}</td><td></td><td></td></tr>
+        <tr><td><strong>Opening {{ $isOperationalStatement ? 'operational ' : '' }}balance</strong></td><td>{{ coremarket_money($openingBalance) }}</td><td></td><td></td></tr>
     </table>
 
     <table class="entries" style="margin-top: 16px;">
@@ -52,20 +52,24 @@
                     <td class="number">{{ coremarket_money($row['running_balance']) }}</td>
                 </tr>
             @empty
-                <tr><td colspan="7" style="text-align: center;">No operational activity is available for this period.</td></tr>
+                <tr><td colspan="7" style="text-align: center;">No {{ $isOperationalStatement ? 'operational activity' : 'ledger activity' }} is available for this period.</td></tr>
             @endforelse
         </tbody>
     </table>
 
     <table class="totals" style="margin-top: 14px;">
-        <tr><td>Order charges</td><td class="number">{{ coremarket_money($totals['charges']) }}</td></tr>
-        <tr><td>Recorded payments / returns</td><td class="number">{{ coremarket_money($totals['credits']) }}</td></tr>
-        <tr><td><strong>Closing operational balance</strong></td><td class="number"><strong>{{ coremarket_money($totals['closingBalance']) }}</strong></td></tr>
+        <tr><td>{{ $isOperationalStatement ? 'Order charges' : 'Ledger debits' }}</td><td class="number">{{ coremarket_money($totals['charges']) }}</td></tr>
+        <tr><td>{{ $isOperationalStatement ? 'Recorded payments / returns' : 'Ledger credits' }}</td><td class="number">{{ coremarket_money($totals['credits']) }}</td></tr>
+        <tr><td><strong>Closing {{ $isOperationalStatement ? 'operational ' : '' }}balance</strong></td><td class="number"><strong>{{ coremarket_money($totals['closingBalance']) }}</strong></td></tr>
     </table>
 
     <div class="footer">
         @if($settings['show_footer']){{ $settings['footer_text'] }}@endif
-        This is an operational statement based on available orders, paid status, paid amounts, and completed sales returns. It is not an official accounts receivable ledger. COD cashbox settlements are not treated as customer payments here.
+        @if($isOperationalStatement)
+            This is an operational statement based on available orders, paid status, paid amounts, and completed sales returns. It is not an official accounts receivable ledger. COD cashbox settlements are not treated as customer payments here.
+        @else
+            This statement uses posted customer ledger entries only. No historical orders or returns are backfilled automatically, and no accounting journal is created.
+        @endif
     </div>
 </body>
 </html>
