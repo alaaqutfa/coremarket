@@ -118,6 +118,7 @@ class InventoryPolicyTest extends TestCase
                 'adjustment_requires_approval' => 1,
                 'stock_counts_enabled' => 1,
                 'emergency_adjustment_enabled' => 0,
+                'branch_inventory_enabled' => 0,
             ])->assertRedirect();
 
             Cache::forget('business_settings');

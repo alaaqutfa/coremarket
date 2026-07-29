@@ -27,4 +27,19 @@ class StoreBranch extends Model
             ->withPivot('is_primary')
             ->withTimestamps();
     }
+
+    public function stockBalances()
+    {
+        return $this->hasMany(ProductStockBranchBalance::class);
+    }
+
+    public function outgoingStockTransfers()
+    {
+        return $this->hasMany(StockTransfer::class, 'from_branch_id');
+    }
+
+    public function incomingStockTransfers()
+    {
+        return $this->hasMany(StockTransfer::class, 'to_branch_id');
+    }
 }

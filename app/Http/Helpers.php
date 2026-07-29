@@ -1693,16 +1693,28 @@ if (! function_exists('product_restock')) {
             }
 
             $product = Product::query()->lockForUpdate()->findOrFail($productStock->product_id);
-            $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
             $product->num_of_sale -= $orderDetail->quantity;
-            if (abs((float) $product->current_stock - $stockTotalBefore) < 0.000001) {
-                $product->current_stock = $stockTotalBefore + (float) $orderDetail->quantity;
-            }
             $product->save();
-            $productStock->increment('qty', $orderDetail->quantity);
+            $order = \App\Models\Order::query()->find($orderDetail->order_id);
+            $branchInventory = app(\App\Services\CoreMarketBranchInventoryService::class);
+            $branch = $branchInventory->resolveBranchForOperation(
+                $order?->pos_metadata['store_branch_id'] ?? null,
+                auth()->user()
+            );
+            $branchInventory->increaseBranchStock(
+                $productStock,
+                $branch,
+                (float) $orderDetail->quantity,
+                'sale reversal'
+            );
 
             app(\App\Services\InventoryMovementService::class)
-                ->recordSaleReversal($orderDetail, $productStock, auth()->id());
+                ->recordSaleReversal(
+                    $orderDetail,
+                    $productStock,
+                    auth()->id(),
+                    ['store_branch_id' => $branch->id]
+                );
         });
     }
 }

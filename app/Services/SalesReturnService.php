@@ -16,7 +16,10 @@ use InvalidArgumentException;
 
 class SalesReturnService
 {
-    public function __construct(private InventoryMovementService $inventoryMovements)
+    public function __construct(
+        private InventoryMovementService $inventoryMovements,
+        private CoreMarketBranchInventoryService $branchInventory
+    )
     {
     }
 
@@ -27,6 +30,13 @@ class SalesReturnService
         }
 
         return DB::transaction(function () use ($order, $items, $attributes, $createdBy) {
+            $actor = $createdBy ? User::query()->find($createdBy) : null;
+            $branch = $this->branchInventory->resolveBranchForOperation(
+                $attributes['branch_id'] ?? $order->pos_metadata['store_branch_id'] ?? null,
+                $actor
+            );
+            $metadata = is_array($attributes['metadata'] ?? null) ? $attributes['metadata'] : [];
+            $metadata['store_branch_id'] = $branch->id;
             $return = SalesReturn::query()->create([
                 'order_id' => $order->id,
                 'user_id' => $attributes['user_id'] ?? $order->user_id,
@@ -37,7 +47,7 @@ class SalesReturnService
                 'notes' => $attributes['notes'] ?? null,
                 'approved_by' => $attributes['approved_by'] ?? null,
                 'created_by' => $createdBy,
-                'metadata' => $attributes['metadata'] ?? null,
+                'metadata' => $metadata,
             ]);
 
             $totals = $this->emptyTotals();
@@ -172,15 +182,22 @@ class SalesReturnService
             ->exists();
 
         if (! $movementExists) {
-            $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
-            $stock->increment('qty', $returnItem->quantity);
-
-            // Preserve legacy behavior when current_stock is already a true stock mirror.
-            if ((float) $product->current_stock === $stockTotalBefore) {
-                $product->increment('current_stock', $returnItem->quantity);
-            }
-
-            $this->inventoryMovements->recordSalesReturnReversal($returnItem, $completedBy);
+            $actor = $completedBy ? User::query()->find($completedBy) : null;
+            $branch = $this->branchInventory->resolveBranchForOperation(
+                $returnItem->salesReturn?->metadata['store_branch_id'] ?? null,
+                $actor
+            );
+            $this->branchInventory->increaseBranchStock(
+                $stock,
+                $branch,
+                (float) $returnItem->quantity,
+                'sales return'
+            );
+            $this->inventoryMovements->recordSalesReturnReversal(
+                $returnItem,
+                $completedBy,
+                ['store_branch_id' => $branch->id]
+            );
             app(AccountingEventService::class)->recordSalesReturn($returnItem, $completedBy);
         }
 

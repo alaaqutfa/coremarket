@@ -18,4 +18,9 @@ class ProductStock extends Model
     public function wholesalePrices() {
         return $this->hasMany(WholesalePrice::class);
     }
+
+    public function branchBalances()
+    {
+        return $this->hasMany(ProductStockBranchBalance::class);
+    }
 }

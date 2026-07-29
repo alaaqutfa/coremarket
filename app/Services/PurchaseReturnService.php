@@ -9,6 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseReturn;
 use App\Models\PurchaseReturnItem;
+use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -19,7 +20,7 @@ class PurchaseReturnService
         private CoreMarketMoneyService $money,
         private InventoryMovementService $inventoryMovements,
         private SupplierLedgerService $ledger,
-        private CoreMarketInventoryPolicyService $inventoryPolicy
+        private CoreMarketBranchInventoryService $branchInventory
     ) {
     }
 
@@ -34,6 +35,12 @@ class PurchaseReturnService
 
         return DB::transaction(function () use ($purchaseOrder, $items, $attributes, $createdBy) {
             $purchaseOrder = PurchaseOrder::query()->lockForUpdate()->findOrFail($purchaseOrder->id);
+            $branch = $this->branchInventory->resolveBranchForOperation(
+                $attributes['branch_id'] ?? null,
+                $createdBy ? User::query()->find($createdBy) : null
+            );
+            $metadata = is_array($attributes['metadata'] ?? null) ? $attributes['metadata'] : [];
+            $metadata['store_branch_id'] = $branch->id;
             $currency = strtoupper((string) ($attributes['currency'] ?? $purchaseOrder->currency ?: $this->money->baseCurrency()));
             $exchangeRate = $this->positiveRate($attributes['exchange_rate'] ?? $purchaseOrder->metadata['exchange_rate'] ?? 1);
             $return = PurchaseReturn::query()->create([
@@ -45,7 +52,7 @@ class PurchaseReturnService
                 'exchange_rate' => $exchangeRate,
                 'reason' => $attributes['reason'] ?? null,
                 'notes' => $attributes['notes'] ?? null,
-                'metadata' => $attributes['metadata'] ?? null,
+                'metadata' => $metadata,
                 'created_by' => $createdBy,
             ]);
 
@@ -153,7 +160,11 @@ class PurchaseReturnService
         if (! $product || ! $stock || $product->digital) {
             throw new DomainException('A stocked product is required to complete this purchase return.');
         }
-        $this->inventoryPolicy->assertCanDecreaseStock($stock, (float) $item->quantity, 'purchase return');
+        $actor = $completedBy ? User::query()->find($completedBy) : null;
+        $branch = $this->branchInventory->resolveBranchForOperation(
+            $item->purchaseReturn?->metadata['store_branch_id'] ?? null,
+            $actor
+        );
 
         $movementExists = InventoryMovement::query()
             ->where('reference_type', PurchaseReturnItem::class)
@@ -161,12 +172,17 @@ class PurchaseReturnService
             ->where('movement_type', InventoryMovementService::TYPE_PURCHASE_RETURN)
             ->exists();
         if (! $movementExists) {
-            $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
-            $stock->decrement('qty', $item->quantity);
-            if ((float) $product->current_stock === $stockTotalBefore) {
-                $product->decrement('current_stock', $item->quantity);
-            }
-            $movement = $this->inventoryMovements->recordPurchaseReturn($item, $completedBy);
+            $this->branchInventory->decreaseBranchStock(
+                $stock,
+                $branch,
+                (float) $item->quantity,
+                'purchase return'
+            );
+            $movement = $this->inventoryMovements->recordPurchaseReturn(
+                $item,
+                $completedBy,
+                ['store_branch_id' => $branch->id]
+            );
             $item->inventory_movement_id = $movement->id;
         }
 

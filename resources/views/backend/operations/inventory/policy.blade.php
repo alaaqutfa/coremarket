@@ -11,7 +11,7 @@
             @csrf
             <input type="hidden" name="strict_inventory_mode" value="0">
             <input type="hidden" name="allow_negative_stock" value="0">
-            @foreach(['setup_mode_enabled', 'opening_stock_enabled', 'adjustments_enabled', 'adjustment_requires_approval', 'stock_counts_enabled', 'emergency_adjustment_enabled'] as $setting)
+            @foreach(['setup_mode_enabled', 'opening_stock_enabled', 'adjustments_enabled', 'adjustment_requires_approval', 'stock_counts_enabled', 'emergency_adjustment_enabled', 'branch_inventory_enabled'] as $setting)
                 <input type="hidden" name="{{ $setting }}" value="0">
             @endforeach
 
@@ -33,6 +33,7 @@
                 'adjustment_requires_approval' => ['Adjustment approval required', 'Draft adjustments must be reviewed before they can be posted.'],
                 'stock_counts_enabled' => ['Stock counts', 'Allows cycle counts whose variance is posted through an adjustment document.'],
                 'emergency_adjustment_enabled' => ['Emergency adjustments', 'Manager-only emergency documents. Keep disabled unless operationally required.'],
+                'branch_inventory_enabled' => ['Branch inventory', 'Uses branch balances as availability source and keeps product stock as an aggregate mirror. Run the initialization command before enabling.'],
             ] as $key => [$label, $description])
                 <div class="form-group">
                     <label class="aiz-switch aiz-switch-success mb-2">

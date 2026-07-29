@@ -16,7 +16,7 @@ class InventoryMovementService
     public const TYPE_PURCHASE = 'purchase';
     public const TYPE_PURCHASE_RETURN = 'purchase_return';
 
-    public function recordSale(OrderDetail $orderDetail, ?ProductStock $productStock = null, ?int $createdBy = null): InventoryMovement
+    public function recordSale(OrderDetail $orderDetail, ?ProductStock $productStock = null, ?int $createdBy = null, array $context = []): InventoryMovement
     {
         $productStock = $productStock ?: $this->findProductStock($orderDetail);
         $snapshot = $this->snapshotCost($orderDetail, $productStock);
@@ -27,13 +27,13 @@ class InventoryMovementService
                 'reference_id' => $orderDetail->id,
                 'movement_type' => self::TYPE_SALE,
             ],
-            $this->movementAttributes($orderDetail, $productStock, self::TYPE_SALE, 'out', $snapshot, $createdBy)
+            $this->movementAttributes($orderDetail, $productStock, self::TYPE_SALE, 'out', $snapshot, $createdBy, $context)
         );
         app(AccountingEventService::class)->recordSale($orderDetail, $createdBy);
         return $movement;
     }
 
-    public function recordSaleReversal(OrderDetail $orderDetail, ?ProductStock $productStock = null, ?int $createdBy = null): InventoryMovement
+    public function recordSaleReversal(OrderDetail $orderDetail, ?ProductStock $productStock = null, ?int $createdBy = null, array $context = []): InventoryMovement
     {
         $productStock = $productStock ?: $this->findProductStock($orderDetail);
         $snapshot = $this->snapshotCost($orderDetail, $productStock);
@@ -44,11 +44,11 @@ class InventoryMovementService
                 'reference_id' => $orderDetail->id,
                 'movement_type' => self::TYPE_SALE_REVERSAL,
             ],
-            $this->movementAttributes($orderDetail, $productStock, self::TYPE_SALE_REVERSAL, 'in', $snapshot, $createdBy)
+            $this->movementAttributes($orderDetail, $productStock, self::TYPE_SALE_REVERSAL, 'in', $snapshot, $createdBy, $context)
         );
     }
 
-    public function recordSalesReturnReversal(SalesReturnItem $returnItem, ?int $createdBy = null): InventoryMovement
+    public function recordSalesReturnReversal(SalesReturnItem $returnItem, ?int $createdBy = null, array $context = []): InventoryMovement
     {
         return InventoryMovement::query()->firstOrCreate(
             [
@@ -67,15 +67,15 @@ class InventoryMovementService
                 'order_id' => $returnItem->order_id,
                 'order_detail_id' => $returnItem->order_detail_id,
                 'created_by' => $createdBy,
-                'metadata' => [
+                'metadata' => array_merge([
                     'cost_source' => $returnItem->metadata['cost_source'] ?? 'missing',
                     'sales_return_id' => $returnItem->sales_return_id,
-                ],
+                ], $context),
             ]
         );
     }
 
-    public function recordPurchaseReceipt(PurchaseReceiptItem $receiptItem, ?int $createdBy = null): InventoryMovement
+    public function recordPurchaseReceipt(PurchaseReceiptItem $receiptItem, ?int $createdBy = null, array $context = []): InventoryMovement
     {
         return InventoryMovement::query()->firstOrCreate(
             [
@@ -93,15 +93,15 @@ class InventoryMovementService
                 'reference_type' => PurchaseReceiptItem::class,
                 'reference_id' => $receiptItem->id,
                 'created_by' => $createdBy,
-                'metadata' => [
+                'metadata' => array_merge([
                     'purchase_order_item_id' => $receiptItem->purchase_order_item_id,
                     'purchase_receipt_id' => $receiptItem->purchase_receipt_id,
-                ],
+                ], $context),
             ]
         );
     }
 
-    public function recordPurchaseReturn(PurchaseReturnItem $returnItem, ?int $createdBy = null): InventoryMovement
+    public function recordPurchaseReturn(PurchaseReturnItem $returnItem, ?int $createdBy = null, array $context = []): InventoryMovement
     {
         return InventoryMovement::query()->firstOrCreate(
             [
@@ -120,12 +120,12 @@ class InventoryMovementService
                 'reference_type' => PurchaseReturnItem::class,
                 'reference_id' => $returnItem->id,
                 'created_by' => $createdBy,
-                'metadata' => [
+                'metadata' => array_merge([
                     'purchase_return_id' => $returnItem->purchase_return_id,
                     'purchase_order_item_id' => $returnItem->purchase_order_item_id,
                     'cost_source' => $returnItem->metadata['cost_source'] ?? 'purchase_order_item_snapshot',
                     'tax_amount' => $returnItem->tax_amount,
-                ],
+                ], $context),
             ]
         );
     }
@@ -162,7 +162,7 @@ class InventoryMovementService
         ];
     }
 
-    private function movementAttributes(OrderDetail $orderDetail, ?ProductStock $productStock, string $type, string $direction, array $snapshot, ?int $createdBy): array
+    private function movementAttributes(OrderDetail $orderDetail, ?ProductStock $productStock, string $type, string $direction, array $snapshot, ?int $createdBy, array $context = []): array
     {
         return [
             'product_id' => $orderDetail->product_id,
@@ -178,7 +178,7 @@ class InventoryMovementService
             'order_id' => $orderDetail->order_id,
             'order_detail_id' => $orderDetail->id,
             'created_by' => $createdBy,
-            'metadata' => ['cost_source' => $snapshot['cost_source']],
+            'metadata' => array_merge(['cost_source' => $snapshot['cost_source']], $context),
         ];
     }
 

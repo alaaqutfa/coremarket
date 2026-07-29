@@ -42,7 +42,7 @@ class PosApiController extends Controller
             $customer = $pos->validatePosCustomer(isset($data['customer_id']) ? (int) $data['customer_id'] : null);
 
             return $this->success([
-                'items' => $pos->searchPayload($pos->searchProducts($data['q'], $customer)),
+                'items' => $pos->searchPayload($pos->searchProducts($data['q'], $customer, $request->user())),
             ]);
         } catch (DomainException $exception) {
             return $this->domainError($exception);
@@ -168,6 +168,7 @@ class PosApiController extends Controller
         $message = $exception->getMessage();
         $isConflict = str_contains($message, 'open cashier shift')
             || str_contains($message, 'exceeds available stock')
+            || str_contains($message, 'Insufficient stock')
             || str_contains($message, 'unavailable');
 
         return $isConflict

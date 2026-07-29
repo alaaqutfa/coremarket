@@ -27,6 +27,7 @@ Existing sales, purchase, and return services continue to use `InventoryMovement
 - `inventory.adjustment_requires_approval=true`
 - `inventory.stock_counts_enabled=true`
 - `inventory.emergency_adjustment_enabled=false`
+- `inventory.branch_inventory_enabled=false`
 
 Product creation never creates quantity, regardless of strict mode. Strict mode remains the policy guard for operational increases and decreases, while governance requires all manual changes to use documents in every mode.
 
@@ -84,9 +85,11 @@ When `inventory.allow_negative_stock=false`, posting any decrease that would mak
 
 No historical movement backfill is created.
 
-## Branch Boundary
+## Branch Inventory
 
-`branch_id` is document context only. Product stock remains unified. Step 68 does not implement branch-specific quantity, branch valuation, or stock transfers.
+Step 69 promotes `branch_id` from document context to real branch stock context only when `inventory.branch_inventory_enabled=true`. Branch balances become the availability source while `product_stocks.qty` remains an aggregate compatibility mirror. When disabled, Step 68 unified behavior remains unchanged.
+
+Stock transfers use their own approved document lifecycle and create `transfer_out` and `transfer_in` movements. Branch pricing remains separate and is not implemented.
 
 ## Permissions
 
@@ -94,7 +97,6 @@ Owners receive all inventory governance permissions. Store Admins can create, ap
 
 ## Future
 
-- Branch inventory and stock transfers
 - Branch stock valuation
 - Manufacturing and BOM
 - Serial number and warranty tracking

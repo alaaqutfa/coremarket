@@ -176,6 +176,22 @@ Route::controller(\App\Http\Controllers\InventoryGovernanceController::class)
         Route::post('/operations/inventory/stock-counts/{stockCount}/cancel', 'cancelStockCount')->name('operations.inventory.stock-counts.cancel');
     });
 
+Route::controller(\App\Http\Controllers\BranchInventoryController::class)
+    ->middleware(['auth', 'admin', 'restrict_store_admin'])
+    ->group(function () {
+        Route::get('/operations/inventory/branch-stock', 'branchStock')->name('operations.inventory.branch-stock');
+        Route::get('/operations/inventory/stock-transfers', 'transfers')->name('operations.inventory.stock-transfers.index');
+        Route::get('/operations/inventory/stock-transfers/create', 'createTransfer')->name('operations.inventory.stock-transfers.create');
+        Route::post('/operations/inventory/stock-transfers', 'storeTransfer')->name('operations.inventory.stock-transfers.store');
+        Route::get('/operations/inventory/stock-transfers/{transfer}', 'showTransfer')->name('operations.inventory.stock-transfers.show');
+        Route::post('/operations/inventory/stock-transfers/{transfer}/submit', 'submit')->name('operations.inventory.stock-transfers.submit');
+        Route::post('/operations/inventory/stock-transfers/{transfer}/approve', 'approve')->name('operations.inventory.stock-transfers.approve');
+        Route::post('/operations/inventory/stock-transfers/{transfer}/reject', 'reject')->name('operations.inventory.stock-transfers.reject');
+        Route::post('/operations/inventory/stock-transfers/{transfer}/ship', 'ship')->name('operations.inventory.stock-transfers.ship');
+        Route::post('/operations/inventory/stock-transfers/{transfer}/receive', 'receive')->name('operations.inventory.stock-transfers.receive');
+        Route::post('/operations/inventory/stock-transfers/{transfer}/cancel', 'cancel')->name('operations.inventory.stock-transfers.cancel');
+    });
+
 Route::controller(CustomerReceivableController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
     Route::get('/operations/customer-receivables', 'index')->name('operations.customer-receivables.index');
     Route::get('/operations/customers/{customer}/receivables', 'show')->name('operations.customers.receivables.show');

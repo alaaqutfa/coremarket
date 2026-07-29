@@ -467,3 +467,21 @@ Next:
 - 70 Branch Pricing Policy.
 - 71 Credit Payment Method for POS/Web.
 - 72 Customer Returns / Refunds / Credit Notes Integration.
+
+## Branch inventory and stock transfers
+
+Step 69 adds disabled-by-default branch stock balances and documented two-stage transfers.
+
+- Branch balances are the availability source only when `inventory.branch_inventory_enabled=true`.
+- `product_stocks.qty` remains an aggregate compatibility mirror.
+- Existing aggregate stock is assigned explicitly through a dry-run-first initialization command.
+- Purchase receiving, governed adjustments/counts, POS/Web checkout, and returns resolve an assigned/default branch.
+- Transfers use draft, approval, ship, and receive states with idempotent out/in movements.
+- Staff access is constrained to assigned branches unless the role has all-branch access.
+- Branch pricing, branch P&L, manufacturing, and mobile receiving are not included.
+
+Next:
+
+- 70 Branch Pricing Policy.
+- 71 Credit Payment Method for POS/Web.
+- 72 Customer Returns / Refunds / Credit Notes Integration.

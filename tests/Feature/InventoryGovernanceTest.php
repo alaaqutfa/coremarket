@@ -243,7 +243,7 @@ class InventoryGovernanceTest extends TestCase
             'items' => [['product_stock_id' => $stock->id, 'quantity_change' => 1]],
         ], $manager);
         $this->assertSame((int) $branchId, (int) $document->branch_id);
-        $this->assertTrue($document->metadata['branch_context_only']);
+        $this->assertFalse($document->metadata['branch_inventory_enabled']);
         $this->assertFalse(Schema::hasColumn('product_stocks', 'branch_id'));
         $this->actingAs($warehouse)->get(route('operations.inventory.adjustments.show', $document))->assertOk()->assertSee($document->reference_no);
     }
@@ -338,6 +338,7 @@ class InventoryGovernanceTest extends TestCase
             CoreMarketInventoryPolicyService::ADJUSTMENT_APPROVAL_SETTING => true,
             CoreMarketInventoryPolicyService::STOCK_COUNTS_SETTING => true,
             CoreMarketInventoryPolicyService::EMERGENCY_ADJUSTMENT_SETTING => false,
+            \App\Services\CoreMarketBranchInventoryService::SETTING => false,
         ] as $key => $value) {
             $this->setting($key, $value);
         }

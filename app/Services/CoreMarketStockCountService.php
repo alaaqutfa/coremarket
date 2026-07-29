@@ -12,7 +12,8 @@ class CoreMarketStockCountService
 {
     public function __construct(
         private CoreMarketInventoryPolicyService $policy,
-        private CoreMarketInventoryAdjustmentService $adjustments
+        private CoreMarketInventoryAdjustmentService $adjustments,
+        private CoreMarketBranchInventoryService $branchInventory
     ) {
     }
 
@@ -25,20 +26,29 @@ class CoreMarketStockCountService
             throw new DomainException('At least one stock count item is required.');
         }
 
-        return DB::transaction(function () use ($payload, $actor) {
+        $branch = $this->branchInventory->resolveBranchForOperation(
+            $payload['branch_id'] ?? null,
+            $actor
+        );
+
+        return DB::transaction(function () use ($payload, $actor, $branch) {
             $count = StockCount::query()->create([
-                'branch_id' => $payload['branch_id'] ?? null,
+                'branch_id' => $branch->id,
                 'status' => 'draft',
                 'counted_by' => $actor->id,
                 'counted_at' => now(),
                 'notes' => $payload['notes'] ?? null,
-                'metadata' => ['branch_context_only' => true],
+                'metadata' => [
+                    'branch_inventory_enabled' => $this->branchInventory->branchInventoryEnabled(),
+                ],
             ]);
             $count->update(['reference_no' => 'STK-CNT-'.str_pad((string) $count->id, 6, '0', STR_PAD_LEFT)]);
 
             foreach ($payload['items'] as $itemPayload) {
                 $stock = ProductStock::query()->with('product')->findOrFail($itemPayload['product_stock_id']);
-                $expected = (float) $stock->qty;
+                $expected = $this->branchInventory->branchInventoryEnabled()
+                    ? (float) $this->branchInventory->getBranchBalance($stock, $branch)->quantity
+                    : (float) $stock->qty;
                 $counted = (float) $itemPayload['counted_quantity'];
                 if ($counted < 0) {
                     throw new DomainException('Counted quantity cannot be negative.');

@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Product;
 use App\Models\ProductStock;
+use App\Models\StoreBranch;
 use App\Models\User;
 use DomainException;
 use Illuminate\Database\QueryException;
@@ -25,6 +26,7 @@ class WebPosService
         private CoreMarketFeatureAccessService $features,
         private CoreMarketInventoryPolicyService $inventoryPolicy,
         private CoreMarketPriceListService $priceLists,
+        private CoreMarketBranchInventoryService $branchInventory,
     ) {
     }
 
@@ -33,7 +35,7 @@ class WebPosService
         return $this->openShiftForUser($user);
     }
 
-    public function searchProducts(string $query, ?User $customer = null): Collection
+    public function searchProducts(string $query, ?User $customer = null, ?User $operator = null): Collection
     {
         $query = trim($query);
         if ($query === '') {
@@ -41,7 +43,7 @@ class WebPosService
         }
 
         if ($identity = $this->identityLookup->find($query)) {
-            return collect([$this->lineForProductStock($identity['product'], $identity['product_stock'], $identity['matched_by'], $customer)]);
+            return collect([$this->lineForProductStock($identity['product'], $identity['product_stock'], $identity['matched_by'], $customer, $operator)]);
         }
 
         return Product::query()
@@ -50,14 +52,14 @@ class WebPosService
             ->orderBy('name')
             ->limit(30)
             ->get()
-            ->flatMap(function (Product $product) use ($customer) {
+            ->flatMap(function (Product $product) use ($customer, $operator) {
                 $stocks = $product->stocks;
 
                 if ($stocks->isEmpty()) {
-                    return [$this->lineForProductStock($product, null, 'name', $customer)];
+                    return [$this->lineForProductStock($product, null, 'name', $customer, $operator)];
                 }
 
-                return $stocks->map(fn (ProductStock $stock) => $this->lineForProductStock($product, $stock, 'name', $customer));
+                return $stocks->map(fn (ProductStock $stock) => $this->lineForProductStock($product, $stock, 'name', $customer, $operator));
             })
             ->values();
     }
@@ -254,14 +256,18 @@ class WebPosService
 
                 $customer = $this->validatePosCustomer($customerId);
                 $shift = $this->openShiftForUser($user, true);
+                $branch = $this->branchInventory->resolveBranchForOperation(
+                    $payment['branch_id'] ?? null,
+                    $user
+                );
                 $lines = $this->normalizeCart($cart, true, $customer);
-                $this->assertStockIsAvailable($lines);
+                $this->assertStockIsAvailable($lines, $branch);
                 $totals = $this->totalsForLines($lines);
                 $redemptionPreview = $this->previewRedemptionForCheckout($customer, $pointsToRedeem, $totals['grand_total']);
                 $finalTotal = $redemptionPreview['final_total'] ?? $totals['grand_total'];
                 $paidAmount = $this->validateCashPayment($payment, $finalTotal);
 
-                $order = $this->createOrder($lines, $shift, $user, $customer, $requestKey, $totals, $paidAmount, $finalTotal);
+                $order = $this->createOrder($lines, $shift, $user, $customer, $requestKey, $totals, $paidAmount, $finalTotal, $branch);
                 if ($pointsToRedeem > 0) {
                     $this->loyalty->redeemForOrder($order, $customer, $pointsToRedeem, $user);
                     $order->refresh();
@@ -269,8 +275,13 @@ class WebPosService
 
                 foreach ($lines as $line) {
                     $detail = $this->createOrderDetail($order, $line);
-                    $this->deductStock($line);
-                    $this->inventory->recordSale($detail, $line['stock'], $user->id);
+                    $this->deductStock($line, $branch);
+                    $this->inventory->recordSale(
+                        $detail,
+                        $line['stock'],
+                        $user->id,
+                        ['store_branch_id' => $branch->id]
+                    );
                 }
 
                 $this->cashboxes->recordSaleMovementForOrder($order, $shift, $user);
@@ -474,15 +485,18 @@ class WebPosService
         })->values()->all();
     }
 
-    private function assertStockIsAvailable(array $lines): void
+    private function assertStockIsAvailable(array $lines, StoreBranch $branch): void
     {
         foreach ($lines as $line) {
             if (! $line['product']->digital) {
-                $this->inventoryPolicy->assertCanDecreaseStock(
-                    $line['stock'],
-                    (float) $line['quantity'],
-                    'POS checkout'
-                );
+                $available = $this->branchInventory->availableQuantity($line['stock'], $branch);
+                if (! $this->inventoryPolicy->allowNegativeStock() && $available < (float) $line['quantity']) {
+                    if (! $this->branchInventory->branchInventoryEnabled()) {
+                        throw new DomainException('Requested quantity exceeds available stock.');
+                    }
+
+                    throw new DomainException("Insufficient stock in {$branch->name} for POS checkout.");
+                }
             }
         }
     }
@@ -577,7 +591,7 @@ class WebPosService
         ];
     }
 
-    private function createOrder(array $lines, CashierShift $shift, User $user, ?User $customer, string $requestKey, array $totals, float $paidAmount, float $finalTotal): Order
+    private function createOrder(array $lines, CashierShift $shift, User $user, ?User $customer, string $requestKey, array $totals, float $paidAmount, float $finalTotal, StoreBranch $branch): Order
     {
         $sellerIds = collect($lines)->pluck('product.user_id')->filter()->unique();
         if ($sellerIds->count() > 1) {
@@ -609,6 +623,7 @@ class WebPosService
             'tax_source' => 'legacy_product_taxes',
             'cashier_shift_id' => $shift->id,
             'cashbox_id' => $shift->cashbox_id,
+            'store_branch_id' => $branch->id,
             'customer_id' => $customer?->id,
             'pricing' => collect($lines)->map(fn (array $line) => [
                 'product_id' => $line['product']->id,
@@ -649,7 +664,7 @@ class WebPosService
         return $detail;
     }
 
-    private function deductStock(array $line): void
+    private function deductStock(array $line, StoreBranch $branch): void
     {
         $product = $line['product'];
         if ($product->digital) {
@@ -657,18 +672,19 @@ class WebPosService
         }
 
         $stock = $line['stock'];
-        $this->inventoryPolicy->assertCanDecreaseStock($stock, (float) $line['quantity'], 'POS checkout');
-        $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
-        $stock->decrement('qty', $line['quantity']);
-
-        if ((float) $product->current_stock === $stockTotalBefore) {
-            $product->decrement('current_stock', $line['quantity']);
-        }
+        $this->branchInventory->decreaseBranchStock(
+            $stock,
+            $branch,
+            (float) $line['quantity'],
+            'POS checkout'
+        );
     }
 
-    private function lineForProductStock(Product $product, ?ProductStock $stock, string $matchedBy, ?User $customer = null): array
+    private function lineForProductStock(Product $product, ?ProductStock $stock, string $matchedBy, ?User $customer = null, ?User $operator = null): array
     {
         $pricing = $this->priceLists->pricingSnapshot($stock ?? $product, $customer);
+
+        $branch = $this->branchInventory->resolveBranchForUser($operator);
 
         return [
             'product_id' => $product->id,
@@ -677,7 +693,11 @@ class WebPosService
             'variation' => $stock?->variant ?? '',
             'sku' => $stock?->sku,
             'barcode' => $stock?->barcode ?? $product->barcode,
-            'available_stock' => $stock ? (float) $stock->qty : (float) $product->current_stock,
+            'available_stock' => $stock
+                ? $this->branchInventory->availableQuantity($stock, $branch)
+                : (float) $product->current_stock,
+            'store_branch_id' => $branch->id,
+            'store_branch_name' => $branch->name,
             'price' => $pricing['resolved_price'],
             'pricing' => $pricing,
             'taxes' => $product->taxes->map(fn ($tax) => ['type' => $tax->tax_type, 'value' => (float) $tax->tax])->values()->all(),

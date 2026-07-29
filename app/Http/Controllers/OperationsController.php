@@ -30,6 +30,7 @@ use App\Services\CoreMarketFeatureAccessService;
 use App\Services\CoreMarketAccountingReportService;
 use App\Services\CoreMarketInventoryPolicyService;
 use App\Services\CoreMarketBranchService;
+use App\Services\CoreMarketBranchInventoryService;
 use App\Services\CoreMarketPricingFeatureService;
 use App\Services\CoreMarketProductClassificationService;
 use App\Services\CoreMarketProductQuickCreateService;
@@ -78,7 +79,10 @@ class OperationsController extends Controller
         ]);
     }
 
-    public function inventoryMovements(Request $request): View
+    public function inventoryMovements(
+        Request $request,
+        CoreMarketBranchInventoryService $branchInventory
+    ): View
     {
         $this->authorizeOperation('inventory_movements.view', ['inventory_pro', 'accounting_lite']);
         $query = InventoryMovement::query()->with(['product.productFamily', 'product.productSubFamily', 'productStock', 'order'])->latest();
@@ -93,11 +97,18 @@ class OperationsController extends Controller
         }
         if ($request->filled('from')) $query->whereDate('created_at', '>=', $request->input('from'));
         if ($request->filled('to')) $query->whereDate('created_at', '<=', $request->input('to'));
+        if ($request->filled('branch_id')) {
+            $branch = $branchInventory->resolveBranchForOperation($request->integer('branch_id'), auth()->user());
+            $query->where('metadata->store_branch_id', $branch->id);
+        }
+        $branches = $branchInventory->visibleBranches(auth()->user());
 
         return view('backend.operations.inventory-movements', [
             'movements' => $query->paginate(30)->withQueryString(),
             'products' => Product::query()->orderBy('name')->limit(250)->get(),
             'families' => ProductFamily::query()->families()->active()->with(['children' => fn ($children) => $children->active()])->orderBy('name')->get(),
+            'branches' => $branches,
+            'branchMap' => $branches->keyBy('id'),
         ]);
     }
 
@@ -137,11 +148,18 @@ class OperationsController extends Controller
         return view('backend.operations.inventory.audit', ['audit' => $inventory->auditSummary()]);
     }
 
-    public function inventoryPolicy(CoreMarketInventoryPolicyService $policy): View
+    public function inventoryPolicy(
+        CoreMarketInventoryPolicyService $policy,
+        CoreMarketBranchInventoryService $branchInventory
+    ): View
     {
         $this->authorizeOperation('inventory.stock.adjust', ['inventory_pro']);
 
-        return view('backend.operations.inventory.policy', ['policy' => $policy->policySnapshot()]);
+        return view('backend.operations.inventory.policy', [
+            'policy' => array_merge($policy->policySnapshot(), [
+                'branch_inventory_enabled' => $branchInventory->branchInventoryEnabled(),
+            ]),
+        ]);
     }
 
     public function updateInventoryPolicy(Request $request): RedirectResponse
@@ -156,6 +174,7 @@ class OperationsController extends Controller
             'adjustment_requires_approval' => 'required|boolean',
             'stock_counts_enabled' => 'required|boolean',
             'emergency_adjustment_enabled' => 'required|boolean',
+            'branch_inventory_enabled' => 'required|boolean',
         ]);
 
         foreach ([
@@ -167,6 +186,7 @@ class OperationsController extends Controller
             CoreMarketInventoryPolicyService::ADJUSTMENT_APPROVAL_SETTING => $data['adjustment_requires_approval'],
             CoreMarketInventoryPolicyService::STOCK_COUNTS_SETTING => $data['stock_counts_enabled'],
             CoreMarketInventoryPolicyService::EMERGENCY_ADJUSTMENT_SETTING => $data['emergency_adjustment_enabled'],
+            CoreMarketBranchInventoryService::SETTING => $data['branch_inventory_enabled'],
         ] as $type => $value) {
             $setting = BusinessSetting::query()->where('type', $type)->whereNull('lang')->first() ?: new BusinessSetting();
             $setting->forceFill(['type' => $type, 'value' => $value ? '1' : '0', 'lang' => null])->save();
@@ -456,7 +476,11 @@ class OperationsController extends Controller
         }
         return redirect()->route('operations.purchase-orders.show', $order)->with('success', translate('Purchase order created successfully'));
     }
-    public function showPurchaseOrder(PurchaseOrder $purchaseOrder, PurchasingUiService $purchasing): View
+    public function showPurchaseOrder(
+        PurchaseOrder $purchaseOrder,
+        PurchasingUiService $purchasing,
+        CoreMarketBranchInventoryService $branchInventory
+    ): View
     {
         $this->authorizeOperation('purchase_orders.view', ['purchasing_suppliers']);
         $purchaseOrder->load(['supplier', 'items.product', 'items.productStock', 'receipts.items.purchaseOrderItem']);
@@ -466,6 +490,8 @@ class OperationsController extends Controller
             'purchaseOrder' => $purchaseOrder,
             'progress' => $purchasing->progress($purchaseOrder),
             'movements' => InventoryMovement::query()->with(['product', 'productStock'])->whereIn('id', $movementIds)->latest()->get(),
+            'branchInventoryEnabled' => $branchInventory->branchInventoryEnabled(),
+            'branches' => $branchInventory->visibleBranches(auth()->user()),
         ]);
     }
     public function purchaseOrderPdf(PurchaseOrder $purchaseOrder, OperationsPdfService $pdf, CoreMarketDocumentTemplateService $templates)
@@ -483,7 +509,7 @@ class OperationsController extends Controller
     public function receivePurchaseOrder(Request $request, PurchaseOrder $purchaseOrder, PurchaseReceivingService $service): RedirectResponse
     {
         $this->authorizeOperation('purchase_orders.receive', ['purchasing_suppliers']);
-        $data = $request->validate(['receipt_key' => 'required|string|max:100', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id', 'items.*.quantity_received' => 'required|numeric|min:0', 'items.*.unit_cost' => 'nullable|numeric|min:0']);
+        $data = $request->validate(['receipt_key' => 'required|string|max:100', 'branch_id' => 'nullable|integer|exists:store_branches,id', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id', 'items.*.quantity_received' => 'required|numeric|min:0', 'items.*.unit_cost' => 'nullable|numeric|min:0']);
         $items = collect($data['items'])->filter(fn ($item) => (float) $item['quantity_received'] > 0)->values()->all();
         if (empty($items)) return back()->withErrors(['items' => translate('Enter a quantity to receive.')]);
         try {
@@ -543,7 +569,10 @@ class OperationsController extends Controller
         ]);
     }
 
-    public function createPurchaseReturn(Request $request): View
+    public function createPurchaseReturn(
+        Request $request,
+        CoreMarketBranchInventoryService $branchInventory
+    ): View
     {
         $this->authorizeOperation('purchase_returns.create', ['purchasing_suppliers']);
         $purchaseOrder = $request->filled('purchase_order_id')
@@ -559,6 +588,8 @@ class OperationsController extends Controller
                 ->latest()
                 ->limit(200)
                 ->get(),
+            'branchInventoryEnabled' => $branchInventory->branchInventoryEnabled(),
+            'branches' => $branchInventory->visibleBranches(auth()->user()),
         ]);
     }
 
@@ -567,6 +598,7 @@ class OperationsController extends Controller
         $this->authorizeOperation('purchase_returns.create', ['purchasing_suppliers']);
         $data = $request->validate([
             'purchase_order_id' => 'required|exists:purchase_orders,id',
+            'branch_id' => 'nullable|integer|exists:store_branches,id',
             'return_date' => 'required|date',
             'reason' => 'nullable|string|max:2000',
             'notes' => 'nullable|string|max:2000',

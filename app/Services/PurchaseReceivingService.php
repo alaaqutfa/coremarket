@@ -9,6 +9,8 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\PurchaseReceipt;
 use App\Models\PurchaseReceiptItem;
+use App\Models\StoreBranch;
+use App\Models\User;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -19,7 +21,8 @@ class PurchaseReceivingService
         private InventoryMovementService $inventoryMovements,
         private PurchaseItemPricingService $itemPricing,
         private CoreMarketMoneyService $money,
-        private SupplierLedgerService $supplierLedger
+        private SupplierLedgerService $supplierLedger,
+        private CoreMarketBranchInventoryService $branchInventory
     ) {
     }
 
@@ -113,12 +116,18 @@ class PurchaseReceivingService
                 throw new DomainException('A cancelled purchase order cannot receive stock.');
             }
 
+            $branch = $this->branchInventory->resolveBranchForOperation(
+                $attributes['branch_id'] ?? null,
+                $receivedBy ? User::query()->find($receivedBy) : null
+            );
+            $receiptMetadata = is_array($attributes['metadata'] ?? null) ? $attributes['metadata'] : [];
+            $receiptMetadata['store_branch_id'] = $branch->id;
             $receipt = $purchaseOrder->receipts()->create([
                 'receipt_key' => $receiptKey,
                 'received_at' => $attributes['received_at'] ?? now(),
                 'received_by' => $receivedBy,
                 'notes' => $attributes['notes'] ?? null,
-                'metadata' => $attributes['metadata'] ?? null,
+                'metadata' => $receiptMetadata,
             ]);
 
             foreach ($items as $item) {
@@ -145,8 +154,12 @@ class PurchaseReceivingService
                     'total_cost' => $unitCost === null ? null : $this->money->normalizeMoney($unitCost * $quantity),
                 ]);
 
-                $this->increaseStock($stock, $orderItem, $quantity, $unitCost);
-                $movement = $this->inventoryMovements->recordPurchaseReceipt($receiptItem, $receivedBy);
+                $this->increaseStock($stock, $orderItem, $quantity, $unitCost, $branch);
+                $movement = $this->inventoryMovements->recordPurchaseReceipt(
+                    $receiptItem,
+                    $receivedBy,
+                    ['store_branch_id' => $branch->id]
+                );
                 $receiptItem->inventory_movement_id = $movement->id;
                 $receiptItem->save();
                 app(AccountingEventService::class)->recordPurchaseReceipt($receiptItem->fresh('purchaseOrderItem'), $receivedBy);
@@ -165,18 +178,25 @@ class PurchaseReceivingService
         });
     }
 
-    private function increaseStock(ProductStock $stock, PurchaseOrderItem $orderItem, float $quantity, ?float $unitCost): void
+    private function increaseStock(
+        ProductStock $stock,
+        PurchaseOrderItem $orderItem,
+        float $quantity,
+        ?float $unitCost,
+        StoreBranch $branch
+    ): void
     {
         $product = Product::query()->lockForUpdate()->findOrFail($stock->product_id);
         if ($product->digital) {
             return;
         }
 
-        $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
-        $stock->increment('qty', $quantity);
-        if ((float) $product->current_stock === $stockTotalBefore) {
-            $product->increment('current_stock', $quantity);
-        }
+        $this->branchInventory->increaseBranchStock(
+            $stock,
+            $branch,
+            $quantity,
+            'purchase receipt'
+        );
 
         // Keep the existing last-purchase-cost policy and apply explicit pricing
         // snapshots only when stock is actually received.

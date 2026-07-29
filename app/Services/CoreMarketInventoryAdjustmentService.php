@@ -31,7 +31,8 @@ class CoreMarketInventoryAdjustmentService
 
     public function __construct(
         private CoreMarketInventoryPolicyService $policy,
-        private CoreMarketInventoryGovernanceService $governance
+        private CoreMarketInventoryGovernanceService $governance,
+        private CoreMarketBranchInventoryService $branchInventory
     ) {
     }
 
@@ -60,13 +61,18 @@ class CoreMarketInventoryAdjustmentService
         if ($items === []) {
             throw new DomainException('At least one inventory item is required.');
         }
+        $branch = $this->branchInventory->resolveBranchForOperation(
+            $payload['branch_id'] ?? null,
+            $actor
+        );
+        $payload['branch_id'] = $branch->id;
         $key = $payload['idempotency_key'] ?? (string) Str::uuid();
         $existing = InventoryAdjustmentDocument::query()->where('idempotency_key', $key)->first();
         if ($existing) {
             return $existing->load('items');
         }
 
-        return DB::transaction(function () use ($payload, $actor, $type, $items, $key) {
+        return DB::transaction(function () use ($payload, $actor, $type, $items, $key, $branch) {
             $document = InventoryAdjustmentDocument::query()->create([
                 'adjustment_type' => $type,
                 'branch_id' => $payload['branch_id'] ?? null,
@@ -77,7 +83,7 @@ class CoreMarketInventoryAdjustmentService
                 'idempotency_key' => $key,
                 'metadata' => [
                     'inventory_policy' => $this->governance->policySnapshot(),
-                    'branch_context_only' => true,
+                    'branch_inventory_enabled' => $this->branchInventory->branchInventoryEnabled(),
                 ],
             ]);
             $document->update(['reference_no' => 'INV-ADJ-'.str_pad((string) $document->id, 6, '0', STR_PAD_LEFT)]);
@@ -95,15 +101,19 @@ class CoreMarketInventoryAdjustmentService
                     ? (float) $itemPayload['unit_cost']
                     : (is_numeric($stock->product?->purchase_price) ? (float) $stock->product->purchase_price : null);
 
+                $quantityBefore = $this->branchInventory->branchInventoryEnabled()
+                    ? (float) $this->branchInventory->getBranchBalance($stock, $branch)->quantity
+                    : (float) $stock->qty;
+
                 $document->items()->create([
                     'product_id' => $stock->product_id,
                     'product_stock_id' => $stock->id,
                     'sku_snapshot' => $stock->sku,
                     'barcode_snapshot' => $stock->barcode ?: $stock->product?->barcode,
                     'product_name_snapshot' => $stock->product?->name,
-                    'quantity_before' => $stock->qty,
+                    'quantity_before' => $quantityBefore,
                     'quantity_change' => $change,
-                    'quantity_after' => (float) $stock->qty + $change,
+                    'quantity_after' => $quantityBefore + $change,
                     'unit_cost' => $cost,
                     'amount' => $cost === null ? null : abs($change) * $cost,
                     'reason' => $itemPayload['reason'] ?? $payload['reason'] ?? null,
@@ -214,7 +224,10 @@ class CoreMarketInventoryAdjustmentService
     {
         $stock = ProductStock::query()->lockForUpdate()->findOrFail($item->product_stock_id);
         $product = Product::query()->lockForUpdate()->findOrFail($stock->product_id);
-        $before = (float) $stock->qty;
+        $branch = $this->branchInventory->resolveBranchForOperation($document->branch_id, $poster);
+        $before = $this->branchInventory->branchInventoryEnabled()
+            ? (float) $this->branchInventory->getBranchBalance($stock, $branch)->quantity
+            : (float) $stock->qty;
         $change = (float) $item->quantity_change;
         if ($document->adjustment_type === 'opening_stock' && abs($before) > 0.000001) {
             throw new DomainException('Opening stock can be posted only when the current stock is zero.');
@@ -228,11 +241,22 @@ class CoreMarketInventoryAdjustmentService
         };
         $this->governance->ensureStockMutationAllowed($source, $stock, $change);
         $after = $before + $change;
-        $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
-
-        $stock->update(['qty' => $after]);
-        if (abs((float) $product->current_stock - $stockTotalBefore) < 0.000001) {
-            $product->update(['current_stock' => $stockTotalBefore + $change]);
+        if ($change > 0) {
+            $this->branchInventory->increaseBranchStock(
+                $stock,
+                $branch,
+                $change,
+                $source,
+                ['inventory_adjustment_document_id' => $document->id]
+            );
+        } else {
+            $this->branchInventory->decreaseBranchStock(
+                $stock,
+                $branch,
+                abs($change),
+                $source,
+                ['inventory_adjustment_document_id' => $document->id]
+            );
         }
         $item->update([
             'quantity_before' => $before,
@@ -263,8 +287,8 @@ class CoreMarketInventoryAdjustmentService
                     'reason' => $item->reason ?: $document->reason,
                     'before_qty' => $before,
                     'after_qty' => $after,
-                    'branch_id' => $document->branch_id,
-                    'branch_context_only' => true,
+                    'store_branch_id' => $branch->id,
+                    'branch_inventory_enabled' => $this->branchInventory->branchInventoryEnabled(),
                 ],
             ]
         );

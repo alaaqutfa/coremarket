@@ -7,6 +7,7 @@ use App\Models\ProductStock;
 use App\Models\StockCount;
 use App\Models\StoreBranch;
 use App\Services\CoreMarketInventoryAdjustmentService;
+use App\Services\CoreMarketBranchInventoryService;
 use App\Services\CoreMarketInventoryPolicyService;
 use App\Services\CoreMarketStockCountService;
 use DomainException;
@@ -295,6 +296,6 @@ class InventoryGovernanceController extends Controller
 
     private function branches()
     {
-        return StoreBranch::query()->where('is_active', true)->orderBy('name')->get();
+        return app(CoreMarketBranchInventoryService::class)->visibleBranches(auth()->user());
     }
 }

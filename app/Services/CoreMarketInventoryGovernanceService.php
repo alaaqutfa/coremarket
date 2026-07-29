@@ -19,8 +19,10 @@ class CoreMarketInventoryGovernanceService
         'emergency_adjustment',
     ];
 
-    public function __construct(private CoreMarketInventoryPolicyService $policy)
-    {
+    public function __construct(
+        private CoreMarketInventoryPolicyService $policy,
+        private CoreMarketBranchInventoryService $branchInventory
+    ) {
     }
 
     public function canDirectlyEditStock(User $user): bool
@@ -85,7 +87,9 @@ class CoreMarketInventoryGovernanceService
     {
         return array_merge($this->policy->policySnapshot(), [
             'documented_stock_changes_required' => true,
-            'branch_inventory_scope' => 'unified',
+            'branch_inventory_scope' => $this->branchInventory->branchInventoryEnabled()
+                ? 'branch'
+                : 'unified',
         ]);
     }
 }

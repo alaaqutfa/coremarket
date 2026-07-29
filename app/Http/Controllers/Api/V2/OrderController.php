@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\CoreMarketLicenseService;
 use App\Services\InventoryMovementService;
 use App\Services\CoreMarketInventoryPolicyService;
+use App\Services\CoreMarketBranchInventoryService;
 use DB;
 use \App\Utility\NotificationUtility;
 use App\Models\CombinedOrder;
@@ -34,6 +35,8 @@ class OrderController extends Controller
         if (! $licenseService->canCreateOrders()) {
             return $this->failed(translate($licenseService->monthlyOrderLimitMessage()));
         }
+        $branchInventory = app(CoreMarketBranchInventoryService::class);
+        $stockBranch = $branchInventory->resolveBranchForOperation(null, auth()->user());
 
         if (get_setting('minimum_order_amount_check') == 1) {
             $subtotal = 0;
@@ -102,6 +105,7 @@ class OrderController extends Controller
             $order->payment_status_viewed = '0';
             $order->code = date('Ymd-His') . rand(10, 99);
             $order->date = strtotime('now');
+            $order->pos_metadata = ['store_branch_id' => $stockBranch->id, 'stock_source' => 'app_checkout'];
             if ($set_paid) {
                 $order->payment_status = 'paid';
             } else {
@@ -126,17 +130,23 @@ class OrderController extends Controller
                 $product_variation = $cartItem['variation'];
 
                 $product_stock = $product->stocks->where('variant', $product_variation)->first();
-                if ($product->digital != 1 && ! app(CoreMarketInventoryPolicyService::class)->allowNegativeStock() && $cartItem['quantity'] > $product_stock->qty) {
-                    $order->delete();
-                    $combined_order->delete();
-                    return response()->json([
-                        'combined_order_id' => 0,
-                        'result' => false,
-                        'message' => translate('The requested quantity is not available for ') . $product->name
-                    ]);
-                } elseif ($product->digital != 1) {
-                    $product_stock->qty -= $cartItem['quantity'];
-                    $product_stock->save();
+                if ($product->digital != 1) {
+                    try {
+                        $branchInventory->decreaseBranchStock(
+                            $product_stock,
+                            $stockBranch,
+                            (float) $cartItem['quantity'],
+                            'app checkout'
+                        );
+                    } catch (\DomainException $exception) {
+                        $order->delete();
+                        $combined_order->delete();
+                        return response()->json([
+                            'combined_order_id' => 0,
+                            'result' => false,
+                            'message' => translate($exception->getMessage())
+                        ]);
+                    }
                 }
 
                 $order_detail = new OrderDetail;
@@ -160,7 +170,12 @@ class OrderController extends Controller
                 $order_detail->quantity = $cartItem['quantity'];
                 $order_detail->save();
 
-                app(InventoryMovementService::class)->recordSale($order_detail, $product_stock, auth()->id());
+                app(InventoryMovementService::class)->recordSale(
+                    $order_detail,
+                    $product_stock,
+                    auth()->id(),
+                    ['store_branch_id' => $stockBranch->id]
+                );
 
                 $product->num_of_sale = $product->num_of_sale + $cartItem['quantity'];
                 $product->save();

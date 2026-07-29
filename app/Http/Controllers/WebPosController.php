@@ -45,7 +45,7 @@ class WebPosController extends Controller
         ]);
         $customer = $pos->validatePosCustomer(isset($data['customer_id']) ? (int) $data['customer_id'] : null);
 
-        return response()->json($pos->searchProducts($data['q'], $customer)->values());
+        return response()->json($pos->searchProducts($data['q'], $customer, auth()->user())->values());
     }
 
     public function customersSearch(Request $request, WebPosService $pos): JsonResponse
