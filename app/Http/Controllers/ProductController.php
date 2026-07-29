@@ -24,6 +24,7 @@ use App\Services\ProductTaxService;
 use Artisan;
 use Cache;
 use Carbon\Carbon;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -348,6 +349,12 @@ class ProductController extends Controller
     public function update(ProductRequest $request, Product $product): RedirectResponse
     {
         try {
+            $this->productStockService->assertVariantChangesDoNotDiscardStock($request->all(), $product);
+        } catch (DomainException $exception) {
+            return back()->withErrors(['inventory' => $exception->getMessage()])->withInput();
+        }
+
+        try {
             $request->merge($this->productPricingService->productFields(
                 $this->productPricingService->normalize($request->all(), $product)
             ));
@@ -355,9 +362,7 @@ class ProductController extends Controller
             return back()->withErrors(['pricing' => $exception->getMessage()])->withInput();
         }
 
-        $preservedStockQuantities = app(\App\Services\CoreMarketInventoryPolicyService::class)->strictInventoryMode()
-            ? $product->stocks()->pluck('qty', 'variant')->all()
-            : [];
+        $preservedStockQuantities = $product->stocks()->pluck('qty', 'variant')->all();
 
         //Product
         $product = $this->productService->update($request->except([

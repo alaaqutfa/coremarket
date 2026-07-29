@@ -81,7 +81,7 @@ class ProductsImport implements ToCollection, WithHeadingRow, WithValidation, To
                 ]);
                 ProductStock::create([
                     'product_id' => $productId->id,
-                    'qty' => $row['current_stock'],
+                    'qty' => 0,
                     'price' => $row['unit_price'],
                     'sku' => $row['sku'],
                     'variant' => '',

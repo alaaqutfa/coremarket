@@ -11,6 +11,9 @@
             @csrf
             <input type="hidden" name="strict_inventory_mode" value="0">
             <input type="hidden" name="allow_negative_stock" value="0">
+            @foreach(['setup_mode_enabled', 'opening_stock_enabled', 'adjustments_enabled', 'adjustment_requires_approval', 'stock_counts_enabled', 'emergency_adjustment_enabled'] as $setting)
+                <input type="hidden" name="{{ $setting }}" value="0">
+            @endforeach
 
             <div class="form-group">
                 <label class="aiz-switch aiz-switch-success mb-2">
@@ -22,6 +25,25 @@
             </div>
 
             <hr>
+
+            @foreach([
+                'setup_mode_enabled' => ['Setup mode', 'Allows controlled opening stock during initial store setup. Disable it after Go-Live.'],
+                'opening_stock_enabled' => ['Opening stock documents', 'Allows documented initial stock; product creation itself always starts at zero.'],
+                'adjustments_enabled' => ['Stock adjustment documents', 'Allows damage, loss, correction, samples, bonuses, and other documented adjustments.'],
+                'adjustment_requires_approval' => ['Adjustment approval required', 'Draft adjustments must be reviewed before they can be posted.'],
+                'stock_counts_enabled' => ['Stock counts', 'Allows cycle counts whose variance is posted through an adjustment document.'],
+                'emergency_adjustment_enabled' => ['Emergency adjustments', 'Manager-only emergency documents. Keep disabled unless operationally required.'],
+            ] as $key => [$label, $description])
+                <div class="form-group">
+                    <label class="aiz-switch aiz-switch-success mb-2">
+                        <input type="checkbox" name="{{ $key }}" value="1" @checked($policy[$key])>
+                        <span class="slider round"></span>
+                    </label>
+                    <strong class="ml-2">{{ translate($label) }}</strong>
+                    <p class="text-muted mb-0">{{ translate($description) }}</p>
+                </div>
+                <hr>
+            @endforeach
 
             <div class="form-group">
                 <label class="aiz-switch aiz-switch-success mb-2">

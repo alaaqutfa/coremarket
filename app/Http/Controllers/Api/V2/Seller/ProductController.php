@@ -33,6 +33,7 @@ use App\Services\ProductService;
 use App\Services\ProductStockService;
 use App\Services\ProductTaxService;
 use App\Services\FrequentlyBoughtProductService;
+use DomainException;
 
 class ProductController extends Controller
 {
@@ -172,6 +173,14 @@ class ProductController extends Controller
 
     public function update(ProductRequest $request, Product $product)
     {
+        try {
+            $this->productStockService->assertVariantChangesDoNotDiscardStock($request->all(), $product);
+        } catch (DomainException $exception) {
+            return $this->failed($exception->getMessage());
+        }
+
+        $preservedStockQuantities = $product->stocks()->pluck('qty', 'variant')->all();
+
         //Product
         $product = $this->productService->update($request->except([
             '_token', 'sku', 'choice', 'tax_id', 'tax', 'tax_type', 'flash_deal_id', 'flash_discount', 'flash_discount_type'
@@ -189,7 +198,10 @@ class ProductController extends Controller
         //Product Stock
         $this->productStockService->store($request->only([
             'colors_active', 'colors', 'choice_no', 'unit_price', 'sku', 'current_stock', 'product_id'
-        ]), $product);
+        ]), $product, $preservedStockQuantities);
+        if ($preservedStockQuantities !== []) {
+            $product->update(['current_stock' => array_sum($preservedStockQuantities)]);
+        }
 
         // Frequently Bought Products
         $product->frequently_bought_products()->delete();

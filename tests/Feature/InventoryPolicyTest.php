@@ -6,7 +6,6 @@ use App\Models\BusinessSetting;
 use App\Models\ProductStock;
 use App\Models\User;
 use App\Services\CoreMarketInventoryPolicyService;
-use App\Services\InventoryProService;
 use DomainException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +42,9 @@ class InventoryPolicyTest extends TestCase
             $this->assertFalse($snapshot['strict_inventory_mode']);
             $this->assertFalse($snapshot['allow_negative_stock']);
             $this->assertTrue($snapshot['can_create_opening_stock']);
-            $this->assertTrue($snapshot['can_adjust_stock_manually']);
+            $this->assertFalse($snapshot['can_adjust_stock_manually']);
+            $this->assertTrue($snapshot['setup_mode_enabled']);
+            $this->assertTrue($snapshot['adjustment_requires_approval']);
         } finally {
             DB::rollBack();
             Cache::forget('business_settings');
@@ -68,13 +69,7 @@ class InventoryPolicyTest extends TestCase
 
             $this->setting(CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING, '1');
             $policy->assertCanDecreaseStock($stock, 2, 'test sale');
-            app(InventoryProService::class)->adjustStock($stock, [
-                'adjustment_type' => 'decrease',
-                'quantity' => 2,
-                'reason' => 'Policy test',
-            ]);
-
-            $this->assertSame(-1.0, (float) $stock->fresh()->qty);
+            $this->assertSame(1.0, (float) $stock->fresh()->qty);
         } finally {
             DB::rollBack();
             Cache::forget('business_settings');
@@ -117,6 +112,12 @@ class InventoryPolicyTest extends TestCase
             $this->actingAs($user)->post(route('operations.inventory.policy.update'), [
                 'strict_inventory_mode' => 1,
                 'allow_negative_stock' => 0,
+                'setup_mode_enabled' => 1,
+                'opening_stock_enabled' => 1,
+                'adjustments_enabled' => 1,
+                'adjustment_requires_approval' => 1,
+                'stock_counts_enabled' => 1,
+                'emergency_adjustment_enabled' => 0,
             ])->assertRedirect();
 
             Cache::forget('business_settings');
@@ -133,6 +134,12 @@ class InventoryPolicyTest extends TestCase
         BusinessSetting::query()->whereIn('type', [
             CoreMarketInventoryPolicyService::STRICT_MODE_SETTING,
             CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING,
+            CoreMarketInventoryPolicyService::SETUP_MODE_SETTING,
+            CoreMarketInventoryPolicyService::OPENING_STOCK_SETTING,
+            CoreMarketInventoryPolicyService::ADJUSTMENTS_SETTING,
+            CoreMarketInventoryPolicyService::ADJUSTMENT_APPROVAL_SETTING,
+            CoreMarketInventoryPolicyService::STOCK_COUNTS_SETTING,
+            CoreMarketInventoryPolicyService::EMERGENCY_ADJUSTMENT_SETTING,
         ])->delete();
         Cache::forget('business_settings');
     }

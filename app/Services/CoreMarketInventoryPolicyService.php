@@ -9,6 +9,12 @@ class CoreMarketInventoryPolicyService
 {
     public const STRICT_MODE_SETTING = 'inventory.strict_inventory_mode';
     public const NEGATIVE_STOCK_SETTING = 'inventory.allow_negative_stock';
+    public const SETUP_MODE_SETTING = 'inventory.setup_mode_enabled';
+    public const OPENING_STOCK_SETTING = 'inventory.opening_stock_enabled';
+    public const ADJUSTMENTS_SETTING = 'inventory.adjustments_enabled';
+    public const ADJUSTMENT_APPROVAL_SETTING = 'inventory.adjustment_requires_approval';
+    public const STOCK_COUNTS_SETTING = 'inventory.stock_counts_enabled';
+    public const EMERGENCY_ADJUSTMENT_SETTING = 'inventory.emergency_adjustment_enabled';
 
     public function strictInventoryMode(): bool
     {
@@ -28,12 +34,42 @@ class CoreMarketInventoryPolicyService
 
     public function canCreateOpeningStock(): bool
     {
-        return ! $this->strictInventoryMode();
+        return $this->setupModeEnabled() && $this->openingStockEnabled();
     }
 
     public function canAdjustStockManually(): bool
     {
-        return true;
+        return false;
+    }
+
+    public function setupModeEnabled(): bool
+    {
+        return $this->booleanSetting(self::SETUP_MODE_SETTING, (bool) config('coremarket.inventory.setup_mode_enabled', true));
+    }
+
+    public function openingStockEnabled(): bool
+    {
+        return $this->booleanSetting(self::OPENING_STOCK_SETTING, (bool) config('coremarket.inventory.opening_stock_enabled', true));
+    }
+
+    public function adjustmentsEnabled(): bool
+    {
+        return $this->booleanSetting(self::ADJUSTMENTS_SETTING, (bool) config('coremarket.inventory.adjustments_enabled', true));
+    }
+
+    public function adjustmentRequiresApproval(): bool
+    {
+        return $this->booleanSetting(self::ADJUSTMENT_APPROVAL_SETTING, (bool) config('coremarket.inventory.adjustment_requires_approval', true));
+    }
+
+    public function stockCountsEnabled(): bool
+    {
+        return $this->booleanSetting(self::STOCK_COUNTS_SETTING, (bool) config('coremarket.inventory.stock_counts_enabled', true));
+    }
+
+    public function emergencyAdjustmentEnabled(): bool
+    {
+        return $this->booleanSetting(self::EMERGENCY_ADJUSTMENT_SETTING, (bool) config('coremarket.inventory.emergency_adjustment_enabled', false));
     }
 
     public function assertCanDecreaseStock(ProductStock $stock, float $quantity, string $context): void
@@ -65,10 +101,6 @@ class CoreMarketInventoryPolicyService
 
     public function validateProductStockInput(array $payload): array
     {
-        if ($this->canCreateOpeningStock()) {
-            return $payload;
-        }
-
         $payload['current_stock'] = 0;
         foreach (array_keys($payload) as $key) {
             if (str_starts_with((string) $key, 'qty_')) {
@@ -84,6 +116,12 @@ class CoreMarketInventoryPolicyService
         return [
             'strict_inventory_mode' => $this->strictInventoryMode(),
             'allow_negative_stock' => $this->allowNegativeStock(),
+            'setup_mode_enabled' => $this->setupModeEnabled(),
+            'opening_stock_enabled' => $this->openingStockEnabled(),
+            'adjustments_enabled' => $this->adjustmentsEnabled(),
+            'adjustment_requires_approval' => $this->adjustmentRequiresApproval(),
+            'stock_counts_enabled' => $this->stockCountsEnabled(),
+            'emergency_adjustment_enabled' => $this->emergencyAdjustmentEnabled(),
             'can_create_opening_stock' => $this->canCreateOpeningStock(),
             'can_adjust_stock_manually' => $this->canAdjustStockManually(),
         ];

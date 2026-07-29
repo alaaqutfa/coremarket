@@ -138,8 +138,8 @@
                         </div>
                         <div class="col-md-4 form-group">
                             <label>{{ translate('Opening Stock') }}</label>
-                            <input class="form-control" type="number" name="opening_stock" min="0" step="0.000001" value="0" @disabled($strictInventoryMode)>
-                            @if($strictInventoryMode)<small class="text-muted">{{ translate('Strict inventory mode requires stock entry through a purchase receipt.') }}</small>@endif
+                            <input class="form-control" type="number" name="opening_stock" min="0" step="0.000001" value="0" readonly>
+                            <small class="text-muted">{{ translate('Products start at zero. Receive the purchase or create an Opening Stock document after saving.') }}</small>
                         </div>
                         <div class="col-md-4 form-group">
                             <label class="d-block">{{ translate('Tax') }}</label>

@@ -432,9 +432,8 @@ Step 66 adds an optional, manually posted Customer AR ledger without changing ch
 
 Next:
 
-- 68 Credit Payment Method for POS/Web if needed.
-- 69 Branch-specific Inventory/Price Implementation if needed.
-- 70 Delivery Mobile View/App later.
+- 67 Customer Credit Limit / Payment Terms.
+- 68 Inventory Governance.
 
 ## Customer credit limit and payment terms foundation
 
@@ -449,6 +448,22 @@ Step 67 adds on-demand customer credit profiles above the Step 66 AR ledger.
 
 Next:
 
-- 68 Credit Payment Method for POS/Web if needed.
-- 69 Branch-specific Inventory/Price Implementation if needed.
-- 70 Delivery Mobile View/App later.
+- 68 Inventory Governance.
+
+## Inventory governance foundation
+
+Step 68 makes all manual stock changes document-driven.
+
+- Products, imports, duplicates, and Purchase Quick Product Create begin at zero quantity.
+- Opening Stock, Stock Adjustments, and Stock Counts use draft/review/post lifecycles.
+- Draft and pending documents never change stock.
+- Posting creates idempotent `inventory_movements` with document, reason, and before/after snapshots.
+- Negative-stock and strict-inventory policies remain enforced.
+- Branch is document context only; no branch-specific inventory or transfer logic is included.
+
+Next:
+
+- 69 Branch Inventory + Stock Transfers.
+- 70 Branch Pricing Policy.
+- 71 Credit Payment Method for POS/Web.
+- 72 Customer Returns / Refunds / Credit Notes Integration.

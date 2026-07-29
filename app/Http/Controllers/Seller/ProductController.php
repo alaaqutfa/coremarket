@@ -27,6 +27,7 @@ use App\Services\CoreMarketLicenseService;
 use App\Services\ProductStockService;
 use App\Services\FrequentlyBoughtProductService;
 use Illuminate\Support\Facades\Notification;
+use DomainException;
 
 class ProductController extends Controller
 {
@@ -173,6 +174,14 @@ class ProductController extends Controller
 
     public function update(ProductRequest $request, Product $product)
     {
+        try {
+            $this->productStockService->assertVariantChangesDoNotDiscardStock($request->all(), $product);
+        } catch (DomainException $exception) {
+            return back()->withErrors(['inventory' => $exception->getMessage()])->withInput();
+        }
+
+        $preservedStockQuantities = $product->stocks()->pluck('qty', 'variant')->all();
+
         //Product
         $product = $this->productService->update($request->except([
             '_token', 'sku', 'choice', 'tax_id', 'tax', 'tax_types', 'flash_deal_id', 'flash_discount', 'flash_discount_type'
@@ -187,7 +196,10 @@ class ProductController extends Controller
         $product->stocks()->delete();
         $this->productStockService->store($request->only([
             'colors_active', 'colors', 'choice_no', 'unit_price', 'wholesale_price', 'sku', 'current_stock', 'product_id'
-        ]), $product);
+        ]), $product, $preservedStockQuantities);
+        if ($preservedStockQuantities !== []) {
+            $product->update(['current_stock' => array_sum($preservedStockQuantities)]);
+        }
 
         //VAT & Tax
         if ($request->tax_id) {

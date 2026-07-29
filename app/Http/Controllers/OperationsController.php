@@ -36,6 +36,7 @@ use App\Services\CoreMarketProductQuickCreateService;
 use App\Services\CoreMarketTaxService;
 use App\Services\CoreMarketDocumentTemplateService;
 use App\Services\InventoryProService;
+use App\Services\CoreMarketInventoryAdjustmentService;
 use App\Services\OperationsPdfService;
 use App\Services\ProductIdentityLookupService;
 use App\Services\PurchaseItemPricingService;
@@ -149,11 +150,23 @@ class OperationsController extends Controller
         $data = $request->validate([
             'strict_inventory_mode' => 'required|boolean',
             'allow_negative_stock' => 'required|boolean',
+            'setup_mode_enabled' => 'required|boolean',
+            'opening_stock_enabled' => 'required|boolean',
+            'adjustments_enabled' => 'required|boolean',
+            'adjustment_requires_approval' => 'required|boolean',
+            'stock_counts_enabled' => 'required|boolean',
+            'emergency_adjustment_enabled' => 'required|boolean',
         ]);
 
         foreach ([
             CoreMarketInventoryPolicyService::STRICT_MODE_SETTING => $data['strict_inventory_mode'],
             CoreMarketInventoryPolicyService::NEGATIVE_STOCK_SETTING => $data['allow_negative_stock'],
+            CoreMarketInventoryPolicyService::SETUP_MODE_SETTING => $data['setup_mode_enabled'],
+            CoreMarketInventoryPolicyService::OPENING_STOCK_SETTING => $data['opening_stock_enabled'],
+            CoreMarketInventoryPolicyService::ADJUSTMENTS_SETTING => $data['adjustments_enabled'],
+            CoreMarketInventoryPolicyService::ADJUSTMENT_APPROVAL_SETTING => $data['adjustment_requires_approval'],
+            CoreMarketInventoryPolicyService::STOCK_COUNTS_SETTING => $data['stock_counts_enabled'],
+            CoreMarketInventoryPolicyService::EMERGENCY_ADJUSTMENT_SETTING => $data['emergency_adjustment_enabled'],
         ] as $type => $value) {
             $setting = BusinessSetting::query()->where('type', $type)->whereNull('lang')->first() ?: new BusinessSetting();
             $setting->forceFill(['type' => $type, 'value' => $value ? '1' : '0', 'lang' => null])->save();
@@ -163,22 +176,47 @@ class OperationsController extends Controller
         return back()->with('success', translate('Inventory policy updated successfully'));
     }
 
-    public function adjustStockForm(ProductStock $productStock): View
+    public function adjustStockForm(ProductStock $productStock): RedirectResponse
     {
-        $this->authorizeOperation('inventory.stock.adjust', ['inventory_pro']);
-        return view('backend.operations.inventory.adjust', ['productStock' => $productStock->load('product')]);
+        $this->authorizeOperation('inventory.adjustments.create', ['inventory_pro']);
+
+        return redirect()->route('operations.inventory.adjustments.create', [
+            'product_stock_id' => $productStock->id,
+        ]);
     }
 
-    public function adjustStock(Request $request, ProductStock $productStock, InventoryProService $inventory): RedirectResponse
+    public function adjustStock(
+        Request $request,
+        ProductStock $productStock,
+        CoreMarketInventoryAdjustmentService $adjustments
+    ): RedirectResponse
     {
-        $this->authorizeOperation('inventory.stock.adjust', ['inventory_pro']);
+        $this->authorizeOperation('inventory.adjustments.create', ['inventory_pro']);
         $data = $request->validate(['adjustment_type' => 'required|in:increase,decrease,set', 'quantity' => 'required|numeric|min:0', 'reason' => 'required|string|max:255', 'notes' => 'nullable|string|max:2000']);
         try {
-            $inventory->adjustStock($productStock, $data, auth()->id());
+            $current = (float) $productStock->qty;
+            $change = match ($data['adjustment_type']) {
+                'increase' => (float) $data['quantity'],
+                'decrease' => -(float) $data['quantity'],
+                'set' => (float) $data['quantity'] - $current,
+            };
+            $document = $adjustments->createAdjustmentDocument([
+                'adjustment_type' => 'stock_adjustment',
+                'reason' => $data['reason'],
+                'notes' => $data['notes'] ?? null,
+                'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+                'items' => [[
+                    'product_stock_id' => $productStock->id,
+                    'quantity_change' => $change,
+                ]],
+            ], auth()->user());
+            $adjustments->submitForApproval($document, auth()->user());
         } catch (DomainException $exception) {
             return back()->withErrors(['quantity' => $exception->getMessage()])->withInput();
         }
-        return redirect()->route('operations.inventory.stock')->with('success', translate('Stock adjustment recorded successfully'));
+
+        return redirect()->route('operations.inventory.adjustments.show', $document)
+            ->with('success', translate('Stock adjustment document created. Stock has not changed.'));
     }
 
     public function suppliers(Request $request, PurchasingUiService $purchasing): View

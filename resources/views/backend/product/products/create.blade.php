@@ -622,7 +622,8 @@
                                             <div class="col-md-6">
                                                 <input type="number" lang="en" min="0" value="0"
                                                     step="1" placeholder="{{ translate('Quantity') }}"
-                                                    name="current_stock" class="form-control">
+                                                    name="current_stock" class="form-control" readonly>
+                                                <small class="text-muted">{{ translate('Products start at zero. Use Opening Stock or a Purchase Receipt to add quantity.') }}</small>
                                             </div>
                                         </div>
                                         <!-- SKU -->

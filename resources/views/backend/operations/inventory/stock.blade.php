@@ -22,7 +22,14 @@
                 <td>{{ coremarket_quantity($row['stock']->qty) }}</td><td>{{ coremarket_quantity($row['product']?->current_stock) }}</td>
                 <td><span class="badge badge-{{ $row['status']==='ok'?'success':($row['status']==='out_of_stock'?'danger':'warning') }}">{{ translate($row['status']) }}</span></td>
                 <td>{{ $row['movementAt'] }}</td>
-                <td>@can('inventory.stock.adjust')<a href="{{ route('operations.inventory.stock.adjust',$row['stock']) }}" class="btn btn-soft-primary btn-sm">{{ translate('Adjust') }}</a>@endcan</td>
+                <td>
+                    @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('inventory.adjustments.create'))
+                        <a href="{{ route('operations.inventory.adjustments.create', ['product_stock_id' => $row['stock']->id]) }}" class="btn btn-soft-primary btn-sm">{{ translate('Create Adjustment') }}</a>
+                    @endif
+                    @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('inventory.opening_stock.create'))
+                        <a href="{{ route('operations.inventory.opening-stock.create', ['product_stock_id' => $row['stock']->id]) }}" class="btn btn-soft-info btn-sm">{{ translate('Opening Stock') }}</a>
+                    @endif
+                </td>
             </tr>
         @empty
             <tr><td colspan="11" class="text-center">{{ translate('No data found') }}</td></tr>

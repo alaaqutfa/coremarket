@@ -43,7 +43,7 @@ class QuickProductCreateTest extends TestCase
                 'sale_price' => 14,
                 'tax_enabled' => true,
                 'tax_rate' => 11,
-                'opening_stock' => 3,
+                'opening_stock' => 0,
             ]);
 
             $response->assertCreated()
@@ -69,7 +69,7 @@ class QuickProductCreateTest extends TestCase
                 'sku' => $identity,
                 'barcode' => 'BAR-'.$identity,
                 'price' => 15,
-                'qty' => 3,
+                'qty' => 0,
             ]);
         } finally {
             DB::rollBack();
@@ -91,7 +91,7 @@ class QuickProductCreateTest extends TestCase
         }
     }
 
-    public function test_strict_inventory_blocks_opening_stock_without_creating_product(): void
+    public function test_product_creation_blocks_opening_stock_without_creating_product(): void
     {
         DB::beginTransaction();
         try {
@@ -108,7 +108,7 @@ class QuickProductCreateTest extends TestCase
                 'regular_price' => 8,
                 'opening_stock' => 2,
             ])->assertUnprocessable()
-                ->assertJsonPath('errors.opening_stock.0', 'Opening stock is disabled while strict inventory mode is enabled.');
+                ->assertJsonPath('errors.opening_stock.0', 'Create the product first, then use an Opening Stock document.');
 
             $this->assertDatabaseMissing('products', ['name' => 'Strict Product']);
         } finally {

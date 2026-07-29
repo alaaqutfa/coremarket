@@ -100,7 +100,7 @@
                             else{
                                 echo '10';
                             }
-                           @endphp" min="0" step="1" class="form-control" required>
+                           @endphp" min="0" step="1" class="form-control" readonly>
                 </td>
                 <td>
                     <div class="input-group" data-toggle="aizuploader" data-type="image">

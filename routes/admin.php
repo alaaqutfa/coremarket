@@ -152,6 +152,30 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/accounting/vat-audit', 'vatAudit')->name('operations.accounting.vat-audit');
 });
 
+Route::controller(\App\Http\Controllers\InventoryGovernanceController::class)
+    ->middleware(['auth', 'admin', 'restrict_store_admin'])
+    ->group(function () {
+        Route::get('/operations/inventory/adjustments', 'adjustments')->name('operations.inventory.adjustments.index');
+        Route::get('/operations/inventory/adjustments/create', 'createAdjustment')->name('operations.inventory.adjustments.create');
+        Route::post('/operations/inventory/adjustments', 'storeAdjustment')->name('operations.inventory.adjustments.store');
+        Route::get('/operations/inventory/opening-stock/create', 'createOpeningStock')->name('operations.inventory.opening-stock.create');
+        Route::get('/operations/inventory/adjustments/{document}', 'showAdjustment')->name('operations.inventory.adjustments.show');
+        Route::post('/operations/inventory/adjustments/{document}/submit', 'submitAdjustment')->name('operations.inventory.adjustments.submit');
+        Route::post('/operations/inventory/adjustments/{document}/approve', 'approveAdjustment')->name('operations.inventory.adjustments.approve');
+        Route::post('/operations/inventory/adjustments/{document}/reject', 'rejectAdjustment')->name('operations.inventory.adjustments.reject');
+        Route::post('/operations/inventory/adjustments/{document}/post', 'postAdjustment')->name('operations.inventory.adjustments.post');
+        Route::post('/operations/inventory/adjustments/{document}/cancel', 'cancelAdjustment')->name('operations.inventory.adjustments.cancel');
+
+        Route::get('/operations/inventory/stock-counts', 'stockCounts')->name('operations.inventory.stock-counts.index');
+        Route::get('/operations/inventory/stock-counts/create', 'createStockCount')->name('operations.inventory.stock-counts.create');
+        Route::post('/operations/inventory/stock-counts', 'storeStockCount')->name('operations.inventory.stock-counts.store');
+        Route::get('/operations/inventory/stock-counts/{stockCount}', 'showStockCount')->name('operations.inventory.stock-counts.show');
+        Route::post('/operations/inventory/stock-counts/{stockCount}/submit', 'submitStockCount')->name('operations.inventory.stock-counts.submit');
+        Route::post('/operations/inventory/stock-counts/{stockCount}/approve', 'approveStockCount')->name('operations.inventory.stock-counts.approve');
+        Route::post('/operations/inventory/stock-counts/{stockCount}/post', 'postStockCount')->name('operations.inventory.stock-counts.post');
+        Route::post('/operations/inventory/stock-counts/{stockCount}/cancel', 'cancelStockCount')->name('operations.inventory.stock-counts.cancel');
+    });
+
 Route::controller(CustomerReceivableController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
     Route::get('/operations/customer-receivables', 'index')->name('operations.customer-receivables.index');
     Route::get('/operations/customers/{customer}/receivables', 'show')->name('operations.customers.receivables.show');

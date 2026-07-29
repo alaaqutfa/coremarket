@@ -48,19 +48,31 @@ class InventoryProUiTest extends TestCase
         } finally { DB::rollBack(); }
     }
 
-    public function test_stock_adjustment_updates_qty_logs_movement_and_prevents_negative_stock(): void
+    public function test_legacy_stock_adjustment_route_creates_governed_document_before_posting(): void
     {
         DB::beginTransaction();
         try {
             [$productId, $stockId] = $this->inventoryProduct('ADJUST-VARIANT', 3);
-            $user = $this->user(['inventory.stock.adjust']);
-            $this->actingAs($user)->post(route('operations.inventory.stock.adjust.store', $stockId), ['adjustment_type' => 'increase', 'quantity' => 2, 'reason' => 'Count correction'])->assertRedirect(route('operations.inventory.stock'));
+            $user = $this->user([
+                'inventory.adjustments.create',
+                'inventory.adjustments.approve',
+                'inventory.adjustments.post',
+                'inventory.adjustments.view',
+            ]);
+            $response = $this->actingAs($user)->post(route('operations.inventory.stock.adjust.store', $stockId), [
+                'adjustment_type' => 'increase',
+                'quantity' => 2,
+                'reason' => 'Count correction',
+            ]);
+            $documentId = DB::table('inventory_adjustment_documents')->latest('id')->value('id');
+            $response->assertRedirect(route('operations.inventory.adjustments.show', $documentId));
+            $this->assertSame(3, (int) DB::table('product_stocks')->where('id', $stockId)->value('qty'));
+            $this->assertDatabaseHas('inventory_adjustment_documents', ['id' => $documentId, 'status' => 'pending_approval']);
+
+            $this->actingAs($user)->post(route('operations.inventory.adjustments.approve', $documentId))->assertRedirect();
+            $this->actingAs($user)->post(route('operations.inventory.adjustments.post', $documentId))->assertRedirect();
             $this->assertSame(5, (int) DB::table('product_stocks')->where('id', $stockId)->value('qty'));
-            $this->assertDatabaseHas('inventory_movements', ['product_stock_id' => $stockId, 'movement_type' => 'adjustment', 'direction' => 'in', 'quantity' => 2]);
-            $this->actingAs($user)->post(route('operations.inventory.stock.adjust.store', $stockId), ['adjustment_type' => 'decrease', 'quantity' => 1, 'reason' => 'Count correction'])->assertRedirect();
-            $this->assertSame(4, (int) DB::table('product_stocks')->where('id', $stockId)->value('qty'));
-            $this->assertDatabaseHas('inventory_movements', ['product_stock_id' => $stockId, 'movement_type' => 'adjustment', 'direction' => 'out', 'quantity' => 1]);
-            $this->actingAs($user)->post(route('operations.inventory.stock.adjust.store', $stockId), ['adjustment_type' => 'decrease', 'quantity' => 6, 'reason' => 'Invalid'])->assertSessionHasErrors();
+            $this->assertDatabaseHas('inventory_movements', ['product_stock_id' => $stockId, 'movement_type' => 'stock_adjustment', 'direction' => 'in', 'quantity' => 2]);
         } finally { DB::rollBack(); }
     }
 

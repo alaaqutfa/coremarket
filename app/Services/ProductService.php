@@ -30,6 +30,7 @@ class ProductService
         }
 
         $collection = collect($data);
+        $collection['current_stock'] = 0;
         $approved = 1;
         if (auth()->user()->user_type == 'seller') {
             $user_id = auth()->user()->id;
@@ -164,6 +165,7 @@ class ProductService
     public function update(array $data, Product $product)
     {
         $collection = collect($data);
+        $collection['current_stock'] = $product->current_stock;
 
         $slug = Str::slug($collection['name']);
         $slug = $collection['slug'] ? Str::slug($collection['slug']) : Str::slug($collection['name']);

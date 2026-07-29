@@ -647,7 +647,8 @@
                                             <input type="number" lang="en"
                                                 value="{{ optional($product->stocks->first())->qty }}" step="1"
                                                 placeholder="{{ translate('Quantity') }}" name="current_stock"
-                                                class="form-control">
+                                                class="form-control" readonly>
+                                            <small class="text-muted">{{ translate('Quantity is read-only. Use an inventory document to change stock.') }}</small>
                                         </div>
                                     </div>
 

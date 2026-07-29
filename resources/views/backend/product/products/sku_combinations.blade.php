@@ -64,7 +64,7 @@
 					<input type="text" name="barcode_{{ $str }}" value="" class="form-control" placeholder="{{ translate('Optional barcode') }}">
 				</td>
 				<td>
-					<input type="number" lang="en" name="qty_{{ $str }}" value="10" min="0" step="1" class="form-control" required>
+					<input type="number" lang="en" name="qty_{{ $str }}" value="0" min="0" step="1" class="form-control" readonly>
 				</td>
 				<td>
 					<div class=" input-group " data-toggle="aizuploader" data-type="image">

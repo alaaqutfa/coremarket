@@ -1671,23 +1671,39 @@ if (! function_exists('customer_purchase_payment_done')) {
 if (! function_exists('product_restock')) {
     function product_restock($orderDetail)
     {
-        $variant = $orderDetail->variation;
-        if ($orderDetail->variation == null) {
-            $variant = '';
-        }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($orderDetail) {
+            $variant = $orderDetail->variation ?: '';
+            $productStock = ProductStock::query()
+                ->where('product_id', $orderDetail->product_id)
+                ->where('variant', $variant)
+                ->lockForUpdate()
+                ->first();
 
-        $product_stock = ProductStock::where('product_id', $orderDetail->product_id)
-            ->where('variant', $variant)
-            ->first();
+            if ($productStock === null || in_array($orderDetail->delivery_status, ['delivered', 'cancelled'], true)) {
+                return;
+            }
 
-        if ($product_stock != null && (! in_array($orderDetail->delivery_status, ['delivered', 'cancelled']))) {
-            $product = $product_stock->product;
+            $alreadyReversed = \App\Models\InventoryMovement::query()
+                ->where('reference_type', \App\Models\OrderDetail::class)
+                ->where('reference_id', $orderDetail->id)
+                ->where('movement_type', \App\Services\InventoryMovementService::TYPE_SALE_REVERSAL)
+                ->exists();
+            if ($alreadyReversed) {
+                return;
+            }
+
+            $product = Product::query()->lockForUpdate()->findOrFail($productStock->product_id);
+            $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
             $product->num_of_sale -= $orderDetail->quantity;
+            if (abs((float) $product->current_stock - $stockTotalBefore) < 0.000001) {
+                $product->current_stock = $stockTotalBefore + (float) $orderDetail->quantity;
+            }
             $product->save();
+            $productStock->increment('qty', $orderDetail->quantity);
 
-            $product_stock->qty += $orderDetail->quantity;
-            $product_stock->save();
-        }
+            app(\App\Services\InventoryMovementService::class)
+                ->recordSaleReversal($orderDetail, $productStock, auth()->id());
+        });
     }
 }
 

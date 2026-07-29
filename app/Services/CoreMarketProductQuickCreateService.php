@@ -54,9 +54,9 @@ class CoreMarketProductQuickCreateService
             ]);
         }
         $openingStock = max(0, (float) ($payload['opening_stock'] ?? 0));
-        if (! $this->inventoryPolicy->canCreateOpeningStock() && $openingStock > 0) {
+        if ($openingStock > 0) {
             throw new QuickProductValidationException([
-                'opening_stock' => ['Opening stock is disabled while strict inventory mode is enabled.'],
+                'opening_stock' => ['Create the product first, then use an Opening Stock document.'],
             ]);
         }
 
@@ -81,7 +81,7 @@ class CoreMarketProductQuickCreateService
                 'slug' => $slug,
                 'unit' => trim((string) ($payload['unit'] ?? 'pc')) ?: 'pc',
                 'min_qty' => 1,
-                'current_stock' => $openingStock,
+                'current_stock' => 0,
                 'barcode' => null,
                 'brand_id' => $payload['brand_id'] ?? null,
                 'category_id' => $categoryId,
@@ -107,7 +107,7 @@ class CoreMarketProductQuickCreateService
                 'sku' => $this->nullableString($payload['sku'] ?? null),
                 'barcode' => $this->nullableString($payload['barcode'] ?? null),
                 'price' => $pricing['regular_price'],
-                'qty' => $openingStock,
+                'qty' => 0,
             ]);
 
             ProductTranslation::query()->create([
@@ -133,7 +133,7 @@ class CoreMarketProductQuickCreateService
                 'margin_percent' => $pricing['margin_percent'],
                 'tax_enabled' => filter_var($payload['tax_enabled'] ?? false, FILTER_VALIDATE_BOOL),
                 'tax_rate' => is_numeric($payload['tax_rate'] ?? null) ? (float) $payload['tax_rate'] : 0,
-                'opening_stock' => $openingStock,
+                'opening_stock' => 0,
                 'strict_inventory_mode' => $this->inventoryPolicy->strictInventoryMode(),
                 'price_lists_enabled' => $this->pricingFeatures->priceListsEnabled(),
                 'branch' => $branch ? $this->branches->branchSnapshot($branch) : null,

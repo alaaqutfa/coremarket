@@ -72,47 +72,6 @@ class InventoryProService
 
     public function adjustStock(ProductStock $productStock, array $payload, ?int $userId = null): InventoryMovement
     {
-        return DB::transaction(function () use ($productStock, $payload, $userId) {
-            $stock = ProductStock::query()->lockForUpdate()->findOrFail($productStock->id);
-            $product = Product::query()->lockForUpdate()->findOrFail($stock->product_id);
-            $quantity = (float) $payload['quantity'];
-            $before = (float) $stock->qty;
-            $target = match ($payload['adjustment_type']) {
-                'increase' => $before + $quantity,
-                'decrease' => $before - $quantity,
-                'set' => $quantity,
-                default => throw new DomainException('Unknown stock adjustment type.'),
-            };
-            if ($target < $before) {
-                $this->inventoryPolicy->assertCanDecreaseStock($stock, $before - $target, 'manual stock adjustment');
-            } elseif ($target > $before) {
-                $this->inventoryPolicy->assertCanIncreaseStock('authorized_adjustment');
-            }
-            $delta = $target - $before;
-            $stockTotalBefore = (float) ProductStock::query()->where('product_id', $product->id)->sum('qty');
-            $stock->update(['qty' => $target]);
-            if ((float) $product->current_stock === $stockTotalBefore) $product->update(['current_stock' => $stockTotalBefore + $delta]);
-
-            return InventoryMovement::query()->create([
-                'product_id' => $product->id,
-                'product_stock_id' => $stock->id,
-                'variant' => $stock->variant,
-                'movement_type' => 'adjustment',
-                'direction' => $delta > 0 ? 'in' : ($delta < 0 ? 'out' : 'neutral'),
-                'quantity' => abs($delta),
-                'unit_cost' => is_numeric($product->purchase_price) ? $product->purchase_price : null,
-                'total_cost' => is_numeric($product->purchase_price) ? abs($delta) * (float) $product->purchase_price : null,
-                'reference_type' => 'manual_adjustment',
-                'created_by' => $userId,
-                'notes' => $payload['notes'] ?? null,
-                'metadata' => [
-                    'reason' => $payload['reason'],
-                    'adjustment_type' => $payload['adjustment_type'],
-                    'before_qty' => $before,
-                    'after_qty' => $target,
-                    'inventory_policy' => $this->inventoryPolicy->policySnapshot(),
-                ],
-            ]);
-        });
+        throw new DomainException('Direct stock adjustments are disabled. Create and post an inventory adjustment document.');
     }
 }
