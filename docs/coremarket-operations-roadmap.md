@@ -485,3 +485,20 @@ Next:
 - 70 Branch Pricing Policy.
 - 71 Credit Payment Method for POS/Web.
 - 72 Customer Returns / Refunds / Credit Notes Integration.
+
+## Branch pricing policy
+
+Step 70 adds disabled-by-default branch prices above the existing public, Sale, and customer Price List layers.
+
+- `product_branch_prices` stores direct product/variant prices per branch.
+- POS resolves the operator branch and recalculates the final price on the server.
+- Web checkout and Storefront use the default branch until explicit storefront branch selection is approved.
+- Priority supports branch-first, customer-first, Sale-first, and lowest-price policies with safe fallback.
+- Sales Invoices continue to use stored historical Order Detail prices.
+- Branch Inventory, branch accounting/P&L, Price List assignments, and Sale price semantics are unchanged.
+
+Next:
+
+- 71 Credit Payment Method for POS/Web.
+- 72 Customer Returns / Refunds / Credit Notes Integration.
+- 73 Branch Accounting / P&L Review if needed.

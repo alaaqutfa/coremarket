@@ -32,6 +32,8 @@ class StoreBranchController extends Controller
                 'inventory_policy' => $this->branches->inventoryPolicy(),
                 'price_lists_enabled' => app(\App\Services\CoreMarketPricingFeatureService::class)->priceListsEnabled(),
                 'flexible_selling_price_enabled' => app(\App\Services\CoreMarketPricingFeatureService::class)->flexibleSellingPriceEnabled(),
+                'branch_pricing_enabled' => app(\App\Services\CoreMarketBranchPricingService::class)->branchPricingEnabled(),
+                'branch_pricing_priority' => app(\App\Services\CoreMarketBranchPricingService::class)->priority(),
             ],
         ]);
     }
@@ -67,10 +69,12 @@ class StoreBranchController extends Controller
     {
         $data = $request->validate([
             'branches_enabled' => ['nullable', 'boolean'],
-            'price_policy' => ['required', Rule::in(['unified', 'branch_specific_future'])],
+            'price_policy' => ['required', Rule::in(['unified', 'branch_specific', 'branch_specific_future'])],
             'inventory_policy' => ['required', Rule::in(['unified', 'branch_specific_future'])],
             'price_lists_enabled' => ['nullable', 'boolean'],
             'flexible_selling_price_enabled' => ['nullable', 'boolean'],
+            'branch_pricing_enabled' => ['nullable', 'boolean'],
+            'branch_pricing_priority' => ['required', Rule::in(\App\Services\CoreMarketBranchPricingService::PRIORITIES)],
         ]);
 
         $settings = [
@@ -79,6 +83,8 @@ class StoreBranchController extends Controller
             'branches.inventory_policy' => $data['inventory_policy'],
             'pricing.price_lists_enabled' => $request->boolean('price_lists_enabled') ? '1' : '0',
             'pricing.flexible_selling_price_enabled' => $request->boolean('flexible_selling_price_enabled') ? '1' : '0',
+            'pricing.branch_pricing_enabled' => $request->boolean('branch_pricing_enabled') ? '1' : '0',
+            'pricing.branch_pricing_priority' => $data['branch_pricing_priority'],
         ];
         DB::transaction(function () use ($settings) {
             foreach ($settings as $type => $value) {

@@ -4,6 +4,7 @@ namespace App\Utility;
 
 use App\Models\Cart;
 use App\Services\CoreMarketPriceListService;
+use App\Services\CoreMarketBranchInventoryService;
 use Cookie;
 
 class CartUtility
@@ -51,6 +52,9 @@ class CartUtility
             return $price;
         }
 
+        $branch = app(CoreMarketBranchInventoryService::class)
+            ->resolveBranchForUser(auth()->user());
+
         return app(CoreMarketPriceListService::class)->resolvePrice(
             $product_stock,
             auth()->user(),
@@ -58,6 +62,7 @@ class CartUtility
                 'regular_price' => $regularPrice,
                 // Keep legacy quantity wholesale and promotions as the existing sale candidate.
                 'sale_price' => (float) $price !== (float) $regularPrice ? $price : null,
+                'branch' => $branch,
             ]
         );
     }

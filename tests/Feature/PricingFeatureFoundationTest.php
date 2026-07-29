@@ -19,12 +19,15 @@ class PricingFeatureFoundationTest extends TestCase
     {
         DB::table('business_settings')->whereIn('type', [
             'pricing.price_lists_enabled', 'pricing.flexible_selling_price_enabled',
+            'pricing.branch_pricing_enabled', 'pricing.branch_pricing_priority',
         ])->delete();
         Cache::forget('business_settings');
         $snapshot = app(CoreMarketPricingFeatureService::class)->snapshot();
 
         $this->assertFalse($snapshot['price_lists_enabled']);
         $this->assertFalse($snapshot['flexible_selling_price_enabled']);
+        $this->assertFalse($snapshot['branch_pricing_enabled']);
+        $this->assertSame('branch_price_first', $snapshot['branch_pricing_priority']);
     }
 
     public function test_flexible_price_override_requires_explicit_flag(): void

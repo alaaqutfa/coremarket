@@ -13,7 +13,8 @@ class CoreMarketPriceListService
 {
     public function __construct(
         private CoreMarketMoneyService $money,
-        private CoreMarketPricingFeatureService $features
+        private CoreMarketPricingFeatureService $features,
+        private CoreMarketBranchPricingService $branchPricing
     )
     {
     }
@@ -90,6 +91,8 @@ class CoreMarketPriceListService
         $item = $priceList ? $this->activePriceListItem($priceList, $product, $stock) : null;
         $listPrice = null;
         $currency = strtoupper((string) ($context['currency'] ?? $this->money->baseCurrency()));
+        $branchSnapshot = $this->branchPricing->priceSnapshot($stock ?? $product, $customer, $context);
+        $branchPrice = $branchSnapshot['branch_price'];
 
         if ($priceList && $item) {
             if (strtoupper((string) $priceList->currency) !== $currency) {
@@ -108,14 +111,29 @@ class CoreMarketPriceListService
             );
         }
 
-        $priority = $context['priority'] ?? config('coremarket.pricing.priority', 'customer_price_first');
-        [$source, $resolved] = $this->choosePrice($priority, $regularPrice, $salePrice, $listPrice);
+        $priority = $context['priority']
+            ?? ($branchSnapshot['enabled']
+                ? $this->branchPricing->priority()
+                : config('coremarket.pricing.priority', 'customer_price_first'));
+        [$source, $resolved] = $this->choosePrice(
+            $priority,
+            $regularPrice,
+            $salePrice,
+            $listPrice,
+            $branchPrice
+        );
 
         return [
             'source' => $source,
             'price_list_id' => $source === 'price_list' ? $priceList?->id : null,
             'price_list_code' => $source === 'price_list' ? $priceList?->code : null,
             'price_list_item_id' => $source === 'price_list' ? $item?->id : null,
+            'branch_id' => $branchSnapshot['branch_id'],
+            'branch_code' => $branchSnapshot['branch_code'],
+            'branch_price_id' => $source === 'branch_price'
+                ? $branchSnapshot['branch_price_id']
+                : null,
+            'branch_price' => $branchPrice,
             'base_regular_price' => $regularPrice,
             'sale_price' => $salePrice,
             'resolved_price' => $this->money->normalizeMoney($resolved),
@@ -140,16 +158,45 @@ class CoreMarketPriceListService
         return $this->money->normalizeMoney(max(0, $price));
     }
 
-    private function choosePrice(string $priority, float $regular, ?float $sale, ?float $list): array
+    private function choosePrice(
+        string $priority,
+        float $regular,
+        ?float $sale,
+        ?float $list,
+        ?float $branch
+    ): array
     {
         if ($priority === 'lowest_price') {
             $candidates = ['regular_price' => $regular];
             if ($sale !== null) $candidates['sale_price'] = $sale;
             if ($list !== null) $candidates['price_list'] = $list;
+            if ($branch !== null) $candidates['branch_price'] = $branch;
             $lowest = min($candidates);
             return [array_search($lowest, $candidates, true), $lowest];
         }
-        if ($priority === 'sale_price_first' && $sale !== null) return ['sale_price', $sale];
+
+        if ($priority === 'branch_price_first' && $branch !== null) {
+            return ['branch_price', $branch];
+        }
+        if ($priority === 'customer_price_first' && $list !== null) {
+            return ['price_list', $list];
+        }
+        if ($priority === 'sale_price_first' && $sale !== null) {
+            return ['sale_price', $sale];
+        }
+
+        if ($priority === 'sale_price_first') {
+            if ($list !== null) return ['price_list', $list];
+            if ($branch !== null) return ['branch_price', $branch];
+        } elseif ($priority === 'customer_price_first') {
+            if ($branch !== null) return ['branch_price', $branch];
+            if ($sale !== null) return ['sale_price', $sale];
+        } else {
+            if ($list !== null) return ['price_list', $list];
+            if ($sale !== null) return ['sale_price', $sale];
+        }
+
+        if ($branch !== null) return ['branch_price', $branch];
         if ($list !== null) return ['price_list', $list];
         if ($sale !== null) return ['sale_price', $sale];
         return ['regular_price', $regular];

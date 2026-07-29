@@ -67,12 +67,16 @@ class StaffRoleAccessMatrixTest extends TestCase
             $this->assertTrue($accountant->hasPermissionTo('accounting_summary.view'));
             $this->assertTrue($accountant->hasPermissionTo('supplier_ledger.view'));
             $this->assertTrue($accountant->hasPermissionTo('supplier_payments.create'));
+            $this->assertTrue($accountant->hasPermissionTo('pricing.branch_prices.view'));
+            $this->assertFalse($accountant->hasPermissionTo('pricing.branch_prices.manage'));
             $this->assertFalse($accountant->hasPermissionTo('inventory.families.manage'));
 
             $this->assertTrue($dataEntry->hasPermissionTo('purchase_orders.create'));
             $this->assertTrue($dataEntry->hasPermissionTo('purchase_orders.receive'));
+            $this->assertTrue($dataEntry->hasPermissionTo('pricing.branch_prices.view'));
             $this->assertTrue($warehouse->hasPermissionTo('inventory_movements.view'));
             $this->assertTrue($warehouse->hasPermissionTo('purchase_returns.complete'));
+            $this->assertFalse($cashier->hasPermissionTo('pricing.branch_prices.manage'));
 
             $this->assertFalse($marketing->hasPermissionTo('accounting_summary.view'));
             $this->assertFalse($designer->hasPermissionTo('accounting_summary.view'));

@@ -175,7 +175,12 @@ class WebPosService
         ])->values()->all();
     }
 
-    public function buildCartLine(Product|ProductStock $subject, mixed $quantity, ?User $customer = null): array
+    public function buildCartLine(
+        Product|ProductStock $subject,
+        mixed $quantity,
+        ?User $customer = null,
+        ?StoreBranch $branch = null
+    ): array
     {
         $stock = $subject instanceof ProductStock
             ? $subject->loadMissing('product.taxes')
@@ -187,7 +192,12 @@ class WebPosService
         }
 
         $quantity = $this->normalizeQuantity($quantity);
-        $pricing = $this->priceLists->pricingSnapshot($stock ?? $product, $customer);
+        $branch ??= $this->branchInventory->defaultBranch();
+        $pricing = $this->priceLists->pricingSnapshot(
+            $stock ?? $product,
+            $customer,
+            ['branch' => $branch]
+        );
         $unitPrice = $pricing['resolved_price'];
         $unitTax = $this->legacyTaxForUnit($product, $unitPrice);
 
@@ -260,7 +270,7 @@ class WebPosService
                     $payment['branch_id'] ?? null,
                     $user
                 );
-                $lines = $this->normalizeCart($cart, true, $customer);
+                $lines = $this->normalizeCart($cart, true, $customer, $branch);
                 $this->assertStockIsAvailable($lines, $branch);
                 $totals = $this->totalsForLines($lines);
                 $redemptionPreview = $this->previewRedemptionForCheckout($customer, $pointsToRedeem, $totals['grand_total']);
@@ -432,7 +442,12 @@ class WebPosService
         return Str::substr($local, 0, 1) . '***@' . $domain;
     }
 
-    private function normalizeCart(array $cart, bool $lockStocks = false, ?User $customer = null): array
+    private function normalizeCart(
+        array $cart,
+        bool $lockStocks = false,
+        ?User $customer = null,
+        ?StoreBranch $branch = null
+    ): array
     {
         if ($cart === []) {
             throw new DomainException('POS cart cannot be empty.');
@@ -465,10 +480,16 @@ class WebPosService
             Product::query()->whereIn('id', $productIds)->lockForUpdate()->get();
         }
 
-        return $quantities->map(function (float $quantity, int $stockId) use ($stocks, $customer) {
+        $branch ??= $this->branchInventory->defaultBranch();
+
+        return $quantities->map(function (float $quantity, int $stockId) use ($stocks, $customer, $branch) {
             $stock = $stocks->get($stockId);
             $product = $stock->product;
-            $pricing = $this->priceLists->pricingSnapshot($stock, $customer);
+            $pricing = $this->priceLists->pricingSnapshot(
+                $stock,
+                $customer,
+                ['branch' => $branch]
+            );
             $unitPrice = $pricing['resolved_price'];
             $unitTax = $this->legacyTaxForUnit($product, $unitPrice);
 
@@ -682,9 +703,12 @@ class WebPosService
 
     private function lineForProductStock(Product $product, ?ProductStock $stock, string $matchedBy, ?User $customer = null, ?User $operator = null): array
     {
-        $pricing = $this->priceLists->pricingSnapshot($stock ?? $product, $customer);
-
         $branch = $this->branchInventory->resolveBranchForUser($operator);
+        $pricing = $this->priceLists->pricingSnapshot(
+            $stock ?? $product,
+            $customer,
+            ['branch' => $branch, 'operator' => $operator]
+        );
 
         return [
             'product_id' => $product->id,

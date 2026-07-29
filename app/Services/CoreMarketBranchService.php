@@ -121,7 +121,9 @@ class CoreMarketBranchService
         $configKey = Str::after($key, 'branches.');
         $value = (string) get_setting($key, config("coremarket.branch.{$configKey}", 'unified'));
 
-        return in_array($value, ['unified', 'branch_specific_future'], true) ? $value : 'unified';
+        return in_array($value, ['unified', 'branch_specific', 'branch_specific_future'], true)
+            ? $value
+            : 'unified';
     }
 
     private function settingBool(string $key, bool $default): bool

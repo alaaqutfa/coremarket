@@ -281,6 +281,16 @@ Route::controller(PriceListController::class)->middleware(['auth', 'admin', 'res
     Route::post('/operations/pricing/price-lists/{priceList}/customers', 'assignCustomer')->name('operations.price-lists.customers.assign');
 });
 
+Route::controller(\App\Http\Controllers\BranchPriceController::class)
+    ->middleware(['auth', 'admin', 'restrict_store_admin'])
+    ->group(function () {
+        Route::get('/operations/pricing/branch-prices', 'index')->name('operations.branch-prices.index');
+        Route::get('/operations/pricing/branch-prices/create', 'create')->name('operations.branch-prices.create');
+        Route::post('/operations/pricing/branch-prices', 'store')->name('operations.branch-prices.store');
+        Route::get('/operations/pricing/branch-prices/{branchPrice}/edit', 'edit')->name('operations.branch-prices.edit');
+        Route::put('/operations/pricing/branch-prices/{branchPrice}', 'update')->name('operations.branch-prices.update');
+    });
+
 Route::controller(LoyaltyPointsController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
     Route::get('/operations/loyalty', 'dashboard')->name('operations.loyalty.dashboard');
     Route::get('/operations/loyalty/rules', 'rules')->name('operations.loyalty.rules');

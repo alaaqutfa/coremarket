@@ -22,6 +22,16 @@ class CoreMarketPricingFeatureService
         );
     }
 
+    public function branchPricingEnabled(): bool
+    {
+        return app(CoreMarketBranchPricingService::class)->branchPricingEnabled();
+    }
+
+    public function branchPricingPriority(): string
+    {
+        return app(CoreMarketBranchPricingService::class)->priority();
+    }
+
     public function resolveSellingPrice(float $resolvedPrice, mixed $manualPrice = null): float
     {
         if ($manualPrice === null || $manualPrice === '') {
@@ -42,6 +52,8 @@ class CoreMarketPricingFeatureService
         return [
             'price_lists_enabled' => $this->priceListsEnabled(),
             'flexible_selling_price_enabled' => $this->flexibleSellingPriceEnabled(),
+            'branch_pricing_enabled' => $this->branchPricingEnabled(),
+            'branch_pricing_priority' => $this->branchPricingPriority(),
         ];
     }
 

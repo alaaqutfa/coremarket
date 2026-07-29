@@ -48,6 +48,7 @@ class CoreMarketStorefrontPriceDisplayService
             'compare_at_price' => $compareAt,
             'label' => match ($snapshot['source']) {
                 'price_list' => 'Your Price',
+                'branch_price' => 'Branch Price',
                 'sale_price' => 'Sale',
                 default => 'Regular Price',
             },
@@ -57,6 +58,9 @@ class CoreMarketStorefrontPriceDisplayService
             'currency' => $snapshot['currency'],
             'price_list_id' => $snapshot['price_list_id'],
             'price_list_code' => $snapshot['price_list_code'],
+            'branch_id' => $snapshot['branch_id'],
+            'branch_code' => $snapshot['branch_code'],
+            'branch_price_id' => $snapshot['branch_price_id'],
             'formatted_regular_price' => $this->format($regular),
             'formatted_sale_price' => $sale === null ? null : $this->format($sale),
             'formatted_display_price' => $this->format($resolved),

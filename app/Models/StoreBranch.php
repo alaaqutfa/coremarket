@@ -42,4 +42,9 @@ class StoreBranch extends Model
     {
         return $this->hasMany(StockTransfer::class, 'to_branch_id');
     }
+
+    public function productPrices()
+    {
+        return $this->hasMany(ProductBranchPrice::class);
+    }
 }

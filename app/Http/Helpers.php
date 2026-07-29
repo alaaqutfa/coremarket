@@ -507,38 +507,12 @@ if (! function_exists('cart_product_price')) {
             if ($cart_product['variation'] != null) {
                 $str = $cart_product['variation'];
             }
-            $price         = 0;
             $product_stock = $product->stocks->where('variant', $str)->first();
-            if ($product_stock) {
-                $price = $product_stock->price;
-            }
-
-            if ($product->wholesale_product) {
-                $wholesalePrice = $product_stock->wholesalePrices->where('min_qty', '<=', $cart_product['quantity'])->where('max_qty', '>=', $cart_product['quantity'])->first();
-                if ($wholesalePrice) {
-                    $price = $wholesalePrice->price;
-                }
-            }
-
-            //discount calculation
-            $discount_applicable = false;
-
-            if ($product->discount_start_date == null) {
-                $discount_applicable = true;
-            } elseif (
-                strtotime(date('d-m-Y H:i:s')) >= $product->discount_start_date &&
-                strtotime(date('d-m-Y H:i:s')) <= $product->discount_end_date
-            ) {
-                $discount_applicable = true;
-            }
-
-            if ($discount_applicable) {
-                if ($product->discount_type == 'percent') {
-                    $price -= ($price * $product->discount) / 100;
-                } elseif ($product->discount_type == 'amount') {
-                    $price -= $product->discount;
-                }
-            }
+            $price = \App\Utility\CartUtility::get_price(
+                $product,
+                $product_stock,
+                $cart_product['quantity']
+            );
         } else {
             $price = $product->bids->max('amount');
         }
@@ -572,27 +546,11 @@ if (! function_exists('cart_product_tax')) {
             $str = $cart_product['variation'];
         }
         $product_stock = $product->stocks->where('variant', $str)->first();
-        $price         = $product_stock->price;
-
-        //discount calculation
-        $discount_applicable = false;
-
-        if ($product->discount_start_date == null) {
-            $discount_applicable = true;
-        } elseif (
-            strtotime(date('d-m-Y H:i:s')) >= $product->discount_start_date &&
-            strtotime(date('d-m-Y H:i:s')) <= $product->discount_end_date
-        ) {
-            $discount_applicable = true;
-        }
-
-        if ($discount_applicable) {
-            if ($product->discount_type == 'percent') {
-                $price -= ($price * $product->discount) / 100;
-            } elseif ($product->discount_type == 'amount') {
-                $price -= $product->discount;
-            }
-        }
+        $price = \App\Utility\CartUtility::get_price(
+            $product,
+            $product_stock,
+            $cart_product['quantity']
+        );
 
         //calculation of taxes
         $tax = 0;

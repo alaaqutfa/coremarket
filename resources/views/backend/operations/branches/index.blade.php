@@ -14,6 +14,7 @@
                         'branches_enabled' => ['Branches enabled', $settings['enabled']],
                         'price_lists_enabled' => ['Price Lists enabled', $settings['price_lists_enabled']],
                         'flexible_selling_price_enabled' => ['Flexible selling price enabled', $settings['flexible_selling_price_enabled']],
+                        'branch_pricing_enabled' => ['Branch pricing enabled', $settings['branch_pricing_enabled']],
                     ] as $name => [$label, $checked])
                         <label class="aiz-switch aiz-switch-success d-block mb-3">
                             <input type="checkbox" name="{{ $name }}" value="1" @checked($checked)>
@@ -24,7 +25,15 @@
                         <label>{{ translate('Price Policy') }}</label>
                         <select name="price_policy" class="form-control">
                             <option value="unified" @selected($settings['price_policy'] === 'unified')>{{ translate('Unified') }}</option>
-                            <option value="branch_specific_future" @selected($settings['price_policy'] === 'branch_specific_future')>{{ translate('Branch-specific (future)') }}</option>
+                            <option value="branch_specific" @selected(in_array($settings['price_policy'], ['branch_specific', 'branch_specific_future'], true))>{{ translate('Branch-specific') }}</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>{{ translate('Branch Pricing Priority') }}</label>
+                        <select name="branch_pricing_priority" class="form-control">
+                            @foreach(\App\Services\CoreMarketBranchPricingService::PRIORITIES as $priority)
+                                <option value="{{ $priority }}" @selected($settings['branch_pricing_priority'] === $priority)>{{ translate(ucwords(str_replace('_', ' ', $priority))) }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="form-group">
@@ -34,7 +43,7 @@
                             <option value="branch_specific_future" @selected($settings['inventory_policy'] === 'branch_specific_future')>{{ translate('Branch-specific (future)') }}</option>
                         </select>
                     </div>
-                    <p class="small text-muted">{{ translate('Branch-specific prices and stock are policy markers only and are not implemented yet.') }}</p>
+                    <p class="small text-muted">{{ translate('Branch pricing uses an active branch price when configured and safely falls back to customer, sale, or public pricing. Inventory policy is managed separately.') }}</p>
                     <button class="btn btn-primary btn-sm">{{ translate('Save Policies') }}</button>
                 </form>
             </div>

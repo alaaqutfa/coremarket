@@ -32,6 +32,7 @@ class OperationsPermissionSeeder extends Seeder
             'cashboxes.view','cashboxes.create','cashboxes.edit','cash_shifts.view','cash_shifts.open','cash_shifts.close','cash_movements.view','cash_movements.create',
             'pos.view', 'pos.sell', 'pos.receipts.view', 'pos.redeem_loyalty',
             'price_lists.manage',
+            'pricing.branch_prices.view', 'pricing.branch_prices.manage',
             'loyalty.view', 'loyalty.rules.manage', 'loyalty.adjust', 'loyalty.movements.view',
             'inventory.view', 'inventory.dashboard.view', 'inventory.stock.view',
             'inventory.stock.adjust', 'inventory.stock.audit', 'inventory.low_stock.view',
