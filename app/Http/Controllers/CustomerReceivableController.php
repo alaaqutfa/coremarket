@@ -7,6 +7,7 @@ use App\Models\CustomerLedgerEntry;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\CoreMarketCustomerAccountFeatureService;
+use App\Services\CoreMarketCustomerCreditService;
 use App\Services\CoreMarketCustomerReceivableService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +19,8 @@ class CustomerReceivableController extends Controller
 {
     public function __construct(
         private CoreMarketCustomerAccountFeatureService $features,
-        private CoreMarketCustomerReceivableService $receivables
+        private CoreMarketCustomerReceivableService $receivables,
+        private CoreMarketCustomerCreditService $credit
     ) {
     }
 
@@ -27,11 +29,17 @@ class CustomerReceivableController extends Controller
         $this->authorizeFeature('customer_receivables.view');
         $customers = User::query()
             ->where('user_type', 'customer')
-            ->whereHas('customerLedgerEntries')
+            ->where(function ($query) {
+                $query->whereHas('customerLedgerEntries')
+                    ->orWhereHas('customerAccountProfile');
+            })
+            ->with('customerAccountProfile')
             ->orderBy('name')
             ->paginate(25);
         $customers->getCollection()->transform(function (User $customer) {
             $customer->setAttribute('receivable_balance', $this->receivables->customerBalance($customer));
+            $customer->setAttribute('available_credit', $this->credit->availableCredit($customer));
+            $customer->setAttribute('overdue_balance', $this->credit->overdueBalance($customer));
             return $customer;
         });
 
@@ -43,6 +51,8 @@ class CustomerReceivableController extends Controller
                 ->groupBy('customer_id')
                 ->havingRaw("SUM(CASE WHEN direction = 'debit' THEN amount ELSE -amount END) > 0")
                 ->count(),
+            'creditSummary' => $this->credit->summary(),
+            'featureSnapshot' => $this->features->snapshot(),
         ]);
     }
 
@@ -80,7 +90,52 @@ class CustomerReceivableController extends Controller
             'invoiceEntries' => $invoiceEntries,
             'openShifts' => $this->availableOpenShifts(),
             'paymentKey' => (string) Str::uuid(),
+            'profile' => $this->credit->getProfile($customer),
+            'availableCredit' => $this->credit->availableCredit($customer),
+            'overdueBalance' => $this->credit->overdueBalance($customer),
+            'nextDueDate' => $this->credit->nextDueDate($customer),
+            'featureSnapshot' => $this->features->snapshot(),
         ]);
+    }
+
+    public function profile(User $customer): View
+    {
+        $this->authorizeFeature('customer_credit.view');
+        $this->assertCustomer($customer);
+
+        return view('backend.operations.customer-receivables.profile', [
+            'customer' => $customer,
+            'profile' => $this->credit->getProfile($customer),
+            'balance' => $this->credit->currentBalance($customer),
+            'availableCredit' => $this->credit->availableCredit($customer),
+            'overdueBalance' => $this->credit->overdueBalance($customer),
+            'nextDueDate' => $this->credit->nextDueDate($customer),
+            'lastPayment' => $customer->customerPayments()->latest()->first(),
+            'featureSnapshot' => $this->features->snapshot(),
+        ]);
+    }
+
+    public function updateProfile(Request $request, User $customer): RedirectResponse
+    {
+        $this->authorizeFeature('customer_credit.manage');
+        $this->assertCustomer($customer);
+        $data = $request->validate([
+            'is_credit_allowed' => 'nullable|boolean',
+            'credit_limit' => 'nullable|numeric|min:0',
+            'payment_terms_days' => 'nullable|integer|min:0|max:3650',
+            'account_status' => 'required|in:active,on_hold,blocked',
+            'default_payment_method' => 'nullable|in:cash,bank_transfer,cheque,card_manual,other',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+        $data['is_credit_allowed'] = $request->boolean('is_credit_allowed');
+
+        try {
+            $this->credit->updateProfile($customer, $data, auth()->user());
+        } catch (DomainException $exception) {
+            return back()->withInput()->withErrors(['customer_credit' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', translate('Customer credit profile updated.'));
     }
 
     public function postOrder(Order $order): RedirectResponse

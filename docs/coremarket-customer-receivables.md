@@ -57,6 +57,19 @@ The read-only summary groups outstanding posted invoice entries by age:
 
 This is an age estimate from each invoice ledger entry date. Credit limits and payment terms are not implemented in Step 66.
 
+Step 67 adds optional on-demand credit profiles and due-date snapshots. When payment terms are enabled, new invoice entries store `payment_terms_days` and `due_date` in metadata and aging uses that due date. Existing ledger entries are not backfilled or mutated.
+
+## Credit Policy
+
+- Customer balance remains derived from ledger debits minus credits.
+- Credit profiles store permission, limit, terms, and status, but never a balance.
+- Available credit equals the limit minus the positive current ledger balance.
+- Limit enforcement and payment-term enforcement have separate disabled-by-default feature flags.
+- Manual Order posting is blocked by the credit policy only when its relevant feature is enabled.
+- No manager bypass, public credit checkout, or POS credit method is added in Step 67.
+
+See `docs/coremarket-customer-credit-policy.md` for the decision reasons and formulas.
+
 ## Permissions
 
 - `customer_receivables.view`
@@ -76,3 +89,4 @@ Managers and Store Admins can manage receivables. Accountants can view ledgers, 
 - Sales Return credit-note automation after final refund policy.
 - Overdue reminders.
 - Full AR aging and collection workflows.
+- Audited manager credit-limit override.

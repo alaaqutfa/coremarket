@@ -8,6 +8,12 @@
         $customerInvoiceEntry = $customerAccountsEnabled
             ? $order->customerLedgerEntries()->where('entry_type', 'invoice')->first()
             : null;
+        $customerCredit = $customerAccountsEnabled && $order->user_id
+            ? app(\App\Services\CoreMarketCustomerCreditService::class)
+            : null;
+        $customerCreditDecision = $customerCredit
+            ? $customerCredit->canPostOrderToAccount($order)
+            : null;
     @endphp
 
     <div class="card">
@@ -25,17 +31,26 @@
                             <span class="text-muted">{{ translate('Paid or partially paid orders require a matching AR payment before posting.') }}</span>
                         @else
                             <span class="text-muted">{{ translate('This sale is not posted to customer receivables yet.') }}</span>
+                            @if($customerCreditDecision && !$customerCreditDecision['allowed'])
+                                <br><span class="text-danger">{{ translate($customerCredit->decisionMessage($customerCreditDecision['reason'])) }}</span>
+                            @elseif($customerCreditDecision)
+                                <br><span class="text-success">{{ translate('Credit policy check passed.') }}</span>
+                            @endif
                         @endif
                     </div>
                     @if($customerInvoiceEntry)
                         <a class="btn btn-soft-primary" href="{{ route('operations.customers.receivables.show', $order->user_id) }}">
                             {{ translate('View Customer Ledger') }}
                         </a>
-                    @elseif($order->user_id && $order->payment_status !== 'paid' && (float) ($order->paid_amount ?? 0) <= 0)
+                    @elseif($order->user_id && $order->payment_status !== 'paid' && (float) ($order->paid_amount ?? 0) <= 0 && ($customerCreditDecision['allowed'] ?? false))
                         <form method="POST" action="{{ route('operations.orders.customer-account.store', $order) }}">
                             @csrf
                             <button class="btn btn-primary" type="submit">{{ translate('Post to Customer Account') }}</button>
                         </form>
+                    @elseif($order->user_id && (auth()->user()?->user_type === 'admin' || auth()->user()?->can('customer_credit.view')))
+                        <a class="btn btn-soft-info" href="{{ route('operations.customers.account-profile.show', $order->user_id) }}">
+                            {{ translate('Review Credit Profile') }}
+                        </a>
                     @endif
                 </div>
             @endif

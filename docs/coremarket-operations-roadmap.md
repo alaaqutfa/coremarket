@@ -432,6 +432,23 @@ Step 66 adds an optional, manually posted Customer AR ledger without changing ch
 
 Next:
 
-- 67 Customer Credit Limit / Payment Terms.
-- 68 Branch-specific Inventory/Price Implementation if needed.
-- 69 Delivery Mobile View/App later.
+- 68 Credit Payment Method for POS/Web if needed.
+- 69 Branch-specific Inventory/Price Implementation if needed.
+- 70 Delivery Mobile View/App later.
+
+## Customer credit limit and payment terms foundation
+
+Step 67 adds on-demand customer credit profiles above the Step 66 AR ledger.
+
+- Credit permission, limit, payment terms, and active/on-hold/blocked status are stored without duplicating ledger balances.
+- New manual AR invoice postings snapshot payment terms, due date, and credit limit in metadata.
+- Available credit and overdue estimates use posted ledger entries and allocations.
+- Enforcement is controlled by disabled-by-default credit-limit and payment-terms feature flags.
+- Existing Orders are not backfilled, `order.payment_status` is unchanged, and Web/POS checkout is not modified.
+- Manager override has a reserved permission but no unaudited bypass workflow.
+
+Next:
+
+- 68 Credit Payment Method for POS/Web if needed.
+- 69 Branch-specific Inventory/Price Implementation if needed.
+- 70 Delivery Mobile View/App later.

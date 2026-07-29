@@ -21,7 +21,8 @@ class CoreMarketCustomerReceivableService
     public function __construct(
         private CoreMarketCustomerAccountFeatureService $features,
         private CoreMarketMoneyService $money,
-        private CashboxService $cashboxes
+        private CashboxService $cashboxes,
+        private CoreMarketCustomerCreditService $credit
     ) {
     }
 
@@ -77,6 +78,17 @@ class CoreMarketCustomerReceivableService
                 return $existing;
             }
 
+            $decision = $this->credit->canPostOrderToAccount($lockedOrder);
+            if (! $decision['allowed']) {
+                throw new DomainException($this->credit->decisionMessage($decision['reason']));
+            }
+
+            $profile = $this->credit->getProfile($lockedOrder->user);
+            $occurredAt = CarbonImmutable::parse($lockedOrder->created_at ?: now());
+            $dueDate = $this->features->paymentTermsEnabled() && $profile?->payment_terms_days !== null
+                ? $occurredAt->addDays($profile->payment_terms_days)->toDateString()
+                : null;
+
             return CustomerLedgerEntry::query()->create([
                 'customer_id' => $lockedOrder->user_id,
                 'order_id' => $lockedOrder->id,
@@ -85,12 +97,17 @@ class CoreMarketCustomerReceivableService
                 'amount' => $this->positiveAmount($lockedOrder->grand_total, 'Order total must be greater than zero.'),
                 'currency' => $this->money->baseCurrency(),
                 'exchange_rate' => 1,
-                'occurred_at' => $lockedOrder->created_at ?: now(),
+                'occurred_at' => $occurredAt,
                 'description' => 'Sales invoice '.($lockedOrder->code ?: '#'.$lockedOrder->id),
                 'idempotency_key' => $key,
                 'metadata' => [
                     'source' => 'manual_order_posting',
                     'order_payment_status_unchanged' => true,
+                    'payment_terms_days' => $profile?->payment_terms_days,
+                    'due_date' => $dueDate,
+                    'credit_limit_snapshot' => $profile?->credit_limit,
+                    'credit_limit_currency' => $profile?->credit_limit_currency,
+                    'credit_decision' => $decision['reason'],
                 ],
                 'created_by' => $actor->id,
             ]);
@@ -279,7 +296,10 @@ class CoreMarketCustomerReceivableService
             if ($outstanding <= 0) {
                 continue;
             }
-            $days = CarbonImmutable::parse($entry->occurred_at)->diffInDays(now());
+            $agingDate = $this->features->paymentTermsEnabled()
+                ? ($this->credit->dueDate($entry) ?: CarbonImmutable::parse($entry->occurred_at))
+                : CarbonImmutable::parse($entry->occurred_at);
+            $days = $agingDate->isFuture() ? 0 : $agingDate->diffInDays(today());
             $bucket = match (true) {
                 $days <= 0 => 'current',
                 $days <= 30 => '1_30',
@@ -355,6 +375,7 @@ class CoreMarketCustomerReceivableService
                 'total_outstanding' => 0.0,
                 'customers_with_balance' => 0,
                 'aging' => $this->emptyAging(),
+                'credit' => $this->credit->summary(),
             ];
         }
 
@@ -372,6 +393,7 @@ class CoreMarketCustomerReceivableService
                 ->filter(fn ($row) => (float) $row->balance > 0.000001)
                 ->count(),
             'aging' => $this->agingSummary(),
+            'credit' => $this->credit->summary(),
         ];
     }
 

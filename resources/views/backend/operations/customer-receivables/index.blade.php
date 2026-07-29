@@ -29,6 +29,15 @@
     @endforeach
 </div>
 
+@if($featureSnapshot['credit_limits_enabled'])
+<div class="row">
+    <div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ translate('Assigned credit limits') }}</small><div class="h5 mb-0">{{ coremarket_money($creditSummary['total_credit_limit']) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ translate('Available credit estimate') }}</small><div class="h5 mb-0">{{ coremarket_money($creditSummary['available_credit']) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ translate('Credit profiles') }}</small><div class="h5 mb-0">{{ coremarket_number($creditSummary['profiles_count'], 0) }}</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body"><small class="text-muted">{{ translate('Overdue estimate') }}</small><div class="h5 mb-0">{{ coremarket_money($creditSummary['overdue_balance']) }}</div></div></div></div>
+</div>
+@endif
+
 <div class="card">
     <div class="card-header">
         <h6 class="mb-0">{{ translate('Customers with ledger activity') }}</h6>
@@ -40,6 +49,9 @@
                 <th>{{ translate('Customer') }}</th>
                 <th>{{ translate('Email') }}</th>
                 <th>{{ translate('Balance') }}</th>
+                <th>{{ translate('Credit status') }}</th>
+                <th>{{ translate('Available credit') }}</th>
+                <th>{{ translate('Overdue') }}</th>
                 <th class="text-right">{{ translate('Actions') }}</th>
             </tr></thead>
             <tbody>
@@ -48,14 +60,22 @@
                         <td>{{ $customer->name }}</td>
                         <td>{{ $customer->email }}</td>
                         <td>{{ coremarket_money($customer->receivable_balance) }}</td>
+                        <td>{{ translate(ucwords(str_replace('_', ' ', $customer->customerAccountProfile?->account_status ?: 'Not configured'))) }}</td>
+                        <td>{{ $customer->available_credit !== null ? coremarket_money($customer->available_credit) : '-' }}</td>
+                        <td>{{ coremarket_money($customer->overdue_balance) }}</td>
                         <td class="text-right">
                             <a class="btn btn-soft-primary btn-sm" href="{{ route('operations.customers.receivables.show', $customer) }}">
                                 {{ translate('Open Ledger') }}
                             </a>
+                            @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('customer_credit.view'))
+                                <a class="btn btn-soft-info btn-sm" href="{{ route('operations.customers.account-profile.show', $customer) }}">
+                                    {{ translate('Credit Profile') }}
+                                </a>
+                            @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="text-center text-muted">{{ translate('No customer ledger entries are available.') }}</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted">{{ translate('No customer ledger entries or credit profiles are available.') }}</td></tr>
                 @endforelse
             </tbody>
         </table>

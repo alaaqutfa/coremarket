@@ -25,6 +25,8 @@ return [
     ],
     'customer_accounts' => [
         'enabled' => false,
+        'credit_limits_enabled' => false,
+        'payment_terms_enabled' => false,
     ],
 
     'branch' => [
@@ -630,6 +632,7 @@ return [
             'customer_receivables.view', 'customer_receivables.manage',
             'customer_payments.create', 'customer_payments.cancel',
             'customer_ledger.view', 'customer_statements.ledger_export',
+            'customer_credit.view', 'customer_credit.manage', 'customer_credit.override_limit',
         ],
 
         'store_admin_permissions' => [
@@ -719,6 +722,8 @@ return [
             'customer_payments.cancel',
             'customer_ledger.view',
             'customer_statements.ledger_export',
+            'customer_credit.view',
+            'customer_credit.manage',
         ],
 
         'staff_role_presets' => [
@@ -763,6 +768,7 @@ return [
                 'customer_receivables.view', 'customer_receivables.manage',
                 'customer_payments.create', 'customer_payments.cancel',
                 'customer_ledger.view', 'customer_statements.ledger_export',
+                'customer_credit.view', 'customer_credit.manage', 'customer_credit.override_limit',
             ],
             'accountant' => [
                 'admin_dashboard', 'operations.view',
@@ -783,6 +789,7 @@ return [
                 'customer_receivables.view', 'customer_receivables.manage',
                 'customer_payments.create', 'customer_payments.cancel',
                 'customer_ledger.view', 'customer_statements.ledger_export',
+                'customer_credit.view', 'customer_credit.manage',
             ],
             'cashier' => [
                 'admin_dashboard',

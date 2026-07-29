@@ -109,13 +109,16 @@
         <table class="table mb-0">
             <tr><th>{{ translate('Total outstanding') }}</th><td class="text-right">{{ coremarket_money($receivables['total_outstanding']) }}</td></tr>
             <tr><th>{{ translate('Customers with balance') }}</th><td class="text-right">{{ coremarket_number($receivables['customers_with_balance'], 0) }}</td></tr>
+            <tr><th>{{ translate('Assigned credit limits') }}</th><td class="text-right">{{ coremarket_money($receivables['credit']['total_credit_limit']) }}</td></tr>
+            <tr><th>{{ translate('Available credit estimate') }}</th><td class="text-right">{{ coremarket_money($receivables['credit']['available_credit']) }}</td></tr>
+            <tr><th>{{ translate('Overdue balance estimate') }}</th><td class="text-right">{{ coremarket_money($receivables['credit']['overdue_balance']) }}</td></tr>
             <tr><th>{{ translate('Current') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['current']) }}</td></tr>
             <tr><th>{{ translate('1-30 days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['1_30']) }}</td></tr>
             <tr><th>{{ translate('31-60 days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['31_60']) }}</td></tr>
             <tr><th>{{ translate('61-90 days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['61_90']) }}</td></tr>
             <tr><th>{{ translate('90+ days') }}</th><td class="text-right">{{ coremarket_money($receivables['aging']['90_plus']) }}</td></tr>
         </table>
-        <small class="text-muted">{{ translate('Aging is estimated from posted invoice entry dates. No historical order backfill or accounting journal is created.') }}</small>
+        <small class="text-muted">{{ translate('Aging uses due-date snapshots when payment terms are enabled; otherwise it is estimated from invoice posting dates. No historical backfill or accounting journal is created.') }}</small>
     </div>
 </div>
 @endif

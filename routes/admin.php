@@ -155,6 +155,8 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
 Route::controller(CustomerReceivableController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
     Route::get('/operations/customer-receivables', 'index')->name('operations.customer-receivables.index');
     Route::get('/operations/customers/{customer}/receivables', 'show')->name('operations.customers.receivables.show');
+    Route::get('/operations/customers/{customer}/account-profile', 'profile')->name('operations.customers.account-profile.show');
+    Route::put('/operations/customers/{customer}/account-profile', 'updateProfile')->name('operations.customers.account-profile.update');
     Route::post('/operations/orders/{order}/customer-account', 'postOrder')->name('operations.orders.customer-account.store');
     Route::post('/operations/customers/{customer}/payments', 'storePayment')->name('operations.customers.payments.store');
 });

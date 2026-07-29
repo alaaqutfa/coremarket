@@ -6,10 +6,27 @@
         <h5 class="mb-1 h6">{{ translate('Customer Ledger') }}: {{ $customer->name }}</h5>
         <small class="text-muted">{{ $customer->email }} | {{ $customer->phone ?: translate('No phone') }}</small>
     </div>
-    <a class="btn btn-soft-info" href="{{ route('operations.customers.statement.pdf', $customer) }}">
-        {{ translate('Export Statement PDF') }}
-    </a>
+    <div>
+        @if(auth()->user()?->user_type === 'admin' || auth()->user()?->can('customer_credit.view'))
+            <a class="btn btn-soft-primary" href="{{ route('operations.customers.account-profile.show', $customer) }}">{{ translate('Credit Profile') }}</a>
+        @endif
+        <a class="btn btn-soft-info" href="{{ route('operations.customers.statement.pdf', $customer) }}">{{ translate('Export Statement PDF') }}</a>
+    </div>
 </div>
+
+@if($profile || $featureSnapshot['credit_limits_enabled'] || $featureSnapshot['payment_terms_enabled'])
+<div class="card">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3"><small class="text-muted">{{ translate('Account status') }}</small><div>{{ translate(ucwords(str_replace('_', ' ', $profile?->account_status ?: 'Not configured'))) }}</div></div>
+            <div class="col-md-3"><small class="text-muted">{{ translate('Credit limit') }}</small><div>{{ $profile?->credit_limit !== null ? coremarket_money($profile->credit_limit) : translate('Not set') }}</div></div>
+            <div class="col-md-3"><small class="text-muted">{{ translate('Available credit') }}</small><div>{{ $availableCredit !== null ? coremarket_money($availableCredit) : translate('Not limited') }}</div></div>
+            <div class="col-md-3"><small class="text-muted">{{ translate('Overdue estimate') }}</small><div>{{ coremarket_money($overdueBalance) }}</div></div>
+        </div>
+        <small class="text-muted">{{ translate('Next due date') }}: {{ $nextDueDate?->toDateString() ?: translate('Not available') }}</small>
+    </div>
+</div>
+@endif
 
 <div class="row">
     <div class="col-md-4">
@@ -28,7 +45,11 @@
                     </div>
                 @endforeach
             </div>
-            <small class="text-muted">{{ translate('Aging is estimated from invoice posting date because payment terms are not configured yet.') }}</small>
+            <small class="text-muted">
+                {{ $featureSnapshot['payment_terms_enabled']
+                    ? translate('Aging uses saved invoice due-date snapshots when available.')
+                    : translate('Aging is estimated from invoice posting date because payment terms are disabled.') }}
+            </small>
         </div></div>
     </div>
 </div>

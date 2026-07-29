@@ -101,6 +101,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(CustomerPayment::class, 'customer_id');
     }
 
+    public function customerAccountProfile()
+    {
+        return $this->hasOne(CustomerAccountProfile::class, 'customer_id');
+    }
+
     public function loyaltyAccount()
     {
         return $this->hasOne(LoyaltyAccount::class);
