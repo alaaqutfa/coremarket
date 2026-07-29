@@ -2,6 +2,12 @@
     $manualPaymentMethods = Auth::check() && addon_is_activated('offline_payment') ? get_all_manual_payment_methods() : collect();
     $hasManualPaymentMethods = $manualPaymentMethods->count() > 0;
     $hasCashOnDeliveryOption = false;
+    $creditPayments = app(\App\Services\CoreMarketCreditPaymentService::class);
+    $accountCustomer = Auth::check() && Auth::user()->user_type === 'customer' ? Auth::user() : null;
+    $accountDecision = $accountCustomer && $creditPayments->webEnabled()
+        ? $creditPayments->decision($accountCustomer, $total, 'web_checkout')
+        : null;
+    $hasPayOnAccountOption = (bool) ($accountDecision['allowed'] ?? false);
 
     if (get_setting('cash_payment') == 1) {
         $digital = 0;
@@ -15,7 +21,7 @@
         $hasCashOnDeliveryOption = $digital != 1 && $cod_on == 1;
     }
 
-    $hasOrderPaymentOption = $hasCashOnDeliveryOption || $hasManualPaymentMethods;
+    $hasOrderPaymentOption = $hasCashOnDeliveryOption || $hasManualPaymentMethods || $hasPayOnAccountOption;
     $whatsAppCheckoutUrl = coremarket_feature_enabled('whatsapp_orders_enabled')
         ? coremarketWhatsAppUrl('Hello ' . coremarketStoreName() . ', I would like help completing my order.')
         : null;
@@ -83,6 +89,31 @@
                         </span>
                     </label>
                 </div>
+        @endif
+
+        @if ($hasPayOnAccountOption)
+            <div class="col-xl-4 col-md-6">
+                <label class="aiz-megabox d-block mb-3">
+                    <input value="pay_on_account" class="online_payment" type="radio" name="payment_option">
+                    <span class="d-block aiz-megabox-elem rounded-0 p-3">
+                        <span class="d-block fw-700 fs-14">{{ translate('Pay on Account') }}</span>
+                        <small class="d-block text-muted mt-1">
+                            {{ translate('Available credit') }}:
+                            {{ $accountDecision['available_credit'] === null ? translate('Not limited') : single_price($accountDecision['available_credit']) }}
+                        </small>
+                        <small class="d-block text-muted">
+                            {{ translate('Projected balance') }}: {{ single_price($accountDecision['projected_balance']) }}
+                        </small>
+                    </span>
+                </label>
+            </div>
+        @elseif ($accountDecision)
+            <div class="col-12">
+                <div class="alert alert-soft-warning text-left mb-3">
+                    <strong>{{ translate('Pay on Account unavailable') }}:</strong>
+                    {{ translate($creditPayments->reasonMessage($accountDecision['reason'])) }}
+                </div>
+            </div>
         @endif
 
         @if (Auth::check())

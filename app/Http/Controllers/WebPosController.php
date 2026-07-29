@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Services\CoreMarketCreditPaymentService;
 use App\Services\CoreMarketFeatureAccessService;
 use App\Services\WebPosService;
 use DomainException;
@@ -17,7 +18,7 @@ class WebPosController extends Controller
     {
     }
 
-    public function index(WebPosService $pos): View
+    public function index(WebPosService $pos, CoreMarketCreditPaymentService $creditPayments): View
     {
         $this->authorizePos(['pos.view']);
 
@@ -32,6 +33,7 @@ class WebPosController extends Controller
             'canSell' => $this->canAny(['pos.sell']),
             'canOpenShift' => $this->canAny(['cash_shifts.open']),
             'loyaltyEnabled' => $this->features->enabled('loyalty_points'),
+            'payOnAccountEnabled' => $creditPayments->canUsePos(auth()->user()),
         ]);
     }
 
@@ -73,6 +75,21 @@ class WebPosController extends Controller
         ]);
     }
 
+    public function customerCreditPreview(Request $request, WebPosService $pos): JsonResponse
+    {
+        $this->authorizePos(['pos.sell']);
+
+        $data = $request->validate([
+            'customer_id' => 'required|integer|min:1',
+            'amount' => 'required|numeric|min:0',
+        ]);
+        $customer = $pos->validatePosCustomer((int) $data['customer_id']);
+
+        return response()->json(
+            $pos->creditDecisionForCustomer($customer, $data['amount'], auth()->user())
+        );
+    }
+
     public function checkout(Request $request, WebPosService $pos): RedirectResponse
     {
         $this->authorizePos(['pos.sell']);
@@ -82,7 +99,8 @@ class WebPosController extends Controller
             'items.*.product_id' => 'nullable|integer',
             'items.*.product_stock_id' => 'required|integer|exists:product_stocks,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'paid_amount' => 'required|numeric|min:0',
+            'payment_type' => 'nullable|in:cash,pay_on_account',
+            'paid_amount' => 'nullable|required_unless:payment_type,pay_on_account|numeric|min:0',
             'pos_request_key' => 'required|string|max:255',
             'customer_id' => 'nullable|integer|min:1',
             'points_to_redeem' => 'nullable|integer|min:0',
@@ -96,8 +114,8 @@ class WebPosController extends Controller
             $order = $pos->createPosOrder(
                 $data['items'],
                 [
-                    'payment_type' => 'cash',
-                    'paid_amount' => $data['paid_amount'],
+                    'payment_type' => $data['payment_type'] ?? 'cash',
+                    'paid_amount' => $data['paid_amount'] ?? 0,
                     'customer_id' => $data['customer_id'] ?? null,
                     'points_to_redeem' => $data['points_to_redeem'] ?? 0,
                 ],

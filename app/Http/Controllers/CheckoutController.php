@@ -14,10 +14,13 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\CoreMarketLicenseService;
+use App\Services\CoreMarketCreditPaymentService;
 use App\Utility\NotificationUtility;
 use Auth;
+use DomainException;
 use Hash;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Mail;
 use Session;
@@ -135,6 +138,12 @@ class CheckoutController extends Controller
             return redirect()->route('checkout');
         }
 
+        $payOnAccount = $request->payment_option === CoreMarketCreditPaymentService::METHOD;
+        if ($payOnAccount && ! auth()->check()) {
+            flash(translate('Pay on Account requires a signed-in customer.'))->warning();
+            return redirect()->route('user.login');
+        }
+
         // if guest checkout, create user
         if (auth()->user() == null) {
             $guest_user = $this->createUser($request->except('_token', 'payment_option'));
@@ -173,6 +182,72 @@ class CheckoutController extends Controller
         if (! $licenseService->canCreateOrders()) {
             flash(translate($licenseService->monthlyOrderLimitMessage()))->warning();
             return redirect()->route('checkout');
+        }
+
+        if ($payOnAccount) {
+            /** @var CoreMarketCreditPaymentService $creditPayments */
+            $creditPayments = app(CoreMarketCreditPaymentService::class);
+
+            try {
+                $combinedOrderId = DB::transaction(function () use ($request, $carts, $creditPayments) {
+                    $customer = auth()->user();
+                    if (! $customer || $customer->user_type !== 'customer') {
+                        throw new DomainException('Pay on Account requires a signed-in customer.');
+                    }
+
+                    (new OrderController)->store($request);
+                    $combinedOrderId = $request->session()->get('combined_order_id');
+                    $combinedOrder = CombinedOrder::query()
+                        ->with('orders.user')
+                        ->lockForUpdate()
+                        ->findOrFail($combinedOrderId);
+
+                    foreach ($combinedOrder->orders as $order) {
+                        $order->forceFill([
+                            'payment_type' => CoreMarketCreditPaymentService::METHOD,
+                            'payment_status' => 'unpaid',
+                            'paid_amount' => 0,
+                            'payment_details' => json_encode([
+                                'method' => CoreMarketCreditPaymentService::METHOD,
+                                'ar_posted' => false,
+                                'customer_account_sale' => true,
+                            ]),
+                            'pos_metadata' => array_merge($order->pos_metadata ?? [], [
+                                'payment_method' => CoreMarketCreditPaymentService::METHOD,
+                                'customer_account_sale' => true,
+                            ]),
+                        ])->save();
+                        $order->orderDetails()->update(['payment_status' => 'unpaid']);
+
+                        $entry = $creditPayments->postOrder($order->fresh('user'), $customer, 'web_checkout');
+                        $order->forceFill([
+                            'payment_details' => json_encode([
+                                'method' => CoreMarketCreditPaymentService::METHOD,
+                                'ar_posted' => true,
+                                'customer_account_sale' => true,
+                                'customer_ledger_entry_id' => $entry->id,
+                            ]),
+                        ])->save();
+                    }
+
+                    $carts->toQuery()->delete();
+
+                    return $combinedOrderId;
+                });
+            } catch (DomainException $exception) {
+                flash(translate($exception->getMessage()))->warning();
+                return redirect()->route('checkout');
+            }
+
+            $request->session()->put('combined_order_id', $combinedOrderId);
+            $request->session()->put('payment_type', 'cart_payment');
+            $request->session()->put('payment_data', [
+                'combined_order_id' => $combinedOrderId,
+                'payment_method' => CoreMarketCreditPaymentService::METHOD,
+            ]);
+            flash(translate('Your Pay on Account order has been placed successfully.'))->success();
+
+            return redirect()->route('order_confirmed');
         }
 
         (new OrderController)->store($request);

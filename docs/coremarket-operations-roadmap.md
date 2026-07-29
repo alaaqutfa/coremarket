@@ -502,3 +502,20 @@ Next:
 - 71 Credit Payment Method for POS/Web.
 - 72 Customer Returns / Refunds / Credit Notes Integration.
 - 73 Branch Accounting / P&L Review if needed.
+
+## Credit payment method for POS and Web
+
+Step 71 adds disabled-by-default `pay_on_account` sales using the existing credit-policy decision and AR ledger.
+
+- Web POS requires a selected eligible customer and the dedicated staff permission.
+- Web Checkout exposes the method only to an eligible signed-in customer.
+- Pricing and branch stock are recalculated before the Order is committed.
+- The Order remains unpaid and creates one idempotent AR invoice debit.
+- No Cash Movement, Customer Payment, gateway transaction, wallet movement, or accounting journal is created.
+- Flutter POS and historical Orders are unchanged.
+
+Next:
+
+- 72 Customer Returns / Refunds / Credit Notes Integration.
+- 73 Branch Accounting / P&L Review if needed.
+- 74 Flutter POS Pay on Account later.

@@ -27,6 +27,7 @@ class WebPosService
         private CoreMarketInventoryPolicyService $inventoryPolicy,
         private CoreMarketPriceListService $priceLists,
         private CoreMarketBranchInventoryService $branchInventory,
+        private CoreMarketCreditPaymentService $creditPayments,
     ) {
     }
 
@@ -113,6 +114,22 @@ class WebPosService
                 : null,
             'price_list' => $this->priceLists->getCustomerPriceList($customer)?->only(['id', 'name', 'code']),
         ];
+    }
+
+    public function creditDecisionForCustomer(User $customer, mixed $amount, User $actor): array
+    {
+        if (! $this->creditPayments->canUsePos($actor)) {
+            return [
+                'allowed' => false,
+                'reason' => 'feature_disabled',
+                'message' => 'Pay on Account is unavailable.',
+            ];
+        }
+
+        $decision = $this->creditPayments->decision($customer, $amount, 'pos');
+        $decision['message'] = $this->creditPayments->reasonMessage($decision['reason']);
+
+        return $decision;
     }
 
     public function loyaltySummaryForCustomer(?User $customer): array
@@ -247,18 +264,33 @@ class WebPosService
             throw new DomainException('POS request key is required.');
         }
 
+        $paymentType = (string) ($payment['payment_type'] ?? 'cash');
+        if (! in_array($paymentType, ['cash', CoreMarketCreditPaymentService::METHOD], true)) {
+            throw new DomainException('Unsupported Web POS payment method.');
+        }
         $customerId = $this->customerIdFromPayment($payment);
         $pointsToRedeem = $this->pointsToRedeemFromPayment($payment);
 
         try {
-            return DB::transaction(function () use ($cart, $payment, $user, $requestKey, $customerId, $pointsToRedeem) {
+            return DB::transaction(function () use ($cart, $payment, $paymentType, $user, $requestKey, $customerId, $pointsToRedeem) {
                 $existing = Order::query()->where('pos_request_key', $requestKey)->lockForUpdate()->first();
                 if ($existing) {
                     if ((int) ($existing->user_id ?? 0) !== (int) ($customerId ?? 0)) {
                         throw new DomainException('POS request key is already associated with a different customer.');
                     }
+                    if ($existing->payment_type !== $paymentType) {
+                        throw new DomainException('POS request key is already associated with a different payment method.');
+                    }
                     if ((int) $existing->loyalty_points_redeemed !== $pointsToRedeem) {
                         throw new DomainException('POS request key is already associated with a different loyalty redemption.');
+                    }
+
+                    if ($paymentType === CoreMarketCreditPaymentService::METHOD) {
+                        $branch = $this->branchInventory->resolveBranchForOperation(
+                            data_get($existing->pos_metadata, 'store_branch_id'),
+                            $user
+                        );
+                        $this->creditPayments->postOrder($existing, $user, 'pos', $branch);
                     }
 
                     return $existing;
@@ -275,9 +307,28 @@ class WebPosService
                 $totals = $this->totalsForLines($lines);
                 $redemptionPreview = $this->previewRedemptionForCheckout($customer, $pointsToRedeem, $totals['grand_total']);
                 $finalTotal = $redemptionPreview['final_total'] ?? $totals['grand_total'];
-                $paidAmount = $this->validateCashPayment($payment, $finalTotal);
+                $paidAmount = $paymentType === 'cash'
+                    ? $this->validateCashPayment($payment, $finalTotal)
+                    : 0.0;
+                if ($paymentType === CoreMarketCreditPaymentService::METHOD) {
+                    if (! $customer) {
+                        throw new DomainException('Pay on Account requires a selected customer.');
+                    }
+                    $this->creditPayments->assertEligible($customer, $finalTotal, 'pos', $user);
+                }
 
-                $order = $this->createOrder($lines, $shift, $user, $customer, $requestKey, $totals, $paidAmount, $finalTotal, $branch);
+                $order = $this->createOrder(
+                    $lines,
+                    $shift,
+                    $user,
+                    $customer,
+                    $requestKey,
+                    $totals,
+                    $paidAmount,
+                    $finalTotal,
+                    $branch,
+                    $paymentType
+                );
                 if ($pointsToRedeem > 0) {
                     $this->loyalty->redeemForOrder($order, $customer, $pointsToRedeem, $user);
                     $order->refresh();
@@ -294,7 +345,18 @@ class WebPosService
                     );
                 }
 
-                $this->cashboxes->recordSaleMovementForOrder($order, $shift, $user);
+                if ($paymentType === 'cash') {
+                    $this->cashboxes->recordSaleMovementForOrder($order, $shift, $user);
+                } else {
+                    $this->creditPayments->postOrder($order, $user, 'pos', $branch);
+                    $order->forceFill([
+                        'payment_details' => json_encode([
+                            'method' => CoreMarketCreditPaymentService::METHOD,
+                            'ar_posted' => true,
+                            'customer_account_sale' => true,
+                        ]),
+                    ])->save();
+                }
                 $this->maybeAwardLoyaltyForPosOrder($order);
 
                 return $order->fresh(['orderDetails', 'cashierShift', 'cashbox', 'cashier', 'user']);
@@ -612,7 +674,18 @@ class WebPosService
         ];
     }
 
-    private function createOrder(array $lines, CashierShift $shift, User $user, ?User $customer, string $requestKey, array $totals, float $paidAmount, float $finalTotal, StoreBranch $branch): Order
+    private function createOrder(
+        array $lines,
+        CashierShift $shift,
+        User $user,
+        ?User $customer,
+        string $requestKey,
+        array $totals,
+        float $paidAmount,
+        float $finalTotal,
+        StoreBranch $branch,
+        string $paymentType
+    ): Order
     {
         $sellerIds = collect($lines)->pluck('product.user_id')->filter()->unique();
         if ($sellerIds->count() > 1) {
@@ -626,9 +699,12 @@ class WebPosService
         $order->shipping_type = 'pos';
         $order->order_from = 'pos';
         $order->delivery_status = 'delivered';
-        $order->payment_type = 'cash';
-        $order->payment_status = 'paid';
-        $order->payment_details = json_encode(['method' => 'cash', 'paid_amount' => $paidAmount]);
+        $isCash = $paymentType === 'cash';
+        $order->payment_type = $paymentType;
+        $order->payment_status = $isCash ? 'paid' : 'unpaid';
+        $order->payment_details = json_encode($isCash
+            ? ['method' => 'cash', 'paid_amount' => $paidAmount]
+            : ['method' => CoreMarketCreditPaymentService::METHOD, 'ar_posted' => false]);
         $order->grand_total = $totals['grand_total'];
         $order->coupon_discount = 0;
         $order->code = $receipt;
@@ -637,7 +713,7 @@ class WebPosService
         $order->cashbox_id = $shift->cashbox_id;
         $order->cashier_id = $user->id;
         $order->paid_amount = $paidAmount;
-        $order->change_amount = $this->round($paidAmount - $finalTotal);
+        $order->change_amount = $isCash ? $this->round($paidAmount - $finalTotal) : 0;
         $order->pos_receipt_number = $receipt;
         $order->pos_request_key = $requestKey;
         $order->pos_metadata = [
@@ -646,6 +722,8 @@ class WebPosService
             'cashbox_id' => $shift->cashbox_id,
             'store_branch_id' => $branch->id,
             'customer_id' => $customer?->id,
+            'payment_method' => $paymentType,
+            'customer_account_sale' => ! $isCash,
             'pricing' => collect($lines)->map(fn (array $line) => [
                 'product_id' => $line['product']->id,
                 'product_stock_id' => $line['stock']->id,
@@ -672,7 +750,7 @@ class WebPosService
         $detail->tax = $line['tax'];
         $detail->shipping_cost = 0;
         $detail->quantity = $line['quantity'];
-        $detail->payment_status = 'paid';
+        $detail->payment_status = $order->payment_status;
         $detail->delivery_status = 'delivered';
         $detail->shipping_type = 'pos';
         $detail->cost_price = $costPrice;

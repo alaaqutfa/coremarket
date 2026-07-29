@@ -59,6 +59,7 @@ class OperationsPermissionSeeder extends Seeder
             'customer_payments.create', 'customer_payments.cancel',
             'customer_ledger.view', 'customer_statements.ledger_export',
             'customer_credit.view', 'customer_credit.manage', 'customer_credit.override_limit',
+            'customer_credit.pay_on_account_pos', 'customer_credit.pay_on_account_web',
         ];
     }
 }

@@ -42,6 +42,13 @@ return [
         'enabled' => false,
         'credit_limits_enabled' => false,
         'payment_terms_enabled' => false,
+        'pay_on_account_enabled' => false,
+    ],
+    'pos' => [
+        'pay_on_account_enabled' => false,
+    ],
+    'checkout' => [
+        'pay_on_account_enabled' => false,
     ],
 
     'branch' => [
@@ -659,6 +666,7 @@ return [
             'customer_payments.create', 'customer_payments.cancel',
             'customer_ledger.view', 'customer_statements.ledger_export',
             'customer_credit.view', 'customer_credit.manage', 'customer_credit.override_limit',
+            'customer_credit.pay_on_account_pos', 'customer_credit.pay_on_account_web',
         ],
 
         'store_admin_permissions' => [
@@ -774,6 +782,8 @@ return [
             'customer_statements.ledger_export',
             'customer_credit.view',
             'customer_credit.manage',
+            'customer_credit.pay_on_account_pos',
+            'customer_credit.pay_on_account_web',
         ],
 
         'staff_role_presets' => [
@@ -830,6 +840,7 @@ return [
                 'customer_payments.create', 'customer_payments.cancel',
                 'customer_ledger.view', 'customer_statements.ledger_export',
                 'customer_credit.view', 'customer_credit.manage', 'customer_credit.override_limit',
+                'customer_credit.pay_on_account_pos', 'customer_credit.pay_on_account_web',
             ],
             'accountant' => [
                 'admin_dashboard', 'operations.view',
@@ -865,6 +876,7 @@ return [
                 'deliveries.settle_cod', 'deliveries.view_cod_summary',
                 'sales_invoices.view', 'sales_invoices.export',
                 'customer_payments.create',
+                'customer_credit.pay_on_account_pos',
             ],
             'data_entry_purchasing' => [
                 'admin_dashboard', 'operations.view',

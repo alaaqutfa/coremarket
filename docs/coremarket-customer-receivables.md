@@ -23,7 +23,7 @@ When disabled, Orders, Storefront, POS, and the operational Customer Statement c
 
 Authorized staff can use **Post to Customer Account** from an unpaid customer Order. Posting creates one debit entry linked to the Order. Paid or partially paid Orders are not posted through this conservative foundation because their existing payment data is operational and is not an allocation ledger.
 
-New credit Orders are not posted automatically at checkout. Automatic posting can be added after the credit-policy workflow is approved.
+Step 71 automatically posts only explicitly selected, policy-approved `pay_on_account` Orders from Web POS or Web Checkout. Other Orders remain manual and no historical Order is backfilled.
 
 ## Customer Payments
 
@@ -66,7 +66,13 @@ Step 67 adds optional on-demand credit profiles and due-date snapshots. When pay
 - Available credit equals the limit minus the positive current ledger balance.
 - Limit enforcement and payment-term enforcement have separate disabled-by-default feature flags.
 - Manual Order posting is blocked by the credit policy only when its relevant feature is enabled.
-- No manager bypass, public credit checkout, or POS credit method is added in Step 67.
+- Step 71 adds disabled-by-default Web/POS Pay on Account without a manager bypass.
+
+## Pay on Account Posting
+
+An approved account sale creates one invoice debit with `order:{order_id}:pay_on_account`. The ledger snapshots its POS/Web source, branch, payment terms, due date, credit limit, and payment method.
+
+No `customer_payments` row is created because no money was received. No Cash Movement is created. The Order stays `unpaid`; later settlement occurs through the existing Customer Payment and allocation workflow.
 
 See `docs/coremarket-customer-credit-policy.md` for the decision reasons and formulas.
 
@@ -83,7 +89,7 @@ Managers and Store Admins can manage receivables. Accountants can view ledgers, 
 
 ## Future Work
 
-- Automatic posting for approved credit checkout.
+- Flutter POS support for approved credit checkout.
 - Customer credit limits and payment terms.
 - Accounting journal integration.
 - Sales Return credit-note automation after final refund policy.

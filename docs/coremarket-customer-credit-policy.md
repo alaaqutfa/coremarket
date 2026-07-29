@@ -2,7 +2,7 @@
 
 ## Scope
 
-Step 67 adds an optional credit-policy profile above the Step 66 customer receivables ledger. It does not add public credit checkout, POS credit payment, accounting journals, historical backfill, reminders, or an automatic manager override.
+Step 67 adds an optional credit-policy profile above the Step 66 customer receivables ledger. Step 71 reuses this policy for explicitly enabled Pay on Account sales. It still does not add accounting journals, historical backfill, reminders, or an automatic manager override.
 
 Customer balance remains ledger-derived:
 
@@ -15,6 +15,9 @@ The profile never stores a balance.
 - `customer_accounts.enabled=false`: AR and credit-profile pages are unavailable, and the operational Customer Statement remains active.
 - `customer_accounts.credit_limits_enabled=false`: Step 66 manual AR posting remains available without credit-profile enforcement.
 - `customer_accounts.payment_terms_enabled=false`: due-date and overdue enforcement are disabled; aging remains an invoice-age estimate.
+- `customer_accounts.pay_on_account_enabled=false`: Pay on Account is unavailable in every channel.
+- `pos.pay_on_account_enabled=false`: Web POS account sales are unavailable.
+- `checkout.pay_on_account_enabled=false`: Web Checkout account sales are unavailable.
 
 All flags default to disabled.
 
@@ -58,18 +61,22 @@ New invoice entries snapshot payment terms, due date, credit limit, and currency
 - `customer_credit.view`
 - `customer_credit.manage`
 - `customer_credit.override_limit`
+- `customer_credit.pay_on_account_pos`
+- `customer_credit.pay_on_account_web`
 
 Managers receive all three permissions. Store Admins and Accountants may view and manage profiles. The override permission is reserved for managers, but Step 67 deliberately adds no automatic bypass: a future audited override workflow must require an explicit reason and snapshot.
 
 Cashiers, Delivery, Marketing, and Designer roles cannot manage credit profiles.
 
-## Checkout Boundary
+## Pay on Account Boundary
 
-Step 67 does not expose a public “pay on account” method and does not change Web checkout, Web POS, Flutter POS, or `order.payment_status`. The safe workflow remains manual posting from an existing unpaid Order.
+Step 71 exposes the canonical `pay_on_account` method only when all relevant flags and the customer credit decision allow it. These Orders are explicitly saved as `unpaid`, create one idempotent AR debit, and create no Cash Movement or Customer Payment.
+
+Flutter POS remains unchanged. Manual posting from an existing unpaid Order remains available for non-checkout workflows.
 
 ## Future
 
-- Credit payment method in Web/POS.
+- Flutter POS credit payment method.
 - Audited manager override with reason and approval snapshot.
 - Credit review workflow and limits by plan.
 - Overdue reminders and collection tasks.

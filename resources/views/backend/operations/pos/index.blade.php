@@ -4,7 +4,7 @@
 <div class="aiz-titlebar text-left mt-2 mb-3">
     <div class="row align-items-center">
         <div class="col"><h5 class="mb-0 h6">{{ translate('Web POS') }}</h5></div>
-        <div class="col-auto text-muted small">{{ translate('Cash only') }}</div>
+        <div class="col-auto text-muted small">{{ $payOnAccountEnabled ? translate('Cash or Pay on Account') : translate('Cash only') }}</div>
     </div>
 </div>
 
@@ -28,7 +28,7 @@
     </div>
 @endif
 
-<div class="row gutters-10" id="web-pos-app" data-search-url="{{ route('operations.pos.search') }}" data-customer-search-url="{{ route('operations.pos.customers.search') }}" data-loyalty-enabled="{{ $loyaltyEnabled ? '1' : '0' }}">
+<div class="row gutters-10" id="web-pos-app" data-search-url="{{ route('operations.pos.search') }}" data-customer-search-url="{{ route('operations.pos.customers.search') }}" data-credit-preview-url="{{ route('operations.pos.customers.credit-preview') }}" data-loyalty-enabled="{{ $loyaltyEnabled ? '1' : '0' }}">
     <div class="col-lg-7 mb-3">
         <div class="card h-100">
             <div class="card-header"><h6 class="mb-0">{{ translate('Find products') }}</h6></div>
@@ -72,9 +72,29 @@
                     <div class="d-flex justify-content-between mb-1"><span>{{ translate('Subtotal') }}</span><span id="pos-subtotal">0.00</span></div>
                     <div class="d-flex justify-content-between mb-1"><span>{{ translate('Tax') }}</span><span id="pos-tax">0.00</span></div>
                     <div class="d-flex justify-content-between font-weight-bold h6"><span>{{ translate('Grand total') }}</span><span id="pos-grand-total">0.00</span></div>
-                    <div class="form-group mt-3 mb-2"><label>{{ translate('Cash received') }}</label><input type="number" name="paid_amount" id="pos-paid-amount" min="0" step="0.000001" class="form-control" required></div>
-                    <div class="d-flex justify-content-between text-muted mb-3"><span>{{ translate('Change due') }}</span><span id="pos-change">0.00</span></div>
-                    <button type="submit" class="btn btn-primary btn-block" {{ (! $openShift || ! $canSell) ? 'disabled' : '' }}>{{ translate('Complete cash sale') }}</button>
+                    <div class="form-group mt-3 mb-2">
+                        <label class="d-block">{{ translate('Payment method') }}</label>
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input type="radio" id="pos-payment-cash" name="payment_type" value="cash" class="custom-control-input" checked>
+                            <label class="custom-control-label" for="pos-payment-cash">{{ translate('Cash') }}</label>
+                        </div>
+                        @if ($payOnAccountEnabled)
+                            <div class="custom-control custom-radio custom-control-inline">
+                                <input type="radio" id="pos-payment-account" name="payment_type" value="pay_on_account" class="custom-control-input">
+                                <label class="custom-control-label" for="pos-payment-account">{{ translate('Pay on Account') }}</label>
+                            </div>
+                        @endif
+                    </div>
+                    <div id="pos-cash-payment">
+                        <div class="form-group mb-2"><label>{{ translate('Cash received') }}</label><input type="number" name="paid_amount" id="pos-paid-amount" min="0" step="0.000001" class="form-control" required></div>
+                        <div class="d-flex justify-content-between text-muted mb-3"><span>{{ translate('Change due') }}</span><span id="pos-change">0.00</span></div>
+                    </div>
+                    @if ($payOnAccountEnabled)
+                        <div id="pos-credit-decision" class="alert alert-light border d-none mb-3">
+                            {{ translate('Select a customer to check available credit.') }}
+                        </div>
+                    @endif
+                    <button type="submit" id="pos-complete-sale" class="btn btn-primary btn-block" data-base-enabled="{{ ($openShift && $canSell) ? '1' : '0' }}" {{ (! $openShift || ! $canSell) ? 'disabled' : '' }}>{{ translate('Complete cash sale') }}</button>
                 </div>
             </div>
         </form>
@@ -94,6 +114,10 @@
     const cartBody = document.getElementById('pos-cart');
     const query = document.getElementById('pos-search');
     const paid = document.getElementById('pos-paid-amount');
+    const cashPayment = document.getElementById('pos-cash-payment');
+    const creditDecision = document.getElementById('pos-credit-decision');
+    const completeSale = document.getElementById('pos-complete-sale');
+    const paymentInputs = [...document.querySelectorAll('input[name="payment_type"]')];
     const requestKey = document.getElementById('pos-request-key');
     const customerSearch = document.getElementById('pos-customer-search');
     const customerResults = document.getElementById('pos-customer-results');
@@ -105,6 +129,7 @@
     const redemptionBalance = document.getElementById('pos-loyalty-balance');
     const redemptionHint = document.getElementById('pos-loyalty-redemption-hint');
     let selectedCustomerData = null;
+    let creditRequestSequence = 0;
     @if ($loyaltyEnabled)
     const loyaltyBalanceLabel = @json(translate('Loyalty balance'));
     @endif
@@ -116,6 +141,69 @@
             subtotal: total.subtotal + item.price * item.quantity,
             tax: total.tax + item.tax * item.quantity,
         }), {subtotal: 0, tax: 0});
+    }
+
+    function paymentType() {
+        return document.querySelector('input[name="payment_type"]:checked')?.value || 'cash';
+    }
+
+    function grandTotal() {
+        const total = totals();
+        return total.subtotal + total.tax;
+    }
+
+    async function refreshCreditDecision() {
+        if (!creditDecision || paymentType() !== 'pay_on_account') return;
+
+        creditDecision.classList.remove('d-none', 'alert-success', 'alert-danger');
+        if (!selectedCustomerData) {
+            creditDecision.classList.add('alert-danger');
+            creditDecision.textContent = '{{ translate('Pay on Account requires a selected customer.') }}';
+            completeSale.disabled = true;
+            return;
+        }
+
+        const sequence = ++creditRequestSequence;
+        creditDecision.textContent = '{{ translate('Checking customer credit...') }}';
+        completeSale.disabled = true;
+        try {
+            const url = `${app.dataset.creditPreviewUrl}?customer_id=${encodeURIComponent(selectedCustomerData.id)}&amount=${encodeURIComponent(grandTotal())}`;
+            const response = await fetch(url, {headers: {'Accept': 'application/json'}});
+            if (!response.ok) throw new Error('Credit check unavailable');
+            const decision = await response.json();
+            if (sequence !== creditRequestSequence) return;
+
+            creditDecision.classList.add(decision.allowed ? 'alert-success' : 'alert-danger');
+            const amounts = [
+                `{{ translate('Balance') }}: ${money(decision.current_balance)}`,
+                `{{ translate('Available credit') }}: ${decision.available_credit === null ? '{{ translate('Not limited') }}' : money(decision.available_credit)}`,
+                `{{ translate('Overdue') }}: ${money(decision.overdue_amount)}`,
+                `{{ translate('Projected balance') }}: ${money(decision.projected_balance)}`,
+            ];
+            creditDecision.textContent = `${decision.message} ${amounts.join(' | ')}`;
+            completeSale.disabled = completeSale.dataset.baseEnabled !== '1' || !decision.allowed;
+        } catch (error) {
+            if (sequence !== creditRequestSequence) return;
+            creditDecision.classList.add('alert-danger');
+            creditDecision.textContent = '{{ translate('Customer credit check is unavailable.') }}';
+            completeSale.disabled = true;
+        }
+    }
+
+    function renderPaymentMethod() {
+        const onAccount = paymentType() === 'pay_on_account';
+        cashPayment.classList.toggle('d-none', onAccount);
+        paid.disabled = onAccount;
+        paid.required = !onAccount;
+        completeSale.textContent = onAccount
+            ? '{{ translate('Complete Pay on Account sale') }}'
+            : '{{ translate('Complete cash sale') }}';
+        if (creditDecision) creditDecision.classList.toggle('d-none', !onAccount);
+        if (onAccount) {
+            refreshCreditDecision();
+        } else {
+            completeSale.disabled = completeSale.dataset.baseEnabled !== '1';
+        }
     }
 
     function renderCart() {
@@ -134,6 +222,7 @@
         document.getElementById('pos-tax').textContent = money(total.tax);
         document.getElementById('pos-grand-total').textContent = money(grandTotal);
         document.getElementById('pos-change').textContent = money(Math.max(0, Number(paid.value || 0) - grandTotal));
+        if (paymentType() === 'pay_on_account') refreshCreditDecision();
         cartBody.innerHTML = '';
         if (!cart.size) {
             cartBody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-4">{{ translate('Cart is empty.') }}</td></tr>`;
@@ -157,6 +246,7 @@
             customerId.value = '';
             selectedCustomer.textContent = '{{ translate('Walk-in customer') }}';
             renderRedemption();
+            refreshCreditDecision();
             return;
         }
         customerId.value = selectedCustomerData.id;
@@ -177,6 +267,7 @@
             selectedCustomer.appendChild(loyalty);
         }
         renderRedemption();
+        refreshCreditDecision();
     }
 
     function renderRedemption() {
@@ -293,9 +384,11 @@
     customerSearch.addEventListener('input', searchCustomers);
     document.getElementById('pos-clear-customer').addEventListener('click', () => { selectedCustomerData = null; customerSearch.value = ''; renderCustomer(); });
     paid.addEventListener('input', renderCart);
+    paymentInputs.forEach(input => input.addEventListener('change', renderPaymentMethod));
     document.getElementById('pos-clear-cart').addEventListener('click', () => { cart.clear(); renderCart(); });
     renderCustomer();
     renderCart();
+    renderPaymentMethod();
 })();
 </script>
 @endsection

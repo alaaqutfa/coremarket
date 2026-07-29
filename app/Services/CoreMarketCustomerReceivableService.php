@@ -60,7 +60,11 @@ class CoreMarketCustomerReceivableService
             ->orderBy('id');
     }
 
-    public function createInvoiceEntryFromOrder(Order $order, User $actor): CustomerLedgerEntry
+    public function createInvoiceEntryFromOrder(
+        Order $order,
+        User $actor,
+        array $context = []
+    ): CustomerLedgerEntry
     {
         $this->assertEnabled();
         if (! $order->user_id || ! $order->user || $order->user->user_type !== 'customer') {
@@ -70,11 +74,26 @@ class CoreMarketCustomerReceivableService
             throw new DomainException('Paid or partially paid orders cannot be posted without a matching AR payment record.');
         }
 
-        return DB::transaction(function () use ($order, $actor) {
+        return DB::transaction(function () use ($order, $actor, $context) {
             $lockedOrder = Order::query()->with('user')->lockForUpdate()->findOrFail($order->id);
-            $key = 'customer-invoice-order:'.$lockedOrder->id;
-            $existing = CustomerLedgerEntry::query()->where('idempotency_key', $key)->lockForUpdate()->first();
+            $key = (string) ($context['idempotency_key'] ?? 'customer-invoice-order:'.$lockedOrder->id);
+            if ($key === '' || strlen($key) > 100) {
+                throw new DomainException('Customer invoice idempotency key is invalid.');
+            }
+
+            $existing = CustomerLedgerEntry::query()
+                ->where('entry_type', 'invoice')
+                ->where(function (Builder $query) use ($lockedOrder, $key) {
+                    $query->where('order_id', $lockedOrder->id)
+                        ->orWhere('idempotency_key', $key);
+                })
+                ->lockForUpdate()
+                ->first();
             if ($existing) {
+                if ((int) $existing->customer_id !== (int) $lockedOrder->user_id) {
+                    throw new DomainException('Existing customer invoice belongs to another customer.');
+                }
+
                 return $existing;
             }
 
@@ -101,7 +120,9 @@ class CoreMarketCustomerReceivableService
                 'description' => 'Sales invoice '.($lockedOrder->code ?: '#'.$lockedOrder->id),
                 'idempotency_key' => $key,
                 'metadata' => [
-                    'source' => 'manual_order_posting',
+                    'source' => $context['source'] ?? 'manual_order_posting',
+                    'payment_method' => $context['payment_method'] ?? null,
+                    'branch_id' => $context['branch_id'] ?? null,
                     'order_payment_status_unchanged' => true,
                     'payment_terms_days' => $profile?->payment_terms_days,
                     'due_date' => $dueDate,
