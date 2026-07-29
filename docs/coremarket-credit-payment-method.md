@@ -66,6 +66,8 @@ Web Checkout continues to use the default branch context until explicit storefro
 
 The AR ledger is the source of truth for the customer balance. Sales Invoice and Customer Statement use stored Order and ledger data.
 
+For a completed Sales Return, Step 72 suggests Customer Account Credit for a `pay_on_account` Order. The resulting partial or full credit note reduces the ledger balance without creating a Customer Payment or Cash Movement. The original Order payment status remains unchanged.
+
 ## Permissions
 
 - `customer_credit.pay_on_account_pos`

@@ -135,7 +135,13 @@ class CoreMarketCustomerReceivableService
         });
     }
 
-    public function createCreditNoteFromSalesReturn(SalesReturn $salesReturn, User $actor): CustomerLedgerEntry
+    public function createCreditNoteFromSalesReturn(
+        SalesReturn $salesReturn,
+        User $actor,
+        mixed $amount = null,
+        ?string $idempotencyKey = null,
+        array $metadata = []
+    ): CustomerLedgerEntry
     {
         $this->assertEnabled();
         $salesReturn->loadMissing('order.user');
@@ -143,13 +149,21 @@ class CoreMarketCustomerReceivableService
             throw new DomainException('Only a completed customer sales return can create a credit note.');
         }
 
-        return DB::transaction(function () use ($salesReturn, $actor) {
+        return DB::transaction(function () use ($salesReturn, $actor, $amount, $idempotencyKey, $metadata) {
             $lockedReturn = SalesReturn::query()->with('order.user')->lockForUpdate()->findOrFail($salesReturn->id);
-            $key = 'customer-credit-sales-return:'.$lockedReturn->id;
+            $key = $idempotencyKey ?: 'customer-credit-sales-return:'.$lockedReturn->id;
+            if ($key === '' || strlen($key) > 120) {
+                throw new DomainException('Sales return credit idempotency key is invalid.');
+            }
             $existing = CustomerLedgerEntry::query()->where('idempotency_key', $key)->lockForUpdate()->first();
             if ($existing) {
                 return $existing;
             }
+
+            $creditAmount = $this->positiveAmount(
+                $amount ?? $lockedReturn->total_amount,
+                'Sales return credit must be greater than zero.'
+            );
 
             return CustomerLedgerEntry::query()->create([
                 'customer_id' => $lockedReturn->order->user_id,
@@ -157,13 +171,16 @@ class CoreMarketCustomerReceivableService
                 'sales_return_id' => $lockedReturn->id,
                 'entry_type' => 'credit_note',
                 'direction' => 'credit',
-                'amount' => $this->positiveAmount($lockedReturn->total_amount, 'Sales return credit must be greater than zero.'),
+                'amount' => $creditAmount,
                 'currency' => $this->money->baseCurrency(),
                 'exchange_rate' => 1,
                 'occurred_at' => $lockedReturn->completed_at ?: now(),
-                'description' => 'Sales return '.($lockedReturn->return_number ?: '#'.$lockedReturn->id),
+                'description' => 'Credit note for sales return '.($lockedReturn->return_number ?: '#'.$lockedReturn->id),
                 'idempotency_key' => $key,
-                'metadata' => ['source' => 'manual_sales_return_credit'],
+                'metadata' => array_replace([
+                    'source' => 'manual_sales_return_credit',
+                    'order_payment_status_unchanged' => true,
+                ], $metadata),
                 'created_by' => $actor->id,
             ]);
         });

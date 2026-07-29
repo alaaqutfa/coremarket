@@ -76,6 +76,12 @@ No `customer_payments` row is created because no money was received. No Cash Mov
 
 See `docs/coremarket-customer-credit-policy.md` for the decision reasons and formulas.
 
+## Sales Return Credit Notes
+
+Step 72 can post all or part of a completed Sales Return as an AR credit note. The ledger entry is a `credit`, so it reduces the customer balance and appears in the ledger-based Customer Statement.
+
+The refund record and credit note are idempotent. Account credit creates no Customer Payment and no Cash Movement. Existing Sales Returns are not backfilled, and `order.payment_status` is not changed.
+
 ## Permissions
 
 - `customer_receivables.view`
@@ -92,7 +98,7 @@ Managers and Store Admins can manage receivables. Accountants can view ledgers, 
 - Flutter POS support for approved credit checkout.
 - Customer credit limits and payment terms.
 - Accounting journal integration.
-- Sales Return credit-note automation after final refund policy.
+- Refund approval and credit-note cancellation workflow.
 - Overdue reminders.
 - Full AR aging and collection workflows.
 - Audited manager credit-limit override.

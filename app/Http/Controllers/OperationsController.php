@@ -7,6 +7,7 @@ use App\Models\AccountingAccount;
 use App\Models\BusinessSetting;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\CashierShift;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\InventoryMovement;
@@ -34,6 +35,7 @@ use App\Services\CoreMarketBranchInventoryService;
 use App\Services\CoreMarketPricingFeatureService;
 use App\Services\CoreMarketProductClassificationService;
 use App\Services\CoreMarketProductQuickCreateService;
+use App\Services\CoreMarketSalesReturnRefundService;
 use App\Services\CoreMarketTaxService;
 use App\Services\CoreMarketDocumentTemplateService;
 use App\Services\InventoryProService;
@@ -683,14 +685,33 @@ class OperationsController extends Controller
         }
         return redirect()->route('operations.sales-returns.show', $return)->with('success', translate('Sales return created successfully'));
     }
-    public function showSalesReturn(SalesReturn $salesReturn, SalesReturnUiService $returns): View
+    public function showSalesReturn(
+        SalesReturn $salesReturn,
+        SalesReturnUiService $returns,
+        CoreMarketSalesReturnRefundService $refunds
+    ): View
     {
         $this->authorizeOperation('sales_returns.view', ['returns_management']);
         $salesReturn->load(['order.user', 'items.product', 'items.productStock', 'items.orderDetail']);
+        $user = auth()->user();
+        $canViewRefunds = $user->user_type === 'admin' || $user->can('sales_returns.refunds.view');
+        if ($canViewRefunds) {
+            $salesReturn->load(['refunds.refundedBy', 'refunds.cashMovement', 'refunds.customerLedgerEntry']);
+        }
         return view('backend.operations.sales-returns.show', [
             'salesReturn' => $salesReturn,
             'movements' => $returns->linkedMovements($salesReturn),
             'accountingEvents' => $returns->accountingEvents($salesReturn),
+            'canViewRefunds' => $canViewRefunds,
+            'canViewReturnFinancials' => $user->user_type === 'admin' || $user->can('accounting_summary.view'),
+            'canCashRefund' => $user->user_type === 'admin' || $user->can('sales_returns.refunds.cash'),
+            'canCreditAccount' => $user->user_type === 'admin' || $user->can('sales_returns.refunds.credit_account'),
+            'refundSnapshot' => $canViewRefunds ? $refunds->refundSnapshot($salesReturn) : null,
+            'openCashierShifts' => ($user->user_type === 'admin' || $user->can('sales_returns.refunds.cash'))
+                ? CashierShift::query()->with('cashbox')->where('status', 'open')->latest('opened_at')->get()
+                : collect(),
+            'cashRefundKey' => (string) Str::uuid(),
+            'accountCreditKey' => (string) Str::uuid(),
         ]);
     }
     public function completeSalesReturn(SalesReturn $salesReturn, SalesReturnService $service): RedirectResponse
@@ -703,6 +724,60 @@ class OperationsController extends Controller
             return back()->withErrors(['sales_return' => $exception->getMessage()]);
         }
         return back()->with('success', $alreadyCompleted ? translate('Sales return was already completed.') : translate('Sales return completed successfully'));
+    }
+
+    public function refundSalesReturnCash(
+        Request $request,
+        SalesReturn $salesReturn,
+        CoreMarketSalesReturnRefundService $refunds
+    ): RedirectResponse {
+        $this->authorizeOperation('sales_returns.refunds.cash', ['returns_management']);
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0.000001',
+            'cashier_shift_id' => 'required|exists:cashier_shifts,id',
+            'notes' => 'nullable|string|max:2000',
+            'idempotency_key' => 'required|string|max:120',
+        ]);
+        try {
+            $refunds->refundToCash(
+                $salesReturn,
+                $data['amount'],
+                auth()->user(),
+                CashierShift::findOrFail($data['cashier_shift_id']),
+                $data['idempotency_key'],
+                $data['notes'] ?? null
+            );
+        } catch (DomainException $exception) {
+            return back()->withErrors(['refund' => $exception->getMessage()])->withInput();
+        }
+
+        return back()->with('success', translate('Cash refund posted successfully'));
+    }
+
+    public function creditSalesReturnAccount(
+        Request $request,
+        SalesReturn $salesReturn,
+        CoreMarketSalesReturnRefundService $refunds
+    ): RedirectResponse {
+        $this->authorizeOperation('sales_returns.refunds.credit_account', ['returns_management']);
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:0.000001',
+            'notes' => 'nullable|string|max:2000',
+            'idempotency_key' => 'required|string|max:120',
+        ]);
+        try {
+            $refunds->creditCustomerAccount(
+                $salesReturn,
+                $data['amount'],
+                auth()->user(),
+                $data['idempotency_key'],
+                $data['notes'] ?? null
+            );
+        } catch (DomainException $exception) {
+            return back()->withErrors(['refund' => $exception->getMessage()])->withInput();
+        }
+
+        return back()->with('success', translate('Customer account credit posted successfully'));
     }
 
     public function expenses(): View { $this->authorizeOperation('expenses.view', ['accounting_lite']); return view('backend.operations.expenses.index', ['expenses' => Expense::with('category')->latest()->paginate(25)]); }

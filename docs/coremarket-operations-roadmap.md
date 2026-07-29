@@ -519,3 +519,20 @@ Next:
 - 72 Customer Returns / Refunds / Credit Notes Integration.
 - 73 Branch Accounting / P&L Review if needed.
 - 74 Flutter POS Pay on Account later.
+
+## Customer returns, refunds, and credit notes
+
+Step 72 separates the existing branch-aware stock return from its financial settlement.
+
+- Completed returns can be refunded partially or fully.
+- Cash refunds create one idempotent Cashbox movement out from an open shift.
+- Customer Account Credit creates one AR credit note and no cash/customer-payment record.
+- Posted refund totals prevent over-refund and duplicate posting.
+- Pay on Account returns suggest account credit; Order payment status is unchanged.
+- Existing returns are not backfilled, and no journal, wallet, gateway, or Flutter POS flow is added.
+
+Next:
+
+- 73 Branch Accounting / P&L Review if needed.
+- 74 Flutter POS Pay on Account and Refund support later.
+- 75 Refund Approval Workflow if needed.

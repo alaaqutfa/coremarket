@@ -33,7 +33,7 @@ class SalesReturnsUiTest extends TestCase
         try {
             [$order, $detail] = $this->fixtures();
             app(SalesReturnService::class)->create($order, [['order_detail_id' => $detail->id, 'quantity' => 2]]);
-            $user = $this->user(['sales_returns.view', 'sales_returns.create']);
+            $user = $this->user(['sales_returns.view', 'sales_returns.create', 'accounting_summary.view']);
 
             $this->actingAs($user)->get(route('operations.sales-returns'))->assertOk()->assertSee('Sales Returns');
             $this->actingAs($user)->get(route('operations.sales-returns.create', ['order_id' => $order->id]))
@@ -46,7 +46,7 @@ class SalesReturnsUiTest extends TestCase
         DB::beginTransaction();
         try {
             [$order, $detail, $stockId] = $this->fixtures();
-            $user = $this->user(['sales_returns.view', 'sales_returns.create', 'sales_returns.complete']);
+            $user = $this->user(['sales_returns.view', 'sales_returns.create', 'sales_returns.complete', 'accounting_summary.view']);
             $response = $this->actingAs($user)->post(route('operations.sales-returns.store'), [
                 'order_id' => $order->id,
                 'reason' => 'Damaged',

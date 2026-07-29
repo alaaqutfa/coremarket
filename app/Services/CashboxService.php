@@ -6,6 +6,7 @@ use App\Models\Cashbox;
 use App\Models\CashierShift;
 use App\Models\CashMovement;
 use App\Models\CustomerPayment;
+use App\Models\SalesReturnRefund;
 use App\Models\DeliveryCodSettlement;
 use App\Models\Order;
 use App\Models\OrderDelivery;
@@ -307,6 +308,61 @@ class CashboxService
             false,
             CustomerPayment::class,
             $payment->id
+        );
+        $this->refreshExpectedCash($lockedShift);
+
+        return $movement;
+    }
+
+    public function recordSalesReturnRefundMovement(
+        SalesReturnRefund $refund,
+        CashierShift $shift,
+        User|int $actor
+    ): CashMovement {
+        $actor = $this->resolveUser($actor);
+        $lockedShift = CashierShift::query()->lockForUpdate()->findOrFail($shift->id);
+        $this->ensureShiftIsOpen($lockedShift);
+
+        if (
+            $refund->refund_method !== 'cash'
+            || (int) $refund->cashier_shift_id !== (int) $lockedShift->id
+            || (int) $refund->cashbox_id !== (int) $lockedShift->cashbox_id
+        ) {
+            throw new DomainException('Sales return refund does not match the selected cashbox shift.');
+        }
+        if ($refund->cash_movement_id) {
+            return CashMovement::query()->findOrFail($refund->cash_movement_id);
+        }
+
+        $existing = CashMovement::query()
+            ->where('reference_type', SalesReturnRefund::class)
+            ->where('reference_id', $refund->id)
+            ->where('movement_type', 'sales_return_refund')
+            ->lockForUpdate()
+            ->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $this->assertCashOutDoesNotGoNegative($lockedShift, 'out', (float) $refund->amount);
+        $movement = $this->createMovement(
+            $lockedShift,
+            'sales_return_refund',
+            'out',
+            $this->normalizePositiveAmount($refund->amount),
+            'Cash refund for sales return #'.$refund->sales_return_id,
+            now(),
+            $actor,
+            [
+                'sales_return_refund_id' => $refund->id,
+                'sales_return_id' => $refund->sales_return_id,
+                'order_id' => $refund->order_id,
+                'customer_id' => $refund->customer_id,
+                'accounting_pending' => true,
+            ],
+            false,
+            SalesReturnRefund::class,
+            $refund->id
         );
         $this->refreshExpectedCash($lockedShift);
 

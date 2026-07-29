@@ -129,6 +129,8 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::post('/operations/sales-returns', 'storeSalesReturn')->name('operations.sales-returns.store');
     Route::get('/operations/sales-returns/{salesReturn}', 'showSalesReturn')->name('operations.sales-returns.show');
     Route::post('/operations/sales-returns/{salesReturn}/complete', 'completeSalesReturn')->name('operations.sales-returns.complete');
+    Route::post('/operations/sales-returns/{salesReturn}/refund-cash', 'refundSalesReturnCash')->name('operations.sales-returns.refund-cash');
+    Route::post('/operations/sales-returns/{salesReturn}/credit-account', 'creditSalesReturnAccount')->name('operations.sales-returns.credit-account');
     Route::get('/operations/expenses', 'expenses')->name('operations.expenses');
     Route::get('/operations/expenses/create', 'createExpense')->name('operations.expenses.create');
     Route::post('/operations/expenses', 'storeExpense')->name('operations.expenses.store');
