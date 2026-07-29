@@ -554,3 +554,37 @@ Next:
 - 74 Flutter POS Serial/IMEI Scan and Selection.
 - 75 Supplier Warranty / RMA and Replacement Workflow.
 - 76 Branch Accounting / P&L Review if needed.
+
+## Restaurant and production audit
+
+Step 74 audits Restaurant Mode and Production/Manufacturing Mode without adding
+runtime behavior, schema, routes, or UI.
+
+- The current Web POS can support simple fixed-product counter sales, but it has
+  no tables/seating, menu modifiers, KOT, waiter role, or kitchen status flow.
+- ProductStock remains the correct fixed variant identity and must not be
+  overloaded as an order-specific restaurant modifier.
+- Inventory, Branches, Delivery, Purchasing, staff permissions, tax/pricing, and
+  receipt templates are reusable restaurant foundations.
+- Production can reuse Products, Purchasing, Branch Inventory, Inventory
+  Governance, Inventory Movements, and cost snapshots.
+- No BOM/recipe, material-to-output transaction, Production Order, WIP, yield,
+  or production cost rollup currently exists.
+- Manual paired stock adjustments are not an acceptable substitute for a
+  production workflow.
+
+Decision:
+
+- Proceed to Pilot Readiness and vertical selection before implementing either
+  mode.
+- If a restaurant is the first signed pilot, start with the bounded REST-01 to
+  REST-07 ordering/KOT track and postpone recipe depletion.
+- Defer Production/BOM until a manufacturing pilot defines units, yield,
+  costing, scrap, and approval rules.
+
+Next:
+
+- 75 Pilot Readiness and First Client Vertical Selection.
+- REST-01 Restaurant Mode Feature Flag only after restaurant pilot validation.
+- PROD-01 Production Mode Feature Flag only after manufacturing pilot
+  validation.
