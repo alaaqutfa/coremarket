@@ -536,3 +536,21 @@ Next:
 - 73 Branch Accounting / P&L Review if needed.
 - 74 Flutter POS Pay on Account and Refund support later.
 - 75 Refund Approval Workflow if needed.
+
+## Variant, serial, IMEI, and warranty foundation
+
+Step 73 reuses `ProductStock` as the existing variant identity and adds disabled-by-default unit traceability.
+
+- Purchase Receipt creates one unique Serial/IMEI unit per received serialized quantity.
+- Web POS validates and marks selected units sold inside the Order transaction.
+- Web Checkout blocks only serialized variants until safe customer-side unit allocation exists.
+- Sales Returns require units linked to the original Order Detail and restore them on completion.
+- Warranty policies can target a Product or ProductStock variant and snapshot expiry at sale.
+- Warranty Claims are operational records and do not mutate stock or accounting automatically.
+- Branch context is stored on each unit; Flutter POS remains unchanged.
+
+Next:
+
+- 74 Flutter POS Serial/IMEI Scan and Selection.
+- 75 Supplier Warranty / RMA and Replacement Workflow.
+- 76 Branch Accounting / P&L Review if needed.

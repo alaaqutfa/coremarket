@@ -18,7 +18,8 @@ class SalesReturnService
 {
     public function __construct(
         private InventoryMovementService $inventoryMovements,
-        private CoreMarketBranchInventoryService $branchInventory
+        private CoreMarketBranchInventoryService $branchInventory,
+        private CoreMarketSerialInventoryService $serialInventory
     )
     {
     }
@@ -59,7 +60,10 @@ class SalesReturnService
                     ->findOrFail($item['order_detail_id'] ?? 0);
                 $quantity = $this->quantity($item['quantity'] ?? null);
                 $this->assertReturnableQuantity($detail, $quantity);
+                $serialUnitIds = array_values(array_unique(array_map('intval', $item['serial_unit_ids'] ?? [])));
+                $this->serialInventory->validateSerialReturn($detail, $serialUnitIds, $quantity);
 
+                $item['serial_unit_ids'] = $serialUnitIds;
                 $returnItem = $this->makeReturnItem($return, $detail, $quantity, $item);
                 $return->items()->save($returnItem);
                 $totals = $this->addTotals($totals, $returnItem);
@@ -90,6 +94,14 @@ class SalesReturnService
 
             foreach ($salesReturn->items()->lockForUpdate()->get() as $returnItem) {
                 $stockWasReversed = $this->reverseItemStock($returnItem, $completedBy) || $stockWasReversed;
+                $serialIds = $returnItem->metadata['serial_unit_ids'] ?? [];
+                if ($serialIds !== []) {
+                    $this->serialInventory->markSerialReturned(
+                        $salesReturn,
+                        $returnItem->orderDetail,
+                        $serialIds
+                    );
+                }
             }
 
             $salesReturn->status = 'completed';
@@ -158,6 +170,7 @@ class SalesReturnService
             'metadata' => [
                 'cost_source' => $detail->cost_source ?? 'missing',
                 'shipping_amount' => $shippingAmount,
+                'serial_unit_ids' => $item['serial_unit_ids'] ?? [],
             ],
         ]);
     }

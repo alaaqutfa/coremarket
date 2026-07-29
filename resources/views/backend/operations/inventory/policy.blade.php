@@ -11,7 +11,7 @@
             @csrf
             <input type="hidden" name="strict_inventory_mode" value="0">
             <input type="hidden" name="allow_negative_stock" value="0">
-            @foreach(['setup_mode_enabled', 'opening_stock_enabled', 'adjustments_enabled', 'adjustment_requires_approval', 'stock_counts_enabled', 'emergency_adjustment_enabled', 'branch_inventory_enabled'] as $setting)
+            @foreach(['setup_mode_enabled', 'opening_stock_enabled', 'adjustments_enabled', 'adjustment_requires_approval', 'stock_counts_enabled', 'emergency_adjustment_enabled', 'branch_inventory_enabled', 'serial_tracking_enabled', 'imei_tracking_enabled', 'warranty_tracking_enabled', 'advanced_variants_enabled'] as $setting)
                 <input type="hidden" name="{{ $setting }}" value="0">
             @endforeach
 
@@ -34,6 +34,10 @@
                 'stock_counts_enabled' => ['Stock counts', 'Allows cycle counts whose variance is posted through an adjustment document.'],
                 'emergency_adjustment_enabled' => ['Emergency adjustments', 'Manager-only emergency documents. Keep disabled unless operationally required.'],
                 'branch_inventory_enabled' => ['Branch inventory', 'Uses branch balances as availability source and keeps product stock as an aggregate mirror. Run the initialization command before enabling.'],
+                'serial_tracking_enabled' => ['Serial tracking', 'Requires tracked variants to receive and sell one serial unit per quantity.'],
+                'imei_tracking_enabled' => ['IMEI tracking', 'Requires IMEI 1 on each newly received serialized unit.'],
+                'warranty_tracking_enabled' => ['Warranty tracking', 'Enables warranty policies and claims without changing stock or accounting automatically.'],
+                'advanced_variants_enabled' => ['Advanced variants', 'Enables the variant foundation based on existing ProductStock size, color, SKU, and barcode combinations.'],
             ] as $key => [$label, $description])
                 <div class="form-group">
                     <label class="aiz-switch aiz-switch-success mb-2">

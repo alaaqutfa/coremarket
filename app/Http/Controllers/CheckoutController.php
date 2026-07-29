@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\CoreMarketLicenseService;
 use App\Services\CoreMarketCreditPaymentService;
+use App\Services\CoreMarketSerialInventoryService;
 use App\Utility\NotificationUtility;
 use Auth;
 use DomainException;
@@ -164,6 +165,12 @@ class CheckoutController extends Controller
         }
         $user  = auth()->user();
         $carts = Cart::where('user_id', $user->id)->active()->get();
+        try {
+            app(CoreMarketSerialInventoryService::class)->assertWebCheckoutAllowed($carts);
+        } catch (DomainException $exception) {
+            flash(translate($exception->getMessage()))->warning();
+            return redirect()->route('cart');
+        }
 
         // Minumum order amount check
         if (get_setting('minimum_order_amount_check') == 1) {

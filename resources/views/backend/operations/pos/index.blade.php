@@ -217,6 +217,11 @@
                 input.type = 'hidden'; input.name = `items[${index}][${name}]`; input.value = value;
                 itemInputs.appendChild(input);
             });
+            (item.serial_unit_ids || []).forEach(serialUnitId => {
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = `items[${index}][serial_unit_ids][]`; input.value = serialUnitId;
+                itemInputs.appendChild(input);
+            });
         });
         document.getElementById('pos-subtotal').textContent = money(total.subtotal);
         document.getElementById('pos-tax').textContent = money(total.tax);
@@ -233,6 +238,24 @@
             row.innerHTML = `<td><strong></strong><div class="small text-muted"></div></td><td class="text-center"><div class="btn-group btn-group-sm"><button type="button" class="btn btn-light" data-action="decrease">-</button><span class="btn btn-light disabled"></span><button type="button" class="btn btn-light" data-action="increase">+</button></div></td><td class="text-right"><span></span><button type="button" class="btn btn-link btn-sm text-danger p-0 d-block ml-auto" data-action="remove">{{ translate('Remove') }}</button></td>`;
             row.querySelector('strong').textContent = item.name;
             row.querySelector('.small').textContent = [item.variation, item.sku || item.barcode, `${item.available_stock} {{ translate('in stock') }}`].filter(Boolean).join(' - ');
+            if (item.serial_tracking_enabled) {
+                const select = document.createElement('select');
+                select.className = 'form-control form-control-sm mt-2';
+                select.multiple = true;
+                select.size = Math.min(3, Math.max(1, (item.available_serial_units || []).length));
+                (item.available_serial_units || []).forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit.id;
+                    option.textContent = unit.serial_number || unit.imei_1 || unit.imei_2;
+                    option.selected = (item.serial_unit_ids || []).includes(unit.id);
+                    select.appendChild(option);
+                });
+                select.addEventListener('change', () => {
+                    item.serial_unit_ids = [...select.selectedOptions].map(option => Number(option.value));
+                    renderCart();
+                });
+                row.querySelector('td').appendChild(select);
+            }
             row.querySelector('.disabled').textContent = item.quantity;
             row.querySelector('.text-right span').textContent = money(item.price * item.quantity + item.tax * item.quantity);
             row.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => updateCart(item.product_stock_id, button.dataset.action)));
@@ -334,7 +357,7 @@
     function updateCart(key, action) {
         const item = cart.get(key);
         if (!item) return;
-        if (action === 'increase' && (allowNegativeStock || item.quantity < item.available_stock)) item.quantity++;
+        if (action === 'increase' && (allowNegativeStock || item.quantity < item.available_stock) && (!item.serial_tracking_enabled || item.quantity < (item.available_serial_units || []).length)) item.quantity++;
         if (action === 'decrease') item.quantity--;
         if (action === 'remove' || item.quantity < 1) cart.delete(key);
         renderCart();
@@ -347,7 +370,7 @@
             updateCart(item.product_stock_id, 'increase');
             return;
         }
-        cart.set(item.product_stock_id, {...item, quantity: 1, tax: (item.taxes || []).reduce((sum, tax) => sum + (tax.type === 'percent' ? item.price * tax.value / 100 : tax.value), 0)});
+        cart.set(item.product_stock_id, {...item, quantity: 1, serial_unit_ids: [], tax: (item.taxes || []).reduce((sum, tax) => sum + (tax.type === 'percent' ? item.price * tax.value / 100 : tax.value), 0)});
         renderCart();
     }
 
@@ -365,7 +388,7 @@
             items.forEach(item => {
                 const button = document.createElement('button');
                 button.type = 'button'; button.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
-                button.disabled = !item.product_stock_id || (!allowNegativeStock && Number(item.available_stock) < 1);
+                button.disabled = !item.product_stock_id || (!allowNegativeStock && Number(item.available_stock) < 1) || (item.serial_tracking_enabled && !(item.available_serial_units || []).length);
                 button.innerHTML = `<span><strong></strong><small class="d-block text-muted"></small></span><span class="text-right"><strong></strong><small class="d-block text-muted"></small></span>`;
                 button.querySelector('strong').textContent = item.name;
                 button.querySelector('small').textContent = [item.variation, item.sku || item.barcode, item.matched_by].filter(Boolean).join(' - ');
@@ -386,6 +409,13 @@
     paid.addEventListener('input', renderCart);
     paymentInputs.forEach(input => input.addEventListener('change', renderPaymentMethod));
     document.getElementById('pos-clear-cart').addEventListener('click', () => { cart.clear(); renderCart(); });
+    document.getElementById('pos-checkout-form').addEventListener('submit', event => {
+        const incompleteSerial = [...cart.values()].some(item => item.serial_tracking_enabled && (item.serial_unit_ids || []).length !== item.quantity);
+        if (incompleteSerial) {
+            event.preventDefault();
+            window.alert('{{ translate('Select one serial or IMEI unit for every serialized item quantity.') }}');
+        }
+    });
     renderCustomer();
     renderCart();
     renderPaymentMethod();

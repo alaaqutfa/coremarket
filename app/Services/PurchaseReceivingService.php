@@ -22,7 +22,8 @@ class PurchaseReceivingService
         private PurchaseItemPricingService $itemPricing,
         private CoreMarketMoneyService $money,
         private SupplierLedgerService $supplierLedger,
-        private CoreMarketBranchInventoryService $branchInventory
+        private CoreMarketBranchInventoryService $branchInventory,
+        private CoreMarketSerialInventoryService $serialInventory
     ) {
     }
 
@@ -154,6 +155,13 @@ class PurchaseReceivingService
                     'total_cost' => $unitCost === null ? null : $this->money->normalizeMoney($unitCost * $quantity),
                 ]);
 
+                $this->serialInventory->createSerialUnitsFromPurchase(
+                    $receipt,
+                    $receiptItem,
+                    $stock,
+                    $branch,
+                    $item['serials'] ?? []
+                );
                 $this->increaseStock($stock, $orderItem, $quantity, $unitCost, $branch);
                 $movement = $this->inventoryMovements->recordPurchaseReceipt(
                     $receiptItem,

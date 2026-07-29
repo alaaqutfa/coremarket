@@ -99,6 +99,8 @@ class WebPosController extends Controller
             'items.*.product_id' => 'nullable|integer',
             'items.*.product_stock_id' => 'required|integer|exists:product_stocks,id',
             'items.*.quantity' => 'required|integer|min:1',
+            'items.*.serial_unit_ids' => 'nullable|array',
+            'items.*.serial_unit_ids.*' => 'integer|exists:product_serial_units,id',
             'payment_type' => 'nullable|in:cash,pay_on_account',
             'paid_amount' => 'nullable|required_unless:payment_type,pay_on_account|numeric|min:0',
             'pos_request_key' => 'required|string|max:255',

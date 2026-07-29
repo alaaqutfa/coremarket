@@ -95,6 +95,8 @@ class PosApiController extends Controller
             'items.*.product_id' => ['required', 'integer'],
             'items.*.product_stock_id' => ['nullable', 'integer'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
+            'items.*.serial_unit_ids' => ['nullable', 'array'],
+            'items.*.serial_unit_ids.*' => ['integer', 'exists:product_serial_units,id'],
         ]);
 
         if ($validator->fails()) {

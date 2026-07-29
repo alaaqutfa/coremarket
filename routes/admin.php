@@ -62,6 +62,7 @@ use App\Http\Controllers\TaxController;
 use App\Http\Controllers\UpdateController;
 use App\Http\Controllers\WebsiteController;
 use App\Http\Controllers\WebPosController;
+use App\Http\Controllers\WarrantyController;
 use App\Http\Controllers\ZoneController;
 
 /*
@@ -152,6 +153,14 @@ Route::controller(OperationsController::class)->middleware(['auth', 'admin', 're
     Route::get('/operations/accounting/profit-loss', 'profitLoss')->name('operations.accounting.profit-loss');
     Route::get('/operations/accounting/vat-snapshots', 'vatSnapshots')->name('operations.accounting.vat-snapshots');
     Route::get('/operations/accounting/vat-audit', 'vatAudit')->name('operations.accounting.vat-audit');
+});
+
+Route::controller(WarrantyController::class)->middleware(['auth', 'admin', 'restrict_store_admin'])->group(function () {
+    Route::get('/operations/warranty', 'index')->name('operations.warranty.index');
+    Route::post('/operations/warranty/policies', 'storePolicy')->name('operations.warranty.policies.store');
+    Route::post('/operations/warranty/claims', 'storeClaim')->name('operations.warranty.claims.store');
+    Route::get('/operations/warranty/claims/{warrantyClaim}', 'show')->name('operations.warranty.claims.show');
+    Route::patch('/operations/warranty/claims/{warrantyClaim}', 'updateStatus')->name('operations.warranty.claims.update');
 });
 
 Route::controller(\App\Http\Controllers\InventoryGovernanceController::class)

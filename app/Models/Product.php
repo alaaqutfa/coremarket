@@ -91,6 +91,16 @@ class Product extends Model
         return $this->hasMany(ProductStock::class);
     }
 
+    public function serialUnits()
+    {
+        return $this->hasMany(ProductSerialUnit::class);
+    }
+
+    public function warrantyPolicies()
+    {
+        return $this->hasMany(ProductWarrantyPolicy::class);
+    }
+
     public function taxes()
     {
         return $this->hasMany(ProductTax::class);

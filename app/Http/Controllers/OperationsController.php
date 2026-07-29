@@ -160,6 +160,10 @@ class OperationsController extends Controller
         return view('backend.operations.inventory.policy', [
             'policy' => array_merge($policy->policySnapshot(), [
                 'branch_inventory_enabled' => $branchInventory->branchInventoryEnabled(),
+                'serial_tracking_enabled' => filter_var(get_setting('inventory.serial_tracking_enabled', config('coremarket.inventory.serial_tracking_enabled', false)), FILTER_VALIDATE_BOOL),
+                'imei_tracking_enabled' => filter_var(get_setting('inventory.imei_tracking_enabled', config('coremarket.inventory.imei_tracking_enabled', false)), FILTER_VALIDATE_BOOL),
+                'warranty_tracking_enabled' => filter_var(get_setting('inventory.warranty_tracking_enabled', config('coremarket.inventory.warranty_tracking_enabled', false)), FILTER_VALIDATE_BOOL),
+                'advanced_variants_enabled' => filter_var(get_setting('catalog.advanced_variants_enabled', config('coremarket.catalog.advanced_variants_enabled', false)), FILTER_VALIDATE_BOOL),
             ]),
         ]);
     }
@@ -177,6 +181,10 @@ class OperationsController extends Controller
             'stock_counts_enabled' => 'required|boolean',
             'emergency_adjustment_enabled' => 'required|boolean',
             'branch_inventory_enabled' => 'required|boolean',
+            'serial_tracking_enabled' => 'required|boolean',
+            'imei_tracking_enabled' => 'required|boolean',
+            'warranty_tracking_enabled' => 'required|boolean',
+            'advanced_variants_enabled' => 'required|boolean',
         ]);
 
         foreach ([
@@ -189,6 +197,10 @@ class OperationsController extends Controller
             CoreMarketInventoryPolicyService::STOCK_COUNTS_SETTING => $data['stock_counts_enabled'],
             CoreMarketInventoryPolicyService::EMERGENCY_ADJUSTMENT_SETTING => $data['emergency_adjustment_enabled'],
             CoreMarketBranchInventoryService::SETTING => $data['branch_inventory_enabled'],
+            'inventory.serial_tracking_enabled' => $data['serial_tracking_enabled'],
+            'inventory.imei_tracking_enabled' => $data['imei_tracking_enabled'],
+            'inventory.warranty_tracking_enabled' => $data['warranty_tracking_enabled'],
+            'catalog.advanced_variants_enabled' => $data['advanced_variants_enabled'],
         ] as $type => $value) {
             $setting = BusinessSetting::query()->where('type', $type)->whereNull('lang')->first() ?: new BusinessSetting();
             $setting->forceFill(['type' => $type, 'value' => $value ? '1' : '0', 'lang' => null])->save();
@@ -511,8 +523,24 @@ class OperationsController extends Controller
     public function receivePurchaseOrder(Request $request, PurchaseOrder $purchaseOrder, PurchaseReceivingService $service): RedirectResponse
     {
         $this->authorizeOperation('purchase_orders.receive', ['purchasing_suppliers']);
-        $data = $request->validate(['receipt_key' => 'required|string|max:100', 'branch_id' => 'nullable|integer|exists:store_branches,id', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id', 'items.*.quantity_received' => 'required|numeric|min:0', 'items.*.unit_cost' => 'nullable|numeric|min:0']);
+        $data = $request->validate(['receipt_key' => 'required|string|max:100', 'branch_id' => 'nullable|integer|exists:store_branches,id', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.purchase_order_item_id' => 'required|exists:purchase_order_items,id', 'items.*.quantity_received' => 'required|numeric|min:0', 'items.*.unit_cost' => 'nullable|numeric|min:0', 'items.*.serial_entries' => 'nullable|string|max:20000']);
         $items = collect($data['items'])->filter(fn ($item) => (float) $item['quantity_received'] > 0)->values()->all();
+        foreach ($items as &$item) {
+            $item['serials'] = collect(preg_split('/\R/', (string) ($item['serial_entries'] ?? '')))
+                ->map(function ($line) {
+                    $parts = array_map('trim', explode('|', $line));
+                    return [
+                        'serial_number' => $parts[0] ?? null,
+                        'imei_1' => $parts[1] ?? null,
+                        'imei_2' => $parts[2] ?? null,
+                    ];
+                })
+                ->filter(fn ($identity) => collect($identity)->filter()->isNotEmpty())
+                ->values()
+                ->all();
+            unset($item['serial_entries']);
+        }
+        unset($item);
         if (empty($items)) return back()->withErrors(['items' => translate('Enter a quantity to receive.')]);
         try {
             $service->receive($purchaseOrder, $items, $data, auth()->id());
@@ -675,7 +703,7 @@ class OperationsController extends Controller
     public function storeSalesReturn(Request $request, SalesReturnService $service): RedirectResponse
     {
         $this->authorizeOperation('sales_returns.create', ['returns_management']);
-        $data = $request->validate(['order_id' => 'required|exists:orders,id', 'reason' => 'nullable|string|max:1000', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.order_detail_id' => 'required|exists:order_details,id', 'items.*.quantity' => 'required|numeric|min:0', 'items.*.reason' => 'nullable|string|max:1000']);
+        $data = $request->validate(['order_id' => 'required|exists:orders,id', 'reason' => 'nullable|string|max:1000', 'notes' => 'nullable|string|max:2000', 'items' => 'required|array|min:1', 'items.*.order_detail_id' => 'required|exists:order_details,id', 'items.*.quantity' => 'required|numeric|min:0', 'items.*.reason' => 'nullable|string|max:1000', 'items.*.serial_unit_ids' => 'nullable|array', 'items.*.serial_unit_ids.*' => 'integer|exists:product_serial_units,id']);
         $items = collect($data['items'])->filter(fn ($item) => (float) $item['quantity'] > 0)->values()->all();
         if (empty($items)) return back()->withErrors(['items' => translate('Enter a quantity to return.')]);
         try {

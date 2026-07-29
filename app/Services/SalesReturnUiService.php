@@ -7,6 +7,7 @@ use App\Models\InventoryMovement;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\ProductStock;
+use App\Models\ProductSerialUnit;
 use App\Models\SalesReturn;
 use App\Models\SalesReturnItem;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -41,8 +42,13 @@ class SalesReturnUiService
             ->whereIn('product_id', $details->pluck('product_id')->filter()->unique())
             ->get()
             ->keyBy(fn (ProductStock $stock) => $stock->product_id.'|'.$stock->variant);
+        $serialUnits = ProductSerialUnit::query()
+            ->whereIn('order_detail_id', $details->pluck('id'))
+            ->where('status', 'sold')
+            ->get()
+            ->groupBy('order_detail_id');
 
-        return $details->map(function (OrderDetail $detail) use ($returned, $stocks) {
+        return $details->map(function (OrderDetail $detail) use ($returned, $stocks, $serialUnits) {
             $alreadyReturned = (float) ($returned[$detail->id] ?? 0);
 
             return [
@@ -52,6 +58,7 @@ class SalesReturnUiService
                 'unit_price' => (float) $detail->quantity > 0 ? (float) $detail->price / (float) $detail->quantity : null,
                 'unknown_cost' => $detail->cost_price === null || $detail->total_cost === null,
                 'product_stock' => $stocks->get($detail->product_id.'|'.($detail->variation ?? '')),
+                'serial_units' => $serialUnits->get($detail->id, collect()),
             ];
         })->all();
     }

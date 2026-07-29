@@ -28,6 +28,7 @@ class WebPosService
         private CoreMarketPriceListService $priceLists,
         private CoreMarketBranchInventoryService $branchInventory,
         private CoreMarketCreditPaymentService $creditPayments,
+        private CoreMarketSerialInventoryService $serialInventory,
     ) {
     }
 
@@ -304,6 +305,15 @@ class WebPosService
                 );
                 $lines = $this->normalizeCart($cart, true, $customer, $branch);
                 $this->assertStockIsAvailable($lines, $branch);
+                foreach ($lines as &$line) {
+                    $line['serial_units'] = $this->serialInventory->reserveSerialForSale(
+                        $line['stock'],
+                        $line['serial_unit_ids'],
+                        $line['quantity'],
+                        $branch
+                    );
+                }
+                unset($line);
                 $totals = $this->totalsForLines($lines);
                 $redemptionPreview = $this->previewRedemptionForCheckout($customer, $pointsToRedeem, $totals['grand_total']);
                 $finalTotal = $redemptionPreview['final_total'] ?? $totals['grand_total'];
@@ -336,6 +346,7 @@ class WebPosService
 
                 foreach ($lines as $line) {
                     $detail = $this->createOrderDetail($order, $line);
+                    $this->serialInventory->markSerialSold($line['serial_units'], $order, $detail);
                     $this->deductStock($line, $branch);
                     $this->inventory->recordSale(
                         $detail,
@@ -521,10 +532,18 @@ class WebPosService
                 throw new DomainException('POS cart line requires a product stock.');
             }
 
-            return ['product_stock_id' => (int) $stockId, 'quantity' => $this->normalizeQuantity($line['quantity'] ?? null)];
+            return [
+                'product_stock_id' => (int) $stockId,
+                'quantity' => $this->normalizeQuantity($line['quantity'] ?? null),
+                'serial_unit_ids' => array_values(array_unique(array_map('intval', $line['serial_unit_ids'] ?? []))),
+            ];
         });
 
-        $quantities = $requested->groupBy('product_stock_id')->map(fn (Collection $lines) => $lines->sum('quantity'));
+        $grouped = $requested->groupBy('product_stock_id')->map(fn (Collection $lines) => [
+            'quantity' => $lines->sum('quantity'),
+            'serial_unit_ids' => $lines->pluck('serial_unit_ids')->flatten()->unique()->values()->all(),
+        ]);
+        $quantities = $grouped->map(fn (array $line) => $line['quantity']);
         $stocksQuery = ProductStock::query()->with('product.taxes')->whereIn('id', $quantities->keys()->all())->orderBy('id');
         if ($lockStocks) {
             $stocksQuery->lockForUpdate();
@@ -544,9 +563,10 @@ class WebPosService
 
         $branch ??= $this->branchInventory->defaultBranch();
 
-        return $quantities->map(function (float $quantity, int $stockId) use ($stocks, $customer, $branch) {
+        return $grouped->map(function (array $requestedLine, int $stockId) use ($stocks, $customer, $branch) {
             $stock = $stocks->get($stockId);
             $product = $stock->product;
+            $quantity = $requestedLine['quantity'];
             $pricing = $this->priceLists->pricingSnapshot(
                 $stock,
                 $customer,
@@ -564,6 +584,7 @@ class WebPosService
                 'tax' => $this->round($unitTax * $quantity),
                 'variation' => $stock->variant ?? '',
                 'pricing_snapshot' => $pricing,
+                'serial_unit_ids' => $requestedLine['serial_unit_ids'],
             ];
         })->values()->all();
     }
@@ -782,6 +803,15 @@ class WebPosService
     private function lineForProductStock(Product $product, ?ProductStock $stock, string $matchedBy, ?User $customer = null, ?User $operator = null): array
     {
         $branch = $this->branchInventory->resolveBranchForUser($operator);
+        $serialTracked = $stock ? $this->serialInventory->stockRequiresSerial($stock) : false;
+        $serialUnits = collect();
+        if ($serialTracked && $operator && ($operator->user_type === 'admin' || $operator->can('inventory.serials.sell'))) {
+            $serialUnits = $stock->serialUnits()
+                ->where('status', 'in_stock')
+                ->where(fn ($query) => $query->whereNull('store_branch_id')->orWhere('store_branch_id', $branch->id))
+                ->orderBy('serial_number')
+                ->get(['id', 'serial_number', 'imei_1', 'imei_2']);
+        }
         $pricing = $this->priceLists->pricingSnapshot(
             $stock ?? $product,
             $customer,
@@ -804,6 +834,13 @@ class WebPosService
             'pricing' => $pricing,
             'taxes' => $product->taxes->map(fn ($tax) => ['type' => $tax->tax_type, 'value' => (float) $tax->tax])->values()->all(),
             'matched_by' => $matchedBy,
+            'serial_tracking_enabled' => $serialTracked,
+            'available_serial_units' => $serialUnits->map(fn ($unit) => [
+                'id' => $unit->id,
+                'serial_number' => $unit->serial_number,
+                'imei_1' => $unit->imei_1,
+                'imei_2' => $unit->imei_2,
+            ])->values()->all(),
         ];
     }
 
