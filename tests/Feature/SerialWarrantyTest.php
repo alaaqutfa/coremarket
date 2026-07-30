@@ -23,6 +23,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -112,6 +113,39 @@ class SerialWarrantyTest extends TestCase
 
         $this->expectException(DomainException::class);
         $this->posSale($stock, $cashier, [$unit->id]);
+    }
+
+    public function test_operations_api_returns_serial_units_accepts_selection_and_prints_identity(): void
+    {
+        [$stock, $cashier] = $this->trackedStock('cashier');
+        $unit = $this->unit($stock);
+        $this->openShift($cashier);
+        Sanctum::actingAs($cashier, ['operations:pos']);
+
+        $this->getJson(route('api.v2.operations.pos.search', ['q' => $stock->sku]))
+            ->assertOk()
+            ->assertJsonPath('data.items.0.serial_tracking_enabled', true)
+            ->assertJsonPath('data.items.0.available_serial_units.0.id', $unit->id)
+            ->assertJsonPath('data.items.0.branch.id', $this->branch->id);
+
+        $response = $this->postJson(route('api.v2.operations.pos.checkout'), [
+            'payment_method' => 'cash',
+            'paid_amount' => 150,
+            'pos_request_key' => 'api-serial-pos-'.uniqid(),
+            'items' => [[
+                'product_id' => $stock->product_id,
+                'product_stock_id' => $stock->id,
+                'quantity' => 1,
+                'serial_unit_ids' => [$unit->id],
+            ]],
+        ])->assertCreated();
+
+        $this->getJson(route('api.v2.operations.pos.receipt', $response->json('data.order_id')))
+            ->assertOk()
+            ->assertJsonPath('data.payment_method', 'cash')
+            ->assertJsonPath('data.payment_status', 'paid')
+            ->assertJsonPath('data.items.0.serial_units.0.id', $unit->id)
+            ->assertJsonPath('data.items.0.serial_units.0.serial_number', $unit->serial_number);
     }
 
     public function test_sales_return_requires_original_serial_and_restores_it_on_completion(): void

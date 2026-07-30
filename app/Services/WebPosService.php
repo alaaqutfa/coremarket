@@ -7,6 +7,7 @@ use App\Models\LoyaltyPointMovement;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Product;
+use App\Models\ProductSerialUnit;
 use App\Models\ProductStock;
 use App\Models\StoreBranch;
 use App\Models\User;
@@ -148,18 +149,32 @@ class WebPosService
     public function currentSessionPayload(User $user): array
     {
         $shift = $this->cashboxes->currentOpenShiftForUser($user);
+        $branch = $this->branchInventory->resolveBranchForUser($user);
+        $context = [
+            'branch' => [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'code' => $branch->code,
+            ],
+            'capabilities' => [
+                'pay_on_account' => $this->creditPayments->canUsePos($user),
+                'serial_sales' => $this->serialInventory->serialTrackingEnabled()
+                    && ($user->user_type === 'admin' || $user->can('inventory.serials.sell')),
+                'branch_inventory' => $this->branchInventory->branchInventoryEnabled(),
+            ],
+        ];
 
         if (! $shift) {
-            return [
+            return array_merge([
                 'has_open_shift' => false,
                 'shift' => null,
                 'cashbox' => null,
                 'opened_at' => null,
                 'expected_cash' => null,
-            ];
+            ], $context);
         }
 
-        return [
+        return array_merge([
             'has_open_shift' => true,
             'shift' => [
                 'id' => $shift->id,
@@ -174,7 +189,7 @@ class WebPosService
             ] : null,
             'opened_at' => $shift->opened_at?->toIso8601String(),
             'expected_cash' => $this->cashboxes->calculateExpectedCash($shift),
-        ];
+        ], $context);
     }
 
     public function searchPayload(Collection $items): array
@@ -187,9 +202,16 @@ class WebPosService
             'barcode' => $item['barcode'],
             'variation' => $item['variation'],
             'available_stock' => $item['available_stock'],
+            'branch' => [
+                'id' => $item['store_branch_id'],
+                'name' => $item['store_branch_name'],
+            ],
             'price' => $item['price'],
+            'pricing' => $item['pricing'],
             'tax' => $item['taxes'],
             'image' => $item['image'] ?? null,
+            'serial_tracking_enabled' => $item['serial_tracking_enabled'],
+            'available_serial_units' => $item['available_serial_units'],
         ])->values()->all();
     }
 
@@ -407,6 +429,8 @@ class WebPosService
             'final_total' => $finalTotal,
             'paid_amount' => (float) $order->paid_amount,
             'change_amount' => (float) $order->change_amount,
+            'payment_method' => $order->payment_type,
+            'payment_status' => $order->payment_status,
             'customer' => $order->user ? $this->customerPayload($order->user) : null,
             'loyalty' => $this->loyaltySummaryForOrder($order),
         ];
@@ -423,6 +447,10 @@ class WebPosService
             $stock = $product?->stocks->firstWhere('variant', $detail->variation ?? '');
             $price = (float) $detail->price;
             $tax = (float) $detail->tax;
+            $serialUnits = ProductSerialUnit::query()
+                ->where('order_detail_id', $detail->id)
+                ->orderBy('id')
+                ->get(['id', 'serial_number', 'imei_1', 'imei_2']);
 
             return [
                 'name' => $product?->name,
@@ -432,6 +460,12 @@ class WebPosService
                 'price' => $price,
                 'tax' => $tax,
                 'total' => $this->round($price + $tax),
+                'serial_units' => $serialUnits->map(fn (ProductSerialUnit $unit) => [
+                    'id' => $unit->id,
+                    'serial_number' => $unit->serial_number,
+                    'imei_1' => $unit->imei_1,
+                    'imei_2' => $unit->imei_2,
+                ])->values()->all(),
             ];
         })->values()->all();
 
@@ -458,6 +492,8 @@ class WebPosService
             'final_total' => $finalTotal,
             'paid_amount' => (float) $order->paid_amount,
             'change_amount' => (float) $order->change_amount,
+            'payment_method' => $order->payment_type,
+            'payment_status' => $order->payment_status,
             'created_at' => $order->created_at?->toIso8601String(),
         ];
     }

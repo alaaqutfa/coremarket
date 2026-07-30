@@ -82,13 +82,39 @@ class PosApiController extends Controller
         return $this->success(['items' => $items]);
     }
 
+    public function customerCreditPreview(Request $request, WebPosService $pos): JsonResponse
+    {
+        $this->authorizePos('pos.sell');
+
+        $validator = Validator::make($request->query(), [
+            'customer_id' => ['required', 'integer', 'min:1'],
+            'amount' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator->errors()->toArray());
+        }
+
+        try {
+            $data = $validator->validated();
+            $customer = $pos->validatePosCustomer((int) $data['customer_id']);
+
+            return $this->success(
+                $pos->creditDecisionForCustomer($customer, $data['amount'], $request->user())
+            );
+        } catch (DomainException $exception) {
+            return $this->domainError($exception);
+        }
+    }
+
     public function checkout(Request $request, WebPosService $pos): JsonResponse
     {
         $this->authorizePos('pos.sell');
 
         $validator = Validator::make($request->all(), [
             'pos_request_key' => ['required', 'string', 'max:191'],
-            'paid_amount' => ['required', 'numeric', 'min:0'],
+            'payment_method' => ['nullable', 'in:cash,pay_on_account'],
+            'paid_amount' => ['nullable', 'required_unless:payment_method,pay_on_account', 'numeric', 'min:0'],
             'customer_id' => ['nullable', 'integer', 'min:1'],
             'points_to_redeem' => ['nullable', 'integer', 'min:0'],
             'items' => ['required', 'array', 'min:1'],
@@ -108,11 +134,12 @@ class PosApiController extends Controller
         }
 
         try {
+            $paymentMethod = $validator->validated()['payment_method'] ?? 'cash';
             $order = $pos->createPosOrder(
                 $validator->validated()['items'],
                 [
-                    'payment_type' => 'cash',
-                    'paid_amount' => $validator->validated()['paid_amount'],
+                    'payment_type' => $paymentMethod,
+                    'paid_amount' => $validator->validated()['paid_amount'] ?? 0,
                     'customer_id' => $validator->validated()['customer_id'] ?? null,
                     'points_to_redeem' => $validator->validated()['points_to_redeem'] ?? 0,
                 ],

@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -145,6 +146,58 @@ class CreditPaymentMethodTest extends TestCase
         $this->assertSame(0, DB::table('cash_movements')->where('reference_type', Order::class)->where('reference_id', $order->id)->count());
         $this->assertSame(0, CustomerPayment::query()->where('customer_id', $customer->id)->count());
         $this->assertSame(1, Order::query()->where('pos_request_key', $key)->count());
+    }
+
+    public function test_operations_api_exposes_credit_preview_and_posts_pay_on_account_idempotently(): void
+    {
+        $cashier = $this->staff('api-account-sale-cashier', 'cashier');
+        $cashier->branches()->sync([$this->branch->id => ['is_primary' => true]]);
+        $this->openShift($cashier);
+        $customer = $this->customer('api-account-sale-customer');
+        $this->profile($customer, true, 500, 'active');
+        $stock = $this->stock(5, 40);
+        $key = 'api-account-pos-'.uniqid();
+        Sanctum::actingAs($cashier, ['operations:pos']);
+
+        $this->getJson(route('api.v2.operations.pos.customers.credit-preview', [
+            'customer_id' => $customer->id,
+            'amount' => 40,
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.allowed', true)
+            ->assertJsonPath('data.reason', 'ok')
+            ->assertJsonStructure(['data' => [
+                'current_balance',
+                'credit_limit',
+                'available_credit',
+                'overdue_amount',
+                'projected_balance',
+                'message',
+            ]]);
+
+        $payload = [
+            'payment_method' => 'pay_on_account',
+            'customer_id' => $customer->id,
+            'pos_request_key' => $key,
+            'items' => [[
+                'product_id' => $stock->product_id,
+                'product_stock_id' => $stock->id,
+                'quantity' => 1,
+            ]],
+        ];
+        $first = $this->postJson(route('api.v2.operations.pos.checkout'), $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.payment_method', 'pay_on_account')
+            ->assertJsonPath('data.payment_status', 'unpaid')
+            ->assertJsonPath('data.paid_amount', 0);
+        $this->postJson(route('api.v2.operations.pos.checkout'), $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.order_id', $first->json('data.order_id'));
+
+        $order = Order::query()->findOrFail($first->json('data.order_id'));
+        $this->assertSame(1, CustomerLedgerEntry::query()->where('order_id', $order->id)->count());
+        $this->assertSame(0, DB::table('cash_movements')->where('reference_type', Order::class)->where('reference_id', $order->id)->count());
+        $this->assertSame(0, CustomerPayment::query()->where('customer_id', $customer->id)->count());
     }
 
     public function test_pos_server_rejects_walk_in_ineligible_and_unpermitted_account_sales(): void

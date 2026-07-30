@@ -55,6 +55,7 @@ Route::group(['prefix' => 'v2', 'middleware' => ['app_language']], function () {
                 Route::get('session', [PosApiController::class, 'session'])->name('api.v2.operations.pos.session');
                 Route::get('search', [PosApiController::class, 'search'])->name('api.v2.operations.pos.search');
                 Route::get('customers/search', [PosApiController::class, 'customersSearch'])->name('api.v2.operations.pos.customers.search');
+                Route::get('customers/credit-preview', [PosApiController::class, 'customerCreditPreview'])->name('api.v2.operations.pos.customers.credit-preview');
                 Route::post('checkout', [PosApiController::class, 'checkout'])->name('api.v2.operations.pos.checkout');
                 Route::get('orders/{order}/receipt', [PosApiController::class, 'receipt'])->name('api.v2.operations.pos.receipt');
             });

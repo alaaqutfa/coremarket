@@ -143,7 +143,11 @@ class OperationsPosApiTest extends TestCase
         $this->getJson(route('api.v2.operations.pos.session'))
             ->assertOk()
             ->assertJsonPath('data.has_open_shift', false)
-            ->assertJsonPath('data.shift', null);
+            ->assertJsonPath('data.shift', null)
+            ->assertJsonStructure(['data' => [
+                'branch' => ['id', 'name', 'code'],
+                'capabilities' => ['pay_on_account', 'serial_sales', 'branch_inventory'],
+            ]]);
 
         $shift = $this->openShift($user, 15);
         $this->getJson(route('api.v2.operations.pos.session'))
@@ -164,7 +168,13 @@ class OperationsPosApiTest extends TestCase
             $this->getJson(route('api.v2.operations.pos.search', ['q' => $query]))
                 ->assertOk()
                 ->assertJsonPath('ok', true)
-                ->assertJsonPath('data.items.0.product_stock_id', $stock->id);
+                ->assertJsonPath('data.items.0.product_stock_id', $stock->id)
+                ->assertJsonStructure(['data' => ['items' => [[
+                    'branch' => ['id', 'name'],
+                    'pricing',
+                    'serial_tracking_enabled',
+                    'available_serial_units',
+                ]]]]);
         }
 
         $this->getJson(route('api.v2.operations.pos.search'))->assertUnprocessable();
