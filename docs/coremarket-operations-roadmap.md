@@ -588,3 +588,29 @@ Next:
 - REST-01 Restaurant Mode Feature Flag only after restaurant pilot validation.
 - PROD-01 Production Mode Feature Flag only after manufacturing pilot
   validation.
+
+## Pilot readiness and business demo flows
+
+Step 75 packages the implemented Operations foundations into a controlled
+commercial Pilot process without adding runtime features, schema, or UI.
+
+- Pilot positioning separates Ready, Pilot/configuration-dependent, and Deferred
+  capabilities.
+- Seven business demos cover retail, electronics, B2B, multi-branch, Delivery
+  COD, purchasing/suppliers, and inventory control.
+- A 15, 30, and 60-minute sales script keeps claims aligned with implemented
+  workflows and known limitations.
+- A risk-classified QA checklist requires evidence for stock, cash, customer
+  ledger, supplier, branch, serial, document, and permission behavior.
+- The Pilot offer uses editable commercial placeholders and explicit
+  customization exclusions.
+- No demo synchronization, database write, migration, source feature, Flutter
+  change, deployment, Restaurant Mode, or Production Mode is included.
+
+Next:
+
+- 76 Pilot QA Cleanup.
+- 77 Demo Sync When Requested.
+- 78 Client Onboarding Pack.
+- 79 Flutter POS Feature Catch-up.
+- 80 Restaurant/KOT or Production/BOM only if a validated client requires it.
