@@ -81,8 +81,10 @@ Flutter POS readiness:
 
 ## Known Limitations
 
-- Runtime and demo databases are not synchronized to the latest schema.
-- The actual local testing database is older than the committed SQL baseline.
+- The runtime database is not synchronized to the latest schema.
+- `coremarket_testing` now uses the committed 149-table/33-migration baseline.
+- `coremarket_demo` has the latest CoreMarket feature tables, but retains three
+  known legacy Payku migration-ledger anomalies.
 - Pay on Account and serialized sales require an online connection.
 - Flutter offline queue supports cash sales only.
 - Flutter returns/refunds and warranty workflows remain Web-only.
@@ -92,6 +94,27 @@ Flutter POS readiness:
 - `CashboxUiTest` retains a documented baseline-sensitive warning. The
   canonical `/operations/cashbox` and `/operations/cashboxes` routes are both
   registered; neither route was renamed.
+
+## QA79 Database Rehearsal
+
+QA79 completed on 2026-07-31:
+
+- backed up `.env`, `coremarket_testing`, `coremarket_demo`, and both migration
+  ledgers under
+  `storage/app/backups/qa79_demo_sync/20260731_103933/`
+- restored `coremarket_testing` from the committed `coremarket_test.sql`
+- verified 149 tables, 33 migration rows, and all recent critical tables
+- recorded 258 passing focused tests and two non-blocking, baseline-sensitive
+  expectations in StorefrontPrice and Cashbox
+- applied only the six clone-tested Step 67-73 migrations to `coremarket_demo`
+- ran Operations permissions and Staff Role preset seeders
+- verified demo at 149 tables and 30 migration rows
+- ran Branch Inventory initialization in dry-run mode only: 30 scanned,
+  30 proposed, 0 skipped, and 0 differences
+- completed authenticated read-only smoke checks for the enabled demo flows
+
+The full evidence and route status are in
+`docs/pilot/coremarket-demo-sync-report.md`.
 
 ## Deployment Runbook
 
@@ -132,6 +155,10 @@ a supervised login/cash-sale/receipt smoke test.
 
 - Backend/Web Pilot: **GO for a supervised pilot** on a prepared, migrated
   instance after the database rehearsal and manual acceptance checklist.
+- Local Demo Pilot: **GO for currently enabled supervised flows**. Advanced
+  Inventory Governance, Branch Inventory/Transfers, and Customer Receivables
+  pages remain feature-gated; Branch Inventory must not be enabled until the
+  reviewed initialization is applied.
 - Flutter Windows POS Pilot: **GO for supervised online cash, account, and
   serialized sales**, with cash-only offline support.
 - Live Deployment: **NO-GO in this step**. No deployment was performed, and
