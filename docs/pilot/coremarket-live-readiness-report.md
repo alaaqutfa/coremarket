@@ -116,6 +116,32 @@ QA79 completed on 2026-07-31:
 The full evidence and route status are in
 `docs/pilot/coremarket-demo-sync-report.md`.
 
+## Demo80 Pilot Features And Branding
+
+Demo80 completed on 2026-07-31:
+
+- backed up the demo environment, full database, migration ledger, and
+  settings before any write
+- repeatedly confirmed the configured, active Laravel, and selected MySQL
+  database as `coremarket_demo`
+- synchronized stale demo application code additively while preserving
+  `.env`, storage, uploads, vendor, build output, `database/base`, and logos
+- enabled only the requested demo feature settings
+- repeated Branch Inventory dry-run with 30 scanned, 30 proposed, 0 skipped,
+  and 0 differences, then applied the reviewed initialization
+- verified 30 initialized branch balances and zero aggregate mirror
+  mismatches
+- added a guarded, idempotent Pilot preparation command for the missing
+  branch-pricing, customer-credit, AR, return-credit, Serial/IMEI, and warranty
+  examples
+- received HTTP 200 from all 18 authenticated Admin, Operations, Branch,
+  Governance, AR, Returns, and Warranty smoke targets
+- audited both already tracked CoreMarket logo assets without editing or
+  staging them
+
+The complete evidence, settings list, demo data inventory, routes, and
+rollback notes are in `docs/pilot/coremarket-demo-pilot-readiness.md`.
+
 ## Deployment Runbook
 
 These commands are documented only and were not run:
@@ -155,10 +181,10 @@ a supervised login/cash-sale/receipt smoke test.
 
 - Backend/Web Pilot: **GO for a supervised pilot** on a prepared, migrated
   instance after the database rehearsal and manual acceptance checklist.
-- Local Demo Pilot: **GO for currently enabled supervised flows**. Advanced
-  Inventory Governance, Branch Inventory/Transfers, and Customer Receivables
-  pages remain feature-gated; Branch Inventory must not be enabled until the
-  reviewed initialization is applied.
+- Local Demo Pilot: **GO for a supervised full Web presentation**. Advanced
+  Inventory Governance, Branch Inventory/Transfers, Branch Pricing, Customer
+  Receivables/Credit, Pay on Account, Serial/IMEI, and Warranty are enabled in
+  `coremarket_demo`; the reviewed Branch Inventory initialization is applied.
 - Flutter Windows POS Pilot: **GO for supervised online cash, account, and
   serialized sales**, with cash-only offline support.
 - Live Deployment: **NO-GO in this step**. No deployment was performed, and
