@@ -31,6 +31,8 @@ class CoreMarketClientSetupCommand extends Command
                             {--create-client-admin : Explicitly create or update the client administrator}
                             {--skip-support-admin : Do not create or update the support administrator}
                             {--skip-client-admin : Do not create or update the client administrator}
+                            {--client-admin-full-access : Promote the client administrator to full system Admin; internal owned stores only}
+                            {--repair-admin-access : Reapply the audited support/client access model to existing accounts}
                             {--domain= : Client domain without secrets}
                             {--plan=enterprise : Applied plan label}
                             {--write-env : Back up and update receiver configuration in .env}
@@ -80,6 +82,7 @@ class CoreMarketClientSetupCommand extends Command
                         $input['support_admin_password'],
                         $input['project'].' CorePilot Support',
                         'support',
+                        true,
                         $input['force'],
                         $preflight['role_system_ready']
                     )
@@ -90,6 +93,7 @@ class CoreMarketClientSetupCommand extends Command
                         $input['client_admin_password'],
                         $input['project'].' Owner',
                         'client',
+                        $input['client_admin_full_access'],
                         $input['force'],
                         $preflight['role_system_ready']
                     )
@@ -118,14 +122,15 @@ class CoreMarketClientSetupCommand extends Command
 
         $this->newLine();
         $this->info('CoreMarket client setup completed.');
-        $this->table(['Account', 'Email', 'Status', 'Assigned role'], [
-            ['CorePilot Support Admin', $input['support_admin_email'] ?: '[skipped]', $result['supportAdmin']['status'], $result['supportAdmin']['role'] ?? '[none]'],
-            ['Client Owner/Admin', $input['client_admin_email'] ?: '[skipped]', $result['clientAdmin']['status'], $result['clientAdmin']['role'] ?? '[none]'],
+        $this->table(['Account', 'Email', 'Status', 'Access type', 'Assigned role'], [
+            ['CorePilot Support Admin', $input['support_admin_email'] ?: '[skipped]', $result['supportAdmin']['status'], $result['supportAdmin']['access_type'], $result['supportAdmin']['role'] ?? '[none]'],
+            ['Client Owner/Admin', $input['client_admin_email'] ?: '[skipped]', $result['clientAdmin']['status'], $result['clientAdmin']['access_type'], $result['clientAdmin']['role'] ?? '[none]'],
         ]);
         $this->table(['Result', 'Value'], [
             ['Seeders', $result['seeders']],
             ['Enterprise enabled', $result['settings']['enabled'] ? 'yes' : 'no'],
             ['Enterprise settings updated', $result['settings']['updated']],
+            ['Admin access repair', $input['repair_admin_access'] ? 'requested and applied' : 'access model enforced'],
             ['Canonical token key', 'COREPILOT_RUNTIME_SYNC_TOKEN'],
             ['Sync token status', $environment['token_status']],
             ['Sync token preview', $environment['token_preview']],
@@ -140,6 +145,9 @@ class CoreMarketClientSetupCommand extends Command
         }
         if (! $input['write_env']) {
             $this->warn('Receiver values were not persisted. Re-run with --write-env after reviewing the target .env.');
+        }
+        if ($input['client_admin_full_access']) {
+            $this->warn('Client Admin full access is enabled. Use this only for an internal CorePilot-owned store.');
         }
 
         $baseUrl = 'https://'.trim($input['domain'], '/');
@@ -201,6 +209,9 @@ class CoreMarketClientSetupCommand extends Command
 
         $createSupport = ! $this->option('skip-support-admin') && $supportEmail !== '';
         $createClient = ! $this->option('skip-client-admin') && $clientEmail !== '';
+        if ($this->option('client-admin-full-access') && ! $createClient) {
+            $errors[] = '--client-admin-full-access requires an active --client-admin-email.';
+        }
         if ($this->option('create-support-admin') && $supportEmail === '') {
             $errors[] = '--create-support-admin requires --support-admin-email.';
         }
@@ -253,6 +264,8 @@ class CoreMarketClientSetupCommand extends Command
             'client_admin_password' => $clientPassword,
             'create_support_admin' => $createSupport,
             'create_client_admin' => $createClient,
+            'client_admin_full_access' => (bool) $this->option('client-admin-full-access'),
+            'repair_admin_access' => (bool) $this->option('repair-admin-access'),
             'domain' => preg_replace('#^https?://#i', '', rtrim($domain, '/')),
             'plan' => $plan,
             'write_env' => (bool) $this->option('write-env'),
@@ -370,6 +383,7 @@ class CoreMarketClientSetupCommand extends Command
         string $password,
         string $displayName,
         string $accountType,
+        bool $fullAccess,
         bool $force,
         bool $roleSystemReady
     ): array {
@@ -381,7 +395,8 @@ class CoreMarketClientSetupCommand extends Command
             throw new \RuntimeException('A password is required when creating the '.ucfirst($accountType).' Admin.');
         }
 
-        $role = $roleSystemReady ? $this->resolveAdminRole($accountType) : null;
+        $role = $roleSystemReady ? $this->resolveAdminRole($accountType, $fullAccess) : null;
+        $targetUserType = $fullAccess ? 'admin' : 'staff';
         $columns = array_flip(Schema::getColumnListing('users'));
         $now = now();
 
@@ -393,7 +408,7 @@ class CoreMarketClientSetupCommand extends Command
             $this->putIfColumn($values, $columns, 'email', $email);
             $this->putIfColumn($values, $columns, 'phone', '0000000000');
             $this->putIfColumn($values, $columns, 'password', Hash::make($password));
-            $this->putIfColumn($values, $columns, 'user_type', 'admin');
+            $this->putIfColumn($values, $columns, 'user_type', $targetUserType);
             $this->putIfColumn($values, $columns, 'status', 1);
             $this->putIfColumn($values, $columns, 'is_active', 1);
             $this->putIfColumn($values, $columns, 'banned', 0);
@@ -406,12 +421,13 @@ class CoreMarketClientSetupCommand extends Command
         } else {
             $userId = $existing->id;
             $updates = [];
+            $this->putIfColumn($updates, $columns, 'user_type', $targetUserType);
+            $this->putIfColumn($updates, $columns, 'status', 1);
+            $this->putIfColumn($updates, $columns, 'is_active', 1);
+            $this->putIfColumn($updates, $columns, 'banned', 0);
+            $this->putIfColumn($updates, $columns, 'email_verified_at', $existing->email_verified_at ?? $now);
+            $this->putRoleColumn($updates, $columns, $role);
             if ($force) {
-                $this->putIfColumn($updates, $columns, 'user_type', 'admin');
-                $this->putIfColumn($updates, $columns, 'status', 1);
-                $this->putIfColumn($updates, $columns, 'is_active', 1);
-                $this->putIfColumn($updates, $columns, 'banned', 0);
-                $this->putRoleColumn($updates, $columns, $role);
                 if ($password !== '') {
                     $this->putIfColumn($updates, $columns, 'password', Hash::make($password));
                 }
@@ -420,32 +436,53 @@ class CoreMarketClientSetupCommand extends Command
                 $this->putIfColumn($updates, $columns, 'updated_at', $now);
                 DB::table('users')->where('id', $userId)->update($updates);
             }
-            $status = $force ? 'existing account updated' : 'existing account kept; password unchanged';
+            $status = $force ? 'existing account updated' : 'existing access repaired; password unchanged';
         }
 
         if ($role && Schema::hasTable('model_has_roles')) {
             User::query()->findOrFail($userId)->syncRoles([$role]);
+            $staffExists = Schema::hasTable('staff') && DB::table('staff')->where('user_id', $userId)->exists();
+            if (Schema::hasTable('staff') && (! $fullAccess || $staffExists)) {
+                $staffColumns = array_flip(Schema::getColumnListing('staff'));
+                $staffValues = ['role_id' => $role->id];
+                $this->putIfColumn($staffValues, $staffColumns, 'updated_at', $now);
+                if (! $staffExists) {
+                    $this->putIfColumn($staffValues, $staffColumns, 'created_at', $now);
+                }
+                DB::table('staff')->updateOrInsert(['user_id' => $userId], $staffValues);
+            }
         } else {
             $this->warnings[] = ucfirst($accountType).' Admin was saved, but no suitable role could be assigned.';
         }
 
-        return ['id' => $userId, 'status' => $status, 'role' => $role?->name];
+        $accessType = $fullAccess
+            ? ($accountType === 'support' ? 'system_admin/full_admin' : 'full_admin')
+            : 'store_admin/client_admin';
+
+        return ['id' => $userId, 'status' => $status, 'role' => $role?->name, 'access_type' => $accessType];
     }
 
     private function skippedAdmin(): array
     {
-        return ['id' => null, 'status' => 'skipped', 'role' => null];
+        return ['id' => null, 'status' => 'skipped', 'role' => null, 'access_type' => 'skipped'];
     }
 
-    private function resolveAdminRole(string $accountType): ?Role
+    private function resolveAdminRole(string $accountType, bool $fullAccess): ?Role
     {
         if (! Schema::hasTable('roles')) {
             return null;
         }
 
-        $preferred = $accountType === 'support'
-            ? ['owner_general_manager', 'store_admin']
-            : ['store_admin', 'owner_general_manager'];
+        if ($fullAccess) {
+            return Role::query()->firstOrCreate([
+                'name' => 'Super Admin',
+                'guard_name' => 'web',
+            ]);
+        }
+
+        $preferred = $accountType === 'client'
+            ? ['store_admin', 'owner_general_manager']
+            : ['owner_general_manager', 'store_admin'];
         foreach ($preferred as $roleName) {
             $role = Role::query()->where('guard_name', 'web')->where('name', $roleName)->first();
             if ($role) {

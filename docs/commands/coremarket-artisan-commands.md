@@ -22,6 +22,7 @@ Commands in `app/Console/Commands` are auto-discovered by
 | --- | --- | --- | --- |
 | `coremarket:accounting-core-audit` | No | Safe read-only | No |
 | `coremarket:accounting-events-audit` | No | Safe read-only | No |
+| `coremarket:admin-access-diagnostics` | No | Safe and recommended | No |
 | `coremarket:audit-baseline-readiness` | No | Safe read-only | No |
 | `coremarket:branch-inventory-initialize` | Only with `--apply` | Controlled one-time initialization | Yes for apply |
 | `coremarket:clean-baseline` | Only with confirmed apply | Baseline build/cleanup only | Yes |
@@ -153,6 +154,8 @@ coremarket:client-setup
   --client-admin-email= --client-admin-password=
   [--create-support-admin] [--skip-support-admin]
   [--create-client-admin] [--skip-client-admin]
+  [--client-admin-full-access]
+  [--repair-admin-access]
   [--admin-email= | --email=]
   [--password= | --pass=]
   --domain=
@@ -166,11 +169,17 @@ coremarket:client-setup
 - **Purpose:** Runs Operations and Staff Role seeders; creates separate
   CorePilot Support and Client Owner/Admin accounts; optionally enables
   Enterprise settings; and safely prepares the CorePilot runtime receiver.
-- **Admin roles:** Support Admin prefers `owner_general_manager` with
-  `store_admin` fallback. Client Admin prefers `store_admin` with
-  `owner_general_manager` fallback. The current `store_admin` preset contains
-  the operational access required for a client owner without silently giving
-  the support-oriented highest role.
+- **Admin access model:** Support Admin is always `user_type=admin` with the
+  legacy `Super Admin` role. That combination passes admin middleware, bypasses
+  Store Admin route restrictions, and receives every legacy `@can` permission
+  through `AuthServiceProvider::Gate::before`. Client Admin is
+  `user_type=staff` with Spatie `store_admin` and a matching `staff.role_id`.
+- **Optional promotion:** `--client-admin-full-access` changes Client Admin to
+  `user_type=admin` plus `Super Admin`. It is reserved for internal
+  CorePilot-owned stores and emits a warning.
+- **Repair:** `--repair-admin-access` documents an intentional repair run. The
+  command idempotently reapplies the audited access model to existing emails
+  without replacing passwords unless `--force` is also supplied.
 - **Legacy aliases:** `--admin-email`/`--email` and `--password`/`--pass` remain
   accepted as Support Admin options and emit a deprecation warning.
 - **When:** Once after importing a clean client baseline and configuring the
@@ -179,7 +188,8 @@ coremarket:client-setup
   selected `business_settings` are created or updated.
 - **Role fallback:** If the roles or permissions tables are unavailable, the
   command skips their seeders and role assignment with a warning, but can still
-  create the first user as `user_type=admin`.
+  establish the relevant `user_type`. Full legacy menu permission requires the
+  normal role tables and `Super Admin` role.
 - **Production:** Intended for controlled first installation after backup and
   DB-target verification.
 - **Backup:** Full DB backup required. With `--write-env`, the command also
@@ -214,6 +224,22 @@ php artisan coremarket:client-setup `
 
 - **Forbidden:** Do not commit `.env`, paste the token into tickets/logs, use
   `--force` casually, or run before importing the schema.
+
+### `coremarket:admin-access-diagnostics`
+
+- **File:** `app/Console/Commands/CoreMarketAdminAccessDiagnosticsCommand.php`
+- **Signature:** `coremarket:admin-access-diagnostics --email=`
+- **Purpose:** Read-only detection of `user_type`, staff `role_id`, Spatie role
+  names, banned/verified status, effective access type, admin dashboard access,
+  and full-admin status.
+- **When:** After setup/repair or when an Admin sees an unexpected sidebar.
+- **DB writes:** No.
+- **Production:** Safe. It does not display passwords or tokens.
+- **Backup:** Not required.
+- **Example:** `php artisan coremarket:admin-access-diagnostics
+  --email=support@corepilot-os.com`
+- **Forbidden:** Do not infer full access from a role label alone; require the
+  reported `system_admin` access type and full-controls result.
 
 ### `coremarket:receiver-diagnostics`
 

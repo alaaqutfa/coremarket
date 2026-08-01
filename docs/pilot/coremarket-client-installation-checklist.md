@@ -35,12 +35,12 @@
      --enable-enterprise
    ```
 
-   Support Admin is owned by CorePilot for setup and troubleshooting and
-   normally receives `owner_general_manager`. Client Admin is owned by the
-   customer and normally receives `store_admin`. Legacy `--admin-email` and
-   `--email` are Support Admin aliases only. Use `--force` only to deliberately
-   replace a reviewed password, rotate both sync tokens, or convert a reviewed
-   existing non-admin account.
+   Support Admin is owned by CorePilot for setup and troubleshooting and is
+   created as `user_type=admin` with `Super Admin`. Client Admin is owned by
+   the customer and is created as `user_type=staff` with `store_admin` plus a
+   matching `staff.role_id`. Legacy `--admin-email` and `--email` are Support
+   Admin aliases only. Use `--force` only to deliberately replace a reviewed
+   password, rotate both sync tokens, or convert a reviewed non-admin account.
 
 6. [ ] Clear caches:
 
@@ -96,6 +96,47 @@
 - Do not run demo/QA/testing restore commands on the client database.
 - Do not commit `.env`, backup files, SQL dumps, logs, or generated builds.
 - Do not enable Branch Inventory apply before a clean reviewed dry-run.
+
+## Admin Account Types
+
+**CorePilot Support Admin** is a system account for the CorePilot support team.
+Its audited legacy identity is `user_type=admin` plus Spatie role `Super Admin`.
+Both parts matter: admin middleware accepts `user_type=admin`, while the legacy
+sidebar's `@can` checks are globally granted by the `Super Admin` Gate rule.
+
+**Client Admin** belongs to the customer and defaults to `user_type=staff`,
+Spatie role `store_admin`, and the same role ID in the `staff` record. It can
+run store operations but remains subject to `RestrictStoreAdmin`, which blocks
+sensitive platform routes such as system updates, roles, payment activation,
+and low-level configuration.
+
+Do not use shared or weak passwords. Use `--client-admin-full-access` only for
+an internal CorePilot-owned store; it deliberately promotes that client account
+to `admin + Super Admin` and is not appropriate for normal client installs.
+
+Repair an installation created before Hotfix 83 by rerunning setup with the
+existing emails and no password options unless a password rotation is intended:
+
+```powershell
+php artisan coremarket:client-setup `
+  --project="Client Store" `
+  --support-admin-email="support@corepilot-os.com" `
+  --client-admin-email="owner@example.com" `
+  --domain="store.example.com" `
+  --plan="enterprise" `
+  --repair-admin-access
+```
+
+This promotes the Support Admin to `admin + Super Admin`, repairs the Client
+Admin to `staff + store_admin`, verifies both accounts, and clears banned state.
+It does not replace existing passwords without `--force`.
+
+Verify each account after repair:
+
+```powershell
+php artisan coremarket:admin-access-diagnostics --email=support@corepilot-os.com
+php artisan coremarket:admin-access-diagnostics --email=owner@example.com
+```
 
 ## CorePilotOS Runtime Receiver Setup
 

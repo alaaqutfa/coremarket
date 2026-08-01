@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Tests\TestCase;
 
@@ -48,7 +49,7 @@ class ClientSetupCommandTest extends TestCase
         $admin = User::query()->where('email', $email)->firstOrFail();
         $this->assertSame('admin', $admin->user_type);
         $this->assertTrue(Hash::check('SecurePass123!', $admin->password));
-        $this->assertTrue($admin->hasRole('owner_general_manager'));
+        $this->assertTrue($admin->hasRole('Super Admin'));
         $this->assertDatabaseHas('permissions', ['name' => 'operations.view', 'guard_name' => 'web']);
         $this->assertStringNotContainsString('COREPILOT_RUNTIME_SYNC_TOKEN=', File::get(config('coremarket.client_setup.env_path')));
     }
@@ -63,8 +64,14 @@ class ClientSetupCommandTest extends TestCase
 
         $support = User::query()->where('email', $supportEmail)->firstOrFail();
         $client = User::query()->where('email', $clientEmail)->firstOrFail();
-        $this->assertTrue($support->hasRole('owner_general_manager'));
+        $this->assertSame('admin', $support->user_type);
+        $this->assertSame('staff', $client->user_type);
+        $this->assertTrue($support->hasRole('Super Admin'));
         $this->assertTrue($client->hasRole('store_admin'));
+        $this->assertDatabaseHas('staff', [
+            'user_id' => $client->id,
+            'role_id' => $client->roles()->where('name', 'store_admin')->firstOrFail()->id,
+        ]);
         $this->assertTrue(Hash::check('SupportPass123!', $support->password));
         $this->assertTrue(Hash::check('ClientPass123!', $client->password));
     }
@@ -79,6 +86,69 @@ class ClientSetupCommandTest extends TestCase
 
         $this->assertTrue(Hash::check('OriginalSupport123!', DB::table('users')->where('email', $supportEmail)->value('password')));
         $this->assertTrue(Hash::check('OriginalClient123!', DB::table('users')->where('email', $clientEmail)->value('password')));
+        $this->assertSame('admin', DB::table('users')->where('email', $supportEmail)->value('user_type'));
+        $this->assertSame('staff', DB::table('users')->where('email', $clientEmail)->value('user_type'));
+    }
+
+    public function test_client_admin_full_access_requires_explicit_option(): void
+    {
+        $supportEmail = $this->uniqueEmail('support-full');
+        $clientEmail = $this->uniqueEmail('client-full');
+        $options = array_merge($this->separateAdminOptions($supportEmail, $clientEmail), [
+            '--client-admin-full-access' => true,
+        ]);
+
+        $this->artisan('coremarket:client-setup', $options)
+            ->expectsOutput('Client Admin full access is enabled. Use this only for an internal CorePilot-owned store.')
+            ->assertExitCode(0);
+
+        $client = User::query()->where('email', $clientEmail)->firstOrFail();
+        $this->assertSame('admin', $client->user_type);
+        $this->assertTrue($client->hasRole('Super Admin'));
+    }
+
+    public function test_repair_admin_access_promotes_hotfix82_support_and_keeps_client_limited(): void
+    {
+        $supportEmail = $this->insertAdmin('repair-support', 'OriginalSupport123!', 'staff');
+        $clientEmail = $this->insertAdmin('repair-client', 'OriginalClient123!', 'admin');
+        $ownerRole = Role::query()->firstOrCreate(['name' => 'owner_general_manager', 'guard_name' => 'web']);
+        $legacySupport = User::query()->where('email', $supportEmail)->firstOrFail();
+        $legacySupport->syncRoles([$ownerRole]);
+        DB::table('staff')->insert([
+            'user_id' => $legacySupport->id,
+            'role_id' => $ownerRole->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $options = array_merge($this->separateAdminOptions($supportEmail, $clientEmail), [
+            '--repair-admin-access' => true,
+        ]);
+        $this->artisan('coremarket:client-setup', $options)->assertExitCode(0);
+
+        $support = User::query()->where('email', $supportEmail)->firstOrFail();
+        $client = User::query()->where('email', $clientEmail)->firstOrFail();
+        $this->assertSame('admin', $support->user_type);
+        $this->assertTrue($support->hasRole('Super Admin'));
+        $this->assertSame(
+            $support->roles()->where('name', 'Super Admin')->firstOrFail()->id,
+            DB::table('staff')->where('user_id', $support->id)->value('role_id')
+        );
+        $this->assertSame('staff', $client->user_type);
+        $this->assertTrue($client->hasRole('store_admin'));
+        $this->assertFalse($client->hasRole('Super Admin'));
+        $this->assertTrue(Hash::check('OriginalSupport123!', $support->password));
+        $this->assertTrue(Hash::check('OriginalClient123!', $client->password));
+    }
+
+    public function test_support_admin_has_full_gate_and_admin_dashboard_access(): void
+    {
+        $email = $this->uniqueEmail('dashboard-support');
+        $this->artisan('coremarket:client-setup', $this->supportOptions($email))->assertExitCode(0);
+
+        $support = User::query()->where('email', $email)->firstOrFail();
+        $this->assertTrue($support->can('system_update'));
+        $this->actingAs($support)->get('/admin')->assertOk();
     }
 
     public function test_command_enables_enterprise_settings_idempotently(): void
@@ -217,14 +287,14 @@ class ClientSetupCommandTest extends TestCase
         ];
     }
 
-    private function insertAdmin(string $prefix, string $password): string
+    private function insertAdmin(string $prefix, string $password, string $userType = 'admin'): string
     {
         $email = $this->uniqueEmail($prefix);
         DB::table('users')->insert([
             'name' => 'Existing Admin',
             'email' => $email,
             'password' => Hash::make($password),
-            'user_type' => 'admin',
+            'user_type' => $userType,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
