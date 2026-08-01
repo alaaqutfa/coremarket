@@ -29,6 +29,7 @@ Commands in `app/Console/Commands` are auto-discovered by
 | `coremarket:client-setup` | Yes | Intended for first client setup | Yes |
 | `coremarket:demo-pilot-prepare` | Only with confirmed apply | No, demo DB only | Yes for apply |
 | `coremarket:guard-database` | No | Safe and recommended | No |
+| `coremarket:receiver-diagnostics` | No | Safe and recommended | No |
 | `coremarket:restore-testing-database` | Only with confirmed apply | Never; testing DB only | Yes |
 | `coremarket:runtime-db-diagnostics` | No | Safe read-only | No |
 | `coremarket:seed-demo` | Only with confirmed apply | Never; demo DB only | Yes |
@@ -148,19 +149,30 @@ Commands in `app/Console/Commands` are auto-discovered by
 ```text
 coremarket:client-setup
   --project=
-  --admin-email= | --email=
-  --password= | --pass=
+  --support-admin-email= --support-admin-password=
+  --client-admin-email= --client-admin-password=
+  [--create-support-admin] [--skip-support-admin]
+  [--create-client-admin] [--skip-client-admin]
+  [--admin-email= | --email=]
+  [--password= | --pass=]
   --domain=
   --plan=enterprise
   [--write-env]
+  [--production-env]
   [--enable-enterprise]
   [--force]
 ```
 
-- **Purpose:** Runs Operations and Staff Role seeders, creates or recognizes
-  the first Admin, assigns `owner_general_manager` with `store_admin`
-  fallback, optionally enables Enterprise settings, and safely prepares a
-  CorePilot sync token.
+- **Purpose:** Runs Operations and Staff Role seeders; creates separate
+  CorePilot Support and Client Owner/Admin accounts; optionally enables
+  Enterprise settings; and safely prepares the CorePilot runtime receiver.
+- **Admin roles:** Support Admin prefers `owner_general_manager` with
+  `store_admin` fallback. Client Admin prefers `store_admin` with
+  `owner_general_manager` fallback. The current `store_admin` preset contains
+  the operational access required for a client owner without silently giving
+  the support-oriented highest role.
+- **Legacy aliases:** `--admin-email`/`--email` and `--password`/`--pass` remain
+  accepted as Support Admin options and emit a deprecation warning.
 - **When:** Once after importing a clean client baseline and configuring the
   client `.env`.
 - **DB writes:** Yes. Permissions/roles are idempotently seeded; Admin and
@@ -172,26 +184,53 @@ coremarket:client-setup
   DB-target verification.
 - **Backup:** Full DB backup required. With `--write-env`, the command also
   creates `storage/app/backups/client_setup/<timestamp>/.env` before writing.
-- **Overwrite protection:** Existing passwords and tokens are preserved unless
-  `--force` is supplied. Existing customer accounts cannot be converted to
-  Admin without `--force`.
-- **Secrets:** The full `COREPILOT_SYNC_TOKEN` is never printed; only six
-  leading and trailing characters are shown.
+- **Overwrite protection:** Existing Support/Client passwords and receiver
+  tokens are preserved unless `--force` is supplied. Existing customer
+  accounts cannot be converted to Admin without `--force`.
+- **Environment:** `.env` changes only with `--write-env`. The canonical token
+  is `COREPILOT_RUNTIME_SYNC_TOKEN`; the legacy `COREPILOT_SYNC_TOKEN` remains
+  synchronized where safe. A missing standalone runtime connection is written
+  as `COREMARKET_RUNTIME_DB_CONNECTION=mysql`.
+- **Production environment:** `--production-env` requires `--write-env` and
+  explicitly sets `APP_ENV=production`, `APP_DEBUG=false`, and the HTTPS
+  `APP_URL`. Without this option, those values are warning-only.
+- **Secrets:** The full receiver token is never printed; only six leading and
+  trailing characters are shown.
 - **Example:**
 
 ```powershell
 php artisan coremarket:client-setup `
   --project="Syrian Souq" `
-  --admin-email="admin@corepilot-os.com" `
-  --password="use-a-secure-handoff-password" `
+  --support-admin-email="support@corepilot-os.com" `
+  --support-admin-password="use-a-secure-support-password" `
+  --client-admin-email="owner@syriansouq.com" `
+  --client-admin-password="use-a-secure-client-password" `
   --domain="syriansouq.com" `
   --plan="enterprise" `
   --write-env `
+  --production-env `
   --enable-enterprise
 ```
 
 - **Forbidden:** Do not commit `.env`, paste the token into tickets/logs, use
   `--force` casually, or run before importing the schema.
+
+### `coremarket:receiver-diagnostics`
+
+- **File:** `app/Console/Commands/CoreMarketReceiverDiagnosticsCommand.php`
+- **Signature:** `coremarket:receiver-diagnostics`
+- **Purpose:** Read-only verification of the CorePilotOS runtime receiver,
+  default/runtime database connections, `business_settings`, token presence,
+  masked token preview, expected header, and preview/apply endpoints.
+- **When:** After client setup and `optimize:clear`, and when diagnosing a 403
+  or unavailable runtime snapshot storage.
+- **DB writes:** No.
+- **Production:** Safe. It never prints a full token or database credentials.
+- **Backup:** Not required.
+- **Example:** `php artisan coremarket:receiver-diagnostics`
+- **Forbidden:** Do not treat the masked preview as the token to paste into
+  CorePilotOS and do not publish command output containing infrastructure
+  names without review.
 
 ### `coremarket:setup-instance`
 

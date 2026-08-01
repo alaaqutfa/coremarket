@@ -24,17 +24,23 @@
    ```powershell
    php artisan coremarket:client-setup `
      --project="Client Store" `
-     --admin-email="admin@example.com" `
-     --password="use-a-secure-temporary-password" `
+     --support-admin-email="support@corepilot-os.com" `
+     --support-admin-password="use-a-secure-support-password" `
+     --client-admin-email="owner@example.com" `
+     --client-admin-password="use-a-secure-client-password" `
      --domain="store.example.com" `
      --plan="enterprise" `
      --write-env `
+     --production-env `
      --enable-enterprise
    ```
 
-   Use `--email`/`--pass` only as aliases. Use `--force` only to deliberately
-   replace an existing Admin password, rotate an existing sync token, or
-   convert a reviewed existing non-admin account.
+   Support Admin is owned by CorePilot for setup and troubleshooting and
+   normally receives `owner_general_manager`. Client Admin is owned by the
+   customer and normally receives `store_admin`. Legacy `--admin-email` and
+   `--email` are Support Admin aliases only. Use `--force` only to deliberately
+   replace a reviewed password, rotate both sync tokens, or convert a reviewed
+   existing non-admin account.
 
 6. [ ] Clear caches:
 
@@ -63,7 +69,8 @@
         the approved client credential process.
 11. [ ] Configure products, branches, staff/users, stock, prices, suppliers,
         customer accounts, documents, and operational policies.
-12. [ ] Connect CorePilotOS later using the `COREPILOT_SYNC_TOKEN` from the
+12. [ ] Run `php artisan coremarket:receiver-diagnostics`, then connect
+        CorePilotOS using the full `COREPILOT_RUNTIME_SYNC_TOKEN` from the
         client `.env`. Never send the token in screenshots, chat, or logs.
 
 ## Acceptance
@@ -71,7 +78,10 @@
 - [ ] `coremarket:guard-database` passes.
 - [ ] Admin login and Operations dashboard load.
 - [ ] Roles/permissions match the approved staff matrix.
-- [ ] `COREPILOT_SYNC_TOKEN` exists in `.env` and is absent from Git/logs.
+- [ ] `COREPILOT_RUNTIME_SYNC_TOKEN` exists in `.env` and is absent from
+      Git/logs.
+- [ ] `COREMARKET_RUNTIME_DB_CONNECTION=mysql` is configured for the normal
+      standalone single-database installation.
 - [ ] Enterprise flags match the purchased plan.
 - [ ] Default branch is correct before Branch Inventory apply.
 - [ ] Products start at documented stock; direct stock edits are blocked when
@@ -86,3 +96,46 @@
 - Do not run demo/QA/testing restore commands on the client database.
 - Do not commit `.env`, backup files, SQL dumps, logs, or generated builds.
 - Do not enable Branch Inventory apply before a clean reviewed dry-run.
+
+## CorePilotOS Runtime Receiver Setup
+
+The canonical receiver token key is `COREPILOT_RUNTIME_SYNC_TOKEN`. The older
+`COREPILOT_SYNC_TOKEN` is retained only for backward compatibility; CoreMarket's
+receiver middleware reads the canonical key. This token is different from the
+CoreMarket add-on request token and must not be substituted with
+`COREPILOT_ADDON_REQUEST_TOKEN`.
+
+For a standalone client installation where the client database is the default
+Laravel `mysql` connection, configure:
+
+```dotenv
+COREMARKET_RUNTIME_DB_CONNECTION=mysql
+```
+
+After `php artisan optimize:clear`, run:
+
+```powershell
+php artisan coremarket:receiver-diagnostics
+```
+
+The command must report the intended default/runtime database and a present
+`business_settings` table. It displays only a masked token. In CorePilotOS open
+the client Instance Connection, choose **Replace API token**, and paste the full
+`COREPILOT_RUNTIME_SYNC_TOKEN` from the protected server `.env`. Then run **Test
+CoreMarket Receiver**.
+
+Receiver contract:
+
+- Header: `X-CorePilot-Sync-Token`
+- Preview: `/api/corepilot/runtime-snapshot/preview`
+- Apply: `/api/corepilot/runtime-snapshot/apply`
+
+Common errors:
+
+- `403 Forbidden`: CorePilotOS token and `COREPILOT_RUNTIME_SYNC_TOKEN` differ.
+- Runtime storage unavailable or unexpected `coremarket_runtime`: set
+  `COREMARKET_RUNTIME_DB_CONNECTION=mysql`, then clear configuration cache.
+- `APP_URL` contains localhost: set the real HTTPS URL, or rerun setup with
+  `--write-env --production-env` after backup.
+- `APP_ENV=local` on a public domain: explicitly use `--production-env`; setup
+  never changes production environment values implicitly.
