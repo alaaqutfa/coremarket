@@ -423,6 +423,11 @@
                                 <span class="aiz-side-nav-text">{{ translate('Bulk Import') }}</span>
                             </a>
                         </li>
+                        <li class="aiz-side-nav-item">
+                            <a href="{{ route('bulk-catalog.index') }}" class="aiz-side-nav-link">
+                                <span class="aiz-side-nav-text">{{ translate('Bulk Catalog Import') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         @can('product_bulk_export')
                         <li class="aiz-side-nav-item">
@@ -1816,6 +1821,13 @@
                             </a>
                         </li>
                         @endif
+                        @can('header_setup')
+                        <li class="aiz-side-nav-item">
+                            <a href="{{ route('bulk-translations.index') }}" class="aiz-side-nav-link">
+                                <span class="aiz-side-nav-text">{{ translate('Bulk Translation Import') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                         @if (coremarket_feature_enabled('currencies_limited'))
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('website.currency-rates.index') }}"

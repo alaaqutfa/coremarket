@@ -401,6 +401,19 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         });
     });
 
+    Route::controller(\App\Http\Controllers\BulkCatalogImportController::class)->group(function () {
+        Route::get('/bulk-catalog-import', 'index')->name('bulk-catalog.index');
+        Route::get('/bulk-catalog-import/template/{type}', 'template')->name('bulk-catalog.template');
+        Route::post('/bulk-catalog-import/preview', 'preview')->name('bulk-catalog.preview');
+        Route::post('/bulk-catalog-import/confirm', 'confirm')->name('bulk-catalog.confirm');
+    });
+
+    Route::controller(\App\Http\Controllers\BulkTranslationController::class)->group(function () {
+        Route::get('/bulk-translations', 'index')->name('bulk-translations.index');
+        Route::get('/bulk-translations/export', 'export')->name('bulk-translations.export');
+        Route::post('/bulk-translations/import', 'import')->name('bulk-translations.import');
+    });
+
     // Seller
     Route::resource('sellers', SellerController::class)->middleware('coremarket_feature:sellers,0');
     Route::controller(SellerController::class)->middleware('coremarket_feature:sellers,0')->group(function () {

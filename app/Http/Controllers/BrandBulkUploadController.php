@@ -15,7 +15,7 @@ class BrandBulkUploadController extends Controller
 
     public function index()
     {
-        return view('backend.product.brand_bulk_upload.index');
+        return redirect()->route('bulk-catalog.index');
     }
 
     public function bulk_upload(Request $request)

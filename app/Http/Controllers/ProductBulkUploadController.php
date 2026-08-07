@@ -30,7 +30,7 @@ class ProductBulkUploadController extends Controller
                 return back();
             }
         } elseif (Auth::user()->user_type == 'admin' || Auth::user()->user_type == 'staff') {
-            return view('backend.product.bulk_upload.index');
+            return redirect()->route('bulk-catalog.index');
         }
     }
 
