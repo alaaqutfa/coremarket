@@ -49,15 +49,14 @@
                                                 @endif
                                             </div>
 
-                                            <!-- Email or Phone -->
-                                            @if (!addon_is_activated('otp_system'))
-                                                <div class="form-group email-form-group d-none">
+                                            <!-- Email and optional phone -->
+                                            <div class="form-group email-form-group">
                                                     <label for="email"
                                                         class="fs-12 fw-700 text-soft-dark">{{ translate('Email') }}</label>
                                                     <input type="email"
                                                         class="form-control rounded-0 {{ $errors->has('email') ? ' is-invalid' : '' }}"
                                                         value="{{ old('email') }}" placeholder="{{ translate('Email') }}"
-                                                        name="email" autocomplete="off">
+                                                        name="email" required autocomplete="email">
                                                     @if ($errors->has('email'))
                                                         <span class="invalid-feedback" role="alert">
                                                             <strong>{{ $errors->first('email') }}</strong>
@@ -67,56 +66,22 @@
 
                                                 <div class="form-group phone-form-group">
                                                     <label for="phone"
-                                                        class="fs-12 fw-700 text-soft-dark">{{ translate('Phone') }}</label>
+                                                        class="fs-12 fw-700 text-soft-dark">{{ translate('Phone') }} <small class="text-muted">({{ translate('Optional') }})</small></label>
                                                     <input type="tel" id="phone-code"
                                                         class="form-control rounded-0{{ $errors->has('phone') ? ' is-invalid' : '' }}"
                                                         value="{{ old('phone') }}" placeholder="XX XX XX XX"
-                                                        name="phone" autocomplete="off" pattern="^7[5798][0-9]{8}$"
-                                                        maxlength="10"
+                                                        name="phone" autocomplete="tel-national"
                                                         title="الرجاء إدخال رقم صحيح">
                                                     <div id="phone-error" class="alert alert-danger mt-2 d-none"
                                                         role="alert">
-                                                        {{ translate('Please enter a valid Iraqi phone number starting with 7 and containing 10 digits.') }}
+                                                        {{ translate('Please enter a valid international phone number.') }}
                                                     </div>
                                                 </div>
 
-                                                <input type="hidden" name="country_code" value="">
+                                                <input type="hidden" name="country_code" value="{{ old('country_code') }}">
 
 
 
-                                                <div class="row">
-
-                                                    <div class="col-6 form-group">
-                                                        <button
-                                                            class="toggleBothEmailPhoneBtn btn btn-link p-0 text-primary"
-                                                            type="button" onclick="toggleBothEmailPhone(this)">
-                                                            <i>*{{ translate('Enter both email & phone') }}</i>
-                                                        </button>
-                                                    </div>
-
-                                                    <div class="col-6 form-group text-right">
-                                                        <button class="toggleEmailPhoneBtn btn btn-link p-0 text-primary"
-                                                            type="button" onclick="toggleEmailPhone(this)">
-                                                            <i>*{{ translate('Use Email Instead') }}</i>
-                                                        </button>
-                                                    </div>
-
-                                                </div>
-                                            @else
-                                                <div class="form-group">
-                                                    <label for="email"
-                                                        class="fs-12 fw-700 text-soft-dark">{{ translate('Email') }}</label>
-                                                    <input type="email"
-                                                        class="form-control rounded-0{{ $errors->has('email') ? ' is-invalid' : '' }}"
-                                                        value="{{ old('email') }}" placeholder="{{ translate('Email') }}"
-                                                        name="email">
-                                                    @if ($errors->has('email'))
-                                                        <span class="invalid-feedback" role="alert">
-                                                            <strong>{{ $errors->first('email') }}</strong>
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                            @endif
 
                                             <!-- password -->
                                             <div class="form-group mb-0">
@@ -172,7 +137,7 @@
                                                         <select class="form-control aiz-selectpicker rounded-0"
                                                             data-live-search="true"
                                                             data-placeholder="{{ translate('Select your country') }}"
-                                                            name="country_id" required>
+                                                            name="country_id">
                                                             <option value="">
                                                                 {{ translate('Select your country') }}</option>
                                                             @foreach (get_active_countries() as $key => $country)
@@ -191,7 +156,7 @@
                                                 </div>
                                                 <div class="col-md-10">
                                                     <select class="form-control mb-3 aiz-selectpicker rounded-0"
-                                                        data-live-search="true" name="state_id" required>
+                                                        data-live-search="true" name="state_id">
 
                                                     </select>
                                                 </div>
@@ -204,7 +169,7 @@
                                                 </div>
                                                 <div class="col-md-10">
                                                     <select class="form-control mb-3 aiz-selectpicker rounded-0"
-                                                        data-live-search="true" name="city_id" required>
+                                                        data-live-search="true" name="city_id">
 
                                                     </select>
                                                 </div>

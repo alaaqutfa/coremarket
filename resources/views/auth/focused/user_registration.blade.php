@@ -40,39 +40,22 @@
                                             @endif
                                         </div>
 
-                                        <!-- Email or Phone -->
-                                        @if (addon_is_activated('otp_system'))
-                                            <div class="form-group phone-form-group mb-1">
-                                                <label for="phone" class="fs-12 fw-700 text-soft-dark">{{  translate('Phone') }}</label>
-                                                <input type="tel" id="phone-code" class="form-control rounded-0{{ $errors->has('phone') ? ' is-invalid' : '' }}" value="{{ old('phone') }}" placeholder="" name="phone" autocomplete="off">
-                                            </div>
+                                        <div class="form-group">
+                                            <label for="email" class="fs-12 fw-700 text-soft-dark">{{ translate('Email') }}</label>
+                                            <input type="email" class="form-control rounded-0{{ $errors->has('email') ? ' is-invalid' : '' }}" value="{{ old('email') }}" placeholder="{{ translate('Email') }}" name="email" required autocomplete="email">
+                                            @if ($errors->has('email'))
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $errors->first('email') }}</strong></span>
+                                            @endif
+                                        </div>
 
-                                            <input type="hidden" name="country_code" value="">
-
-                                            <div class="form-group email-form-group mb-1 d-none">
-                                                <label for="email" class="fs-12 fw-700 text-soft-dark">{{  translate('Email') }}</label>
-                                                <input type="email" class="form-control rounded-0 {{ $errors->has('email') ? ' is-invalid' : '' }}" value="{{ old('email') }}" placeholder="{{  translate('Email') }}" name="email"  autocomplete="off">
-                                                @if ($errors->has('email'))
-                                                    <span class="invalid-feedback" role="alert">
-                                                        <strong>{{ $errors->first('email') }}</strong>
-                                                    </span>
-                                                @endif
-                                            </div>
-
-                                            <div class="form-group text-right">
-                                                <button class="btn btn-link p-0 text-primary fs-12 fw-400" type="button" onclick="toggleEmailPhone(this)"><i>*{{ translate('Use Email Instead') }}</i></button>
-                                            </div>
-                                        @else
-                                            <div class="form-group">
-                                                <label for="email" class="fs-12 fw-700 text-soft-dark">{{  translate('Email') }}</label>
-                                                <input type="email" class="form-control rounded-0{{ $errors->has('email') ? ' is-invalid' : '' }}" value="{{ old('email') }}" placeholder="{{  translate('Email') }}" name="email">
-                                                @if ($errors->has('email'))
-                                                    <span class="invalid-feedback" role="alert">
-                                                        <strong>{{ $errors->first('email') }}</strong>
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        @endif
+                                        <div class="form-group phone-form-group">
+                                            <label for="phone-code" class="fs-12 fw-700 text-soft-dark">{{ translate('Phone') }} <small class="text-muted">({{ translate('Optional') }})</small></label>
+                                            <input type="tel" id="phone-code" class="form-control rounded-0{{ $errors->has('phone') ? ' is-invalid' : '' }}" value="{{ old('phone') }}" name="phone" autocomplete="tel-national">
+                                            <input type="hidden" name="country_code" value="{{ old('country_code') }}">
+                                            @if ($errors->has('phone'))
+                                                <span class="invalid-feedback" role="alert"><strong>{{ $errors->first('phone') }}</strong></span>
+                                            @endif
+                                        </div>
 
                                         <!-- password -->
                                         <div class="form-group mb-0">

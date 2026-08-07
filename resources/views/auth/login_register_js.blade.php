@@ -58,90 +58,49 @@
     });
 </script>
 
-@if (!addon_is_activated('otp_system'))
-    <script type="text/javascript">
-        // Country Code
-        var isPhoneShown = true,
-            isBothShown = false,
-            countryData = window.intlTelInputGlobals.getCountryData(),
-            input = document.querySelector("#phone-code");
-
-        for (var i = 0; i < countryData.length; i++) {
-            var country = countryData[i];
-            if (country.iso2 == 'bd') {
-                country.dialCode = '88';
-            }
+<script type="text/javascript">
+    (function () {
+        var input = document.querySelector('#phone-code');
+        if (!input || typeof intlTelInput === 'undefined') {
+            return;
         }
 
+        var initialCountry = @json(strtolower((string) get_setting('authentication_default_phone_country', 'lb')));
+        var previousCountryCode = @json((string) old('country_code'));
+        if (previousCountryCode && window.intlTelInputGlobals) {
+            var previousCountry = window.intlTelInputGlobals.getCountryData()
+                .find(function (country) { return country.dialCode === previousCountryCode; });
+            initialCountry = previousCountry ? previousCountry.iso2 : initialCountry;
+        }
         var iti = intlTelInput(input, {
+            initialCountry: initialCountry,
             separateDialCode: true,
-            utilsScript: "{{ static_asset('assets/js/intlTelutils.js') }}?1590403638580",
-            onlyCountries: @php echo get_active_countries()->pluck('code') @endphp,
-            customPlaceholder: function(selectedCountryPlaceholder, selectedCountryData) {
-                if (selectedCountryData.iso2 == 'bd') {
-                    return "01xxxxxxxxx";
-                }
-                return selectedCountryPlaceholder;
-            }
+            utilsScript: "{{ static_asset('assets/js/intlTelutils.js') }}?1590403638580"
         });
 
-        var country = iti.getSelectedCountryData();
-        $('input[name=country_code]').val(country.dialCode);
-
-        input.addEventListener("countrychange", function(e) {
-            // var currentMask = e.currentTarget.placeholder;
+        function syncCountryCode() {
             var country = iti.getSelectedCountryData();
-            $('input[name=country_code]').val(country.dialCode);
-
-        });
-
-        function toggleEmailPhone(el) {
-            if (isBothShown) {
-                $('.toggleBothEmailPhoneBtn').removeClass('d-none');
-                $('.phone-form-group').removeClass('d-none');
-                $('.email-form-group').addClass('d-none');
-                $('input[name=email]').val(null);
-                $('input[name=phone]').val(null);
-                isPhoneShown = true;
-                isBothShown = false;
-                $('.toggleEmailPhoneBtn').html('*{{ translate('Use Email Instead') }}');
-            } else {
-                if (isPhoneShown) {
-                    $('.phone-form-group').addClass('d-none');
-                    $('.email-form-group').removeClass('d-none');
-                    $('input[name=phone]').val(null);
-                    isPhoneShown = false;
-                    $(el).html('*{{ translate('Use Phone Number Instead') }}');
-                } else {
-                    $('.phone-form-group').removeClass('d-none');
-                    $('.email-form-group').addClass('d-none');
-                    $('input[name=email]').val(null);
-                    isPhoneShown = true;
-                    $(el).html('<i>*{{ translate('Use Email Instead') }}</i>');
-                }
-            }
+            $('input[name=country_code]').val(country.dialCode || '');
         }
 
-        function toggleBothEmailPhone(el) {
-            if (isBothShown) {
-                $('.toggleBothEmailPhoneBtn').removeClass('d-none');
-                $('.phone-form-group').removeClass('d-none');
-                $('.email-form-group').addClass('d-none');
-                $('input[name=email]').val(null);
-                $('input[name=phone]').val(null);
-                isPhoneShown = true;
-                isBothShown = false;
-                $('.toggleEmailPhoneBtn').html('*{{ translate('Use Email Instead') }}');
+        syncCountryCode();
+        input.addEventListener('countrychange', syncCountryCode);
+
+        window.toggleEmailPhone = function (button) {
+            var phoneGroup = $('.phone-form-group');
+            var emailGroup = $('.email-form-group');
+
+            if (phoneGroup.hasClass('d-none')) {
+                phoneGroup.removeClass('d-none');
+                emailGroup.addClass('d-none');
+                $('input[name=email]').val('');
+                $(button).html('<i>*{{ translate('Use Email Instead') }}</i>');
             } else {
-                $('.toggleBothEmailPhoneBtn').addClass('d-none');
-                isPhoneShown = false;
-                isBothShown = true;
-                $('.phone-form-group').removeClass('d-none');
-                $('.email-form-group').removeClass('d-none');
-                $('input[name=email]').val(null);
-                $('input[name=phone]').val(null);
-                $('.toggleEmailPhoneBtn').html('*{{ translate('Use Phone Number Instead') }}');
+                phoneGroup.addClass('d-none');
+                emailGroup.removeClass('d-none');
+                $('input[name=phone]').val('');
+                $(button).html('<i>*{{ translate('Use Phone Number Instead') }}</i>');
             }
-        }
-    </script>
-@endif
+        };
+    })();
+</script>

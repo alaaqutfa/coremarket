@@ -74,6 +74,19 @@
 					</div>
 				</div>
 			</div>
+			<div class="row mt-3">
+				<div class="col-lg-6">
+					<input type="hidden" name="types[]" value="authentication_default_phone_country">
+					<label class="form-label fs-13">{{ translate('Default phone country') }}</label>
+					<select class="form-control aiz-selectpicker" name="authentication_default_phone_country" data-live-search="true">
+						@php $defaultPhoneCountry = strtolower((string) get_setting('authentication_default_phone_country', 'lb')); @endphp
+						@foreach (\App\Models\Country::query()->orderBy('name')->get(['code', 'name']) as $country)
+							<option value="{{ strtolower($country->code) }}" @selected(strtolower($country->code) === $defaultPhoneCountry)>{{ $country->name }}</option>
+						@endforeach
+					</select>
+					<small class="text-muted">{{ translate('Shown first in login, registration, and password reset. All countries remain available.') }}</small>
+				</div>
+			</div>
 			<div class="row bg-light p-3 mt-5">
 				<div class="col-md-8 d-none d-md-block">
 					<div class="d-flex align-items-center">
