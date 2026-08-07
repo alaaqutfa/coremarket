@@ -25,7 +25,7 @@ class NotificationUtility
                 Mail::to($order->user->email)->queue(new InvoiceEmailManager($array));
             }
             Mail::to($order->orderDetails->first()->product->user->email)->queue(new InvoiceEmailManager($array));
-            Mail::to('alaaqutfa@gmail.com')->queue(new InvoiceEmailManager($array));
+            // Mail::to('alaaqutfa@gmail.com')->queue(new InvoiceEmailManager($array));
         } catch (\Exception $e) {
 
         }
