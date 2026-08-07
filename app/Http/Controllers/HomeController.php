@@ -32,6 +32,7 @@ use App\Models\Color;
 use App\Models\Attribute;
 use App\Models\AttributeCategory;
 use App\Utility\CategoryUtility;
+use App\Support\InternationalPhone;
 use App\Models\Cart;
 use Artisan;
 use DB;
@@ -279,7 +280,13 @@ class HomeController extends Controller
     {
         $user = null;
         if ($request->get('phone') != null) {
-            $user = User::whereIn('user_type', ['customer', 'seller'])->where('phone', "+{$request['country_code']}{$request['phone']}")->first();
+            $phone = InternationalPhone::normalize($request->input('country_code'), $request->input('phone'));
+            $user = $phone
+                ? User::whereIn('user_type', ['customer', 'seller'])
+                    ->where('country_code', $phone['country_code'])
+                    ->where('phone', $phone['phone'])
+                    ->first()
+                : null;
         } elseif ($request->get('email') != null) {
             $user = User::whereIn('user_type', ['customer', 'seller'])->where('email', $request->email)->first();
         }

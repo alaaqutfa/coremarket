@@ -10,6 +10,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use App\Models\User;
 use App\Mail\SecondEmailVerifyMailManager;
 use App\Utility\SmsUtility;
+use App\Support\InternationalPhone;
 use Mail;
 
 class ForgotPasswordController extends Controller
@@ -45,8 +46,6 @@ class ForgotPasswordController extends Controller
      */
     public function sendResetLinkEmail(Request $request)
     {
-        
-        $phone = "+{$request['country_code']}{$request['phone']}";
         if (filter_var($request->email, FILTER_VALIDATE_EMAIL)) {
             $user = User::where('email', $request->email)->first();
             if ($user != null) {
@@ -68,7 +67,15 @@ class ForgotPasswordController extends Controller
             }
         }
         else{
-            $user = User::where('phone', $phone)->first();
+            $phone = InternationalPhone::normalize($request->input('country_code'), $request->input('phone'));
+            if ($phone === null) {
+                return back()->withErrors(['phone' => translate('Please enter a valid international phone number.')]);
+            }
+
+            $user = User::query()
+                ->where('country_code', $phone['country_code'])
+                ->where('phone', $phone['phone'])
+                ->first();
             if ($user != null) {
                 $user->verification_code = rand(100000,999999);
                 $user->save();

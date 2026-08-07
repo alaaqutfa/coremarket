@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Customer;
 use App\Models\Cart;
 use App\Services\SocialRevoke;
+use App\Support\InternationalPhone;
 use Session;
 use Illuminate\Http\Request;
 use CoreComponentRepository;
@@ -229,7 +230,15 @@ class LoginController extends Controller
     {
         $request->validate([
             'email'    => 'required_without:phone',
-            'phone'    => 'required_without:email',
+            'phone'    => [
+                'required_without:email',
+                function ($attribute, $value, $fail) use ($request) {
+                    if (trim((string) $value) !== ''
+                        && InternationalPhone::normalize($request->input('country_code'), $value) === null) {
+                        $fail(translate('Please enter a valid international phone number.'));
+                    }
+                },
+            ],
             'password' => 'required|string',
         ]);
     }
@@ -243,7 +252,13 @@ class LoginController extends Controller
     protected function credentials(Request $request)
     {
         if ($request->get('phone') != null) {
-            return ['country_code'=> $request['country_code'],'phone' => $request['phone'], 'password' => $request->get('password')];
+            $phone = InternationalPhone::normalize($request->input('country_code'), $request->input('phone'));
+
+            return [
+                'country_code' => $phone['country_code'],
+                'phone' => $phone['phone'],
+                'password' => $request->get('password'),
+            ];
         } elseif ($request->get('email') != null) {
             return $request->only($this->username(), 'password');
         }
