@@ -2,7 +2,8 @@
 
 @section('content')
 
-@if (env('MAIL_USERNAME') == null && env('MAIL_PASSWORD') == null)
+@if ((auth()->user()?->user_type === 'admin' || auth()->user()?->can('smtp_settings')) &&
+        env('MAIL_USERNAME') == null && env('MAIL_PASSWORD') == null)
     <div class="alert alert-info d-flex align-items-center">
         {{ translate('You need to configure SMTP correctly to to add Customer by email.') }}
         <a class="alert-link ml-2" href="{{ route('smtp_settings.index') }}">{{ translate('Configure Now') }}</a>

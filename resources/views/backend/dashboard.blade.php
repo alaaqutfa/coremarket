@@ -6,7 +6,7 @@
             && coremarket_feature_enabled('multi_vendor')
             && get_setting('vendor_system_activation') == 1;
     @endphp
-    @if (auth()->user()->can('smtp_settings') &&
+    @if ((auth()->user()?->user_type === 'admin' || auth()->user()?->can('smtp_settings')) &&
             env('MAIL_USERNAME') == null &&
             env('MAIL_PASSWORD') == null)
         <div class="">

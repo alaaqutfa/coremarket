@@ -23,7 +23,16 @@ class BusinessSettingsController extends Controller
         $this->middleware(['permission:seller_verification_form_configuration'])->only('seller_verification_form');
         $this->middleware(['permission:general_settings'])->only('general_setting');
         $this->middleware(['permission:features_activation'])->only('activation');
-        $this->middleware(['permission:smtp_settings'])->only('smtp_settings');
+        $this->middleware(function (Request $request, $next) {
+            $user = $request->user();
+
+            abort_unless(
+                $user && ($user->user_type === 'admin' || $user->can('smtp_settings')),
+                403
+            );
+
+            return $next($request);
+        })->only('smtp_settings');
         $this->middleware(['permission:payment_methods_configurations'])->only('payment_method');
         $this->middleware(['permission:order_configuration'])->only('order_configuration');
         $this->middleware(['permission:file_system_&_cache_configuration'])->only('file_system');

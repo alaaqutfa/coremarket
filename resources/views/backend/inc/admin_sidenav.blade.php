@@ -1913,7 +1913,7 @@
                             </a>
                         </li>
                         @endcan
-                        @can('smtp_settings')
+                        @if (auth()->user()?->user_type === 'admin' || auth()->user()?->can('smtp_settings'))
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('smtp_settings.index') }}" class="aiz-side-nav-link">
                                 <span class="aiz-side-nav-text">{{translate('SMTP Settings')}}</span>

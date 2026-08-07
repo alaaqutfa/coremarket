@@ -1,7 +1,7 @@
 @extends('backend.layouts.app')
 
 @section('content')
-@if (auth()->user()->can('smtp_settings') &&
+@if ((auth()->user()?->user_type === 'admin' || auth()->user()?->can('smtp_settings')) &&
         env('MAIL_USERNAME') == null &&
         env('MAIL_PASSWORD') == null)
     <div class="">
