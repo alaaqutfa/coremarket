@@ -19,4 +19,15 @@ class CategoryRoutesTest extends TestCase
         $this->assertStringContainsString('App\\Http\\Controllers\\CategoryController@index', $admin->getActionName());
         $this->assertStringContainsString('App\\Http\\Controllers\\Api\\V2\\CategoryController@index', $api->getActionName());
     }
+
+    public function test_category_legacy_edit_and_destroy_routes_remain_the_named_admin_routes(): void
+    {
+        $edit = Route::getRoutes()->getByName('categories.edit');
+        $destroy = Route::getRoutes()->getByName('categories.destroy');
+
+        $this->assertSame('admin/categories/edit/{id}', $edit->uri());
+        $this->assertSame('admin/categories/destroy/{id}', $destroy->uri());
+        $this->assertStringContainsString('CategoryController@edit', $edit->getActionName());
+        $this->assertStringContainsString('CategoryController@destroy', $destroy->getActionName());
+    }
 }

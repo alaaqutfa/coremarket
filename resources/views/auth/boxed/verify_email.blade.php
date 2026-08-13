@@ -30,7 +30,7 @@
                                 <!-- Reset password form -->
                                 <div class="pt-3">
                                     <div class="">
-                                        <a href="{{ route('verification.resend') }}" class="btn btn-primary btn-block">{{ translate('Click here to request another') }}</a>
+                                        <a href="{{ route('verification.resend.get') }}" class="btn btn-primary btn-block">{{ translate('Click here to request another') }}</a>
                                         @if (session('resent'))
                                             <div class="alert alert-success mt-2 mb-0" role="alert">
                                                 {{ translate('A fresh verification link has been sent to your email address.') }}

@@ -30,7 +30,7 @@
                                 <!-- Reset password form -->
                                 <div class="pt-3">
                                     <div class="">
-                                        <form class="form-default" role="form" action="{{ route('password.update') }}" method="POST">
+                                        <form class="form-default" role="form" action="{{ route('password.reset_with_code') }}" method="POST">
                                             @csrf
                                             
                                             <!-- Email -->

@@ -277,7 +277,9 @@ Route::group(['prefix' => 'v2', 'middleware' => ['app_language']], function () {
 
     Route::get('brands/top', 'App\Http\Controllers\Api\V2\BrandController@top');
     Route::get('all-brands', [ProductController::class, 'getBrands'])->name('allBrands');
-    Route::apiResource('brands', 'App\Http\Controllers\Api\V2\BrandController')->only('index');
+    Route::apiResource('brands', 'App\Http\Controllers\Api\V2\BrandController')
+        ->only('index')
+        ->names('api.brands');
 
     Route::apiResource('business-settings', 'App\Http\Controllers\Api\V2\BusinessSettingController')->only('index');
 
@@ -294,7 +296,9 @@ Route::group(['prefix' => 'v2', 'middleware' => ['app_language']], function () {
 
     Route::apiResource('currencies', 'App\Http\Controllers\Api\V2\CurrencyController')->only('index');
 
-    Route::apiResource('customers', 'App\Http\Controllers\Api\V2\CustomerController')->only('show');
+    Route::apiResource('customers', 'App\Http\Controllers\Api\V2\CustomerController')
+        ->only('show')
+        ->names('api.customers');
 
     Route::apiResource('general-settings', 'App\Http\Controllers\Api\V2\GeneralSettingController')->only('index');
 
@@ -338,7 +342,9 @@ Route::group(['prefix' => 'v2', 'middleware' => ['app_language']], function () {
     Route::get('shops/products/featured/{id}', 'App\Http\Controllers\Api\V2\ShopController@featuredProducts')->name('shops.featuredProducts');
     Route::get('shops/products/new/{id}', 'App\Http\Controllers\Api\V2\ShopController@newProducts')->name('shops.newProducts');
     Route::get('shops/brands/{id}', 'App\Http\Controllers\Api\V2\ShopController@brands')->name('shops.brands');
-    Route::apiResource('shops', 'App\Http\Controllers\Api\V2\ShopController')->only('index');
+    Route::apiResource('shops', 'App\Http\Controllers\Api\V2\ShopController')
+        ->only('index')
+        ->names('api.shops');
 
     Route::get('sliders', 'App\Http\Controllers\Api\V2\SliderController@sliders');
     Route::get('banners-one', 'App\Http\Controllers\Api\V2\SliderController@bannerOne');
