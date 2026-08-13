@@ -79,9 +79,8 @@
                                 </div>
                                 <div class="file-preview box sm">
                                 </div>
-                            </div>
                         </div>
-
+                    </div>
                         <div class="form-group row">
                             <label class="col-md-2 col-form-label" for="signinSrEmail">{{ translate('Thumbnail Image') }}
                                 <small>(290x300)</small></label>
@@ -241,6 +240,7 @@
                         </div>
                     </div>
                 </div>
+                @include('partials.product.information_sections_form')
 
                 {{-- Frequently Bought Products --}}
                 <div class="card">

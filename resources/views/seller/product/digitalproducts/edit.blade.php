@@ -247,6 +247,7 @@
                     </div>
                 </div>
             </div>
+            @include('partials.product.information_sections_form')
             <!-- VAT & Tax -->
             @foreach (\App\Models\Tax::where('tax_status', 1)->where('type', 'digital')->where('tax_category', $product->category_id)->get() as $tax)
                 <div class="tax_{{ $tax->id }}">

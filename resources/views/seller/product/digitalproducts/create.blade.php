@@ -232,6 +232,7 @@
                         </div>
                     </div>
                 </div>
+                @include('partials.product.information_sections_form', ['lang' => env('DEFAULT_LANGUAGE', 'en')])
                 <!-- VAT & Tax -->
                 @foreach (\App\Models\Tax::where('tax_status', 1)->where('type', 'digital')->get() as $tax)
                     {{-- ->where('tax_category', $tax_category) --}}

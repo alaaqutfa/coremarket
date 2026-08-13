@@ -15,6 +15,7 @@ use App\Services\ProductService;
 use App\Services\ProductStockService;
 use App\Services\ProductTaxService;
 use App\Services\FrequentlyBoughtProductService;
+use App\Services\ProductInformationSectionService;
 use Artisan;
 use Auth;
 use Illuminate\Http\Request;
@@ -105,6 +106,7 @@ class DigitalProductController  extends Controller
         ProductTranslation::create($request->only([
             'lang', 'name', 'description', 'product_id'
         ]));
+        app(ProductInformationSectionService::class)->sync($product, $request->input('information_sections', []), $request->lang);
 
         if (get_setting('product_approve_by_admin') == 1) {
             $users = User::findMany(User::where('user_type', 'admin')->first()->id);
@@ -190,6 +192,7 @@ class DigitalProductController  extends Controller
             $request->only(['lang', 'product_id']),
             $request->only(['name', 'description'])
         );
+        app(ProductInformationSectionService::class)->sync($product, $request->input('information_sections', []), $request->lang);
 
         flash(translate('Product has been updated successfully'))->success();
 

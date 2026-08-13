@@ -23,6 +23,7 @@ use Auth;
 use App\Services\ProductService;
 use App\Services\ProductTaxService;
 use App\Services\ProductFlashDealService;
+use App\Services\ProductInformationSectionService;
 use App\Services\CoreMarketLicenseService;
 use App\Services\ProductStockService;
 use App\Services\FrequentlyBoughtProductService;
@@ -38,6 +39,7 @@ class ProductController extends Controller
     protected $productStockService;
     protected $frequentlyBoughtProductService;
     protected $licenseService;
+    protected $productInformationSectionService;
 
     public function __construct(
         ProductService $productService,
@@ -45,7 +47,8 @@ class ProductController extends Controller
         ProductFlashDealService $productFlashDealService,
         ProductStockService $productStockService,
         FrequentlyBoughtProductService $frequentlyBoughtProductService,
-        CoreMarketLicenseService $licenseService
+        CoreMarketLicenseService $licenseService,
+        ProductInformationSectionService $productInformationSectionService
     ) {
         $this->productService = $productService;
         $this->productTaxService = $productTaxService;
@@ -53,6 +56,7 @@ class ProductController extends Controller
         $this->productStockService = $productStockService;
         $this->frequentlyBoughtProductService = $frequentlyBoughtProductService;
         $this->licenseService = $licenseService;
+        $this->productInformationSectionService = $productInformationSectionService;
     }
 
     public function index(Request $request)
@@ -130,6 +134,7 @@ class ProductController extends Controller
         ProductTranslation::create($request->only([
             'lang', 'name', 'unit', 'description', 'product_id'
         ]));
+        $this->productInformationSectionService->sync($product, $request->input('information_sections', []), $request->lang);
 
         if (get_setting('product_approve_by_admin') == 1) {
             $users = User::findMany(User::where('user_type', 'admin')->first()->id);
@@ -225,6 +230,7 @@ class ProductController extends Controller
                 'name', 'unit', 'description'
             ])
         );
+        $this->productInformationSectionService->sync($product, $request->input('information_sections', []), $request->lang);
 
 
         flash(translate('Product has been updated successfully'))->success();

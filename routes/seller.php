@@ -45,16 +45,6 @@ Route::group(['namespace' => 'App\Http\Controllers\Seller', 'prefix' => 'seller'
         Route::post('/set-product-discount', 'setProductDiscount')->name('set_product_discount');
     });
 
-    // Product Bulk Upload
-    Route::controller(ProductBulkUploadController::class)->group(function () {
-        Route::get('/product-bulk-upload/index', 'index')->name('product_bulk_upload.index');
-        Route::post('/product-bulk-upload/store', 'bulk_upload')->name('bulk_product_upload')->middleware('coremarket_license:manage_store');
-        Route::group(['prefix' => 'bulk-upload/download'], function() {
-            Route::get('/category', 'pdf_download_category')->name('pdf.download_category');
-            Route::get('/brand', 'pdf_download_brand')->name('pdf.download_brand');
-        });
-    });
-
     // Digital Product
     Route::controller(DigitalProductController::class)->group(function () {
         Route::get('/digitalproducts', 'index')->name('digitalproducts');

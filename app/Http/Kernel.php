@@ -10,6 +10,7 @@ use App\Http\Middleware\CheckoutMiddleware;
 use App\Http\Middleware\IsUnbanned;
 use App\Http\Middleware\AppLanguage;
 use App\Http\Middleware\IsAppUserUnbanned;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\PreventDatabaseAction;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
@@ -94,6 +95,7 @@ class Kernel extends HttpKernel
         'coremarket_feature' => \App\Http\Middleware\EnsureCoreMarketFeature::class,
         'coremarket_license' => \App\Http\Middleware\EnsureCoreMarketLicense::class,
         'corepilot_sync' => \App\Http\Middleware\EnsureCorePilotSyncToken::class,
+        'super_admin' => EnsureSuperAdmin::class,
     ];
 
     /**

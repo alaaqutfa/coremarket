@@ -11,6 +11,36 @@ use Tests\TestCase;
 
 class BulkCatalogImportServiceTest extends TestCase
 {
+    public function test_product_information_sections_json_supports_order_status_and_translations(): void
+    {
+        $sections = app(BulkCatalogImportService::class)->parseInformationSections([
+            'information_sections' => json_encode([
+                [
+                    'title' => 'Ingredients',
+                    'content' => '<p>Chicken</p>',
+                    'sort_order' => 4,
+                    'is_active' => false,
+                    'translations' => [
+                        'ar' => ['title' => 'المكونات', 'content' => '<p>دجاج</p>'],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $this->assertSame(4, $sections[0]['sort_order']);
+        $this->assertFalse($sections[0]['is_active']);
+        $this->assertSame('Ingredients', $sections[0]['translations']['en']['title']);
+        $this->assertSame('المكونات', $sections[0]['translations']['ar']['title']);
+    }
+
+    public function test_product_information_sections_json_rejects_missing_content(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        app(BulkCatalogImportService::class)->parseInformationSections([
+            'information_sections' => '[{"title":"Ingredients","content":""}]',
+        ]);
+    }
+
     public function test_category_preview_accepts_unlimited_nested_rows_without_writing_records(): void
     {
         $file = $this->workbook([

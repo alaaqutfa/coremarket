@@ -271,6 +271,7 @@
                                             <textarea class="aiz-text-editor" name="description">{{ old('description') }}</textarea>
                                         </div>
                                     </div>
+                                    @include('partials.product.information_sections_form', ['lang' => env('DEFAULT_LANGUAGE', 'en')])
                                 </div>
 
                                 <!-- Status -->

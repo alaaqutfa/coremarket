@@ -13,6 +13,7 @@ use App\Services\ProductService;
 use App\Services\ProductTaxService;
 use App\Services\ProductStockService;
 use App\Services\FrequentlyBoughtProductService;
+use App\Services\ProductInformationSectionService;
 use Artisan;
 
 class DigitalProductController extends Controller
@@ -100,6 +101,7 @@ class DigitalProductController extends Controller
         ProductTranslation::create($request->only([
             'lang', 'name', 'description', 'product_id'
         ]));
+        app(ProductInformationSectionService::class)->sync($product, $request->input('information_sections', []), $request->lang);
 
         flash(translate('Product has been inserted successfully'))->success();
 
@@ -185,6 +187,7 @@ class DigitalProductController extends Controller
             $request->only(['lang', 'product_id']),
             $request->only(['name', 'description'])
         );
+        app(ProductInformationSectionService::class)->sync($product, $request->input('information_sections', []), $request->lang);
 
         flash(translate('Product has been updated successfully'))->success();
 

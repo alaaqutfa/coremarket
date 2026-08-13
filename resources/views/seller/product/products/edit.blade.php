@@ -323,15 +323,16 @@
                     <div class="card-header">
                         <h5 class="mb-0 h6">{{ translate('Product Description') }}</h5>
                     </div>
-                    <div class="card-body">
-                        <div class="form-group row">
-                            <div class="col-md-12">
-                                <textarea class="aiz-text-editor w-100" name="description">{{ old('description', $product->description) }}</textarea>
+                        <div class="card-body">
+                            <div class="form-group row">
+                                <div class="col-md-12">
+                                    <textarea class="aiz-text-editor w-100" name="description">{{ old('description', $product->description) }}</textarea>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <!-- VAT & Tax -->
+                    @include('partials.product.information_sections_form')
+                    <!-- VAT & Tax -->
                 @foreach (\App\Models\Tax::where('tax_status', 1)->where('type', 'physical')->get() as $tax)
                     {{-- ->where('tax_category', $product->category_id) --}}
                     <div class="tax_{{ $tax->id }}">

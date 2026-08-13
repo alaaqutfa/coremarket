@@ -8,7 +8,6 @@ use App\Http\Controllers\AizUploadController;
 use App\Http\Controllers\AttributeController;
 use App\Http\Controllers\BlogCategoryController;
 use App\Http\Controllers\BlogController;
-use App\Http\Controllers\BrandBulkUploadController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\BusinessSettingsController;
 use App\Http\Controllers\CarrierController;
@@ -41,7 +40,6 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PickupPointController;
-use App\Http\Controllers\ProductBulkUploadController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductFamilyController;
 use App\Http\Controllers\ProductQueryController;
@@ -337,10 +335,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/brands/destroy/{id}', 'destroy')->name('brands.destroy');
     });
 
-    Route::controller(BrandBulkUploadController::class)->group(function () {
-        Route::get('/brand-bulk-upload', 'index')->name('brand_bulk_upload.index');
-        Route::post('/brand-bulk-upload/store', 'bulk_upload')->name('brand_bulk_upload');
-    });
+    // Legacy entry point retained only as an authorized bookmark redirect.
+    Route::get('/brand-bulk-upload', fn () => redirect()->route('bulk-catalog.index'))
+        ->middleware('super_admin')
+        ->name('brand_bulk_upload.index');
 
     Route::controller(AdminController::class)->group(function () {
         Route::post('/dashboard/top-category-products-section', 'top_category_products_section')->name('dashboard.top_category_products_section');
@@ -385,27 +383,19 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::get('/digitalproducts/download/{id}', 'download')->name('digitalproducts.download');
     });
 
-    Route::controller(ProductBulkUploadController::class)->group(function () {
-        //Product Export
-        Route::get('/product-bulk-export', 'export')->name('product_bulk_export.index');
+    Route::get('/product-bulk-upload/index', fn () => redirect()->route('bulk-catalog.index'))
+        ->middleware('super_admin')
+        ->name('product_bulk_upload.index');
+    Route::get('/product-bulk-export', fn () => redirect()->route('bulk-catalog.index'))
+        ->middleware('super_admin')
+        ->name('product_bulk_export.index');
 
-        //Product Bulk Upload
-        Route::get('/product-bulk-upload/index', 'index')->name('product_bulk_upload.index');
-        Route::post('/bulk-product-upload', 'bulk_upload')->name('bulk_product_upload')->middleware('coremarket_license:manage_store');
-        Route::get('/product-csv-download/{type}', 'import_product')->name('product_csv.download');
-        Route::get('/vendor-product-csv-download/{id}', 'import_vendor_product')->name('import_vendor_product.download');
-        Route::group(['prefix' => 'bulk-upload/download'], function () {
-            Route::get('/category', 'pdf_download_category')->name('pdf.download_category');
-            Route::get('/brand', 'pdf_download_brand')->name('pdf.download_brand');
-            Route::get('/seller', 'pdf_download_seller')->name('pdf.download_seller');
-        });
-    });
-
-    Route::controller(\App\Http\Controllers\BulkCatalogImportController::class)->group(function () {
+    Route::controller(\App\Http\Controllers\BulkCatalogImportController::class)->middleware('super_admin')->group(function () {
         Route::get('/bulk-catalog-import', 'index')->name('bulk-catalog.index');
         Route::get('/bulk-catalog-import/template/{type}', 'template')->name('bulk-catalog.template');
         Route::post('/bulk-catalog-import/preview', 'preview')->name('bulk-catalog.preview');
         Route::post('/bulk-catalog-import/confirm', 'confirm')->name('bulk-catalog.confirm');
+        Route::get('/bulk-catalog-import/export/products', 'exportProducts')->name('bulk-catalog.products.export');
     });
 
     Route::controller(\App\Http\Controllers\BulkTranslationController::class)->group(function () {

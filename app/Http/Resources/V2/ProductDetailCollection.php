@@ -17,6 +17,9 @@ class ProductDetailCollection extends ResourceCollection
                 $calculable_price = home_discounted_base_price($data, false);
                 $calculable_price = number_format($calculable_price, $precision, '.', '');
                 $calculable_price = floatval($calculable_price);
+                $discountedRange = array_map('floatval', preg_split('/\s*-\s*/', (string) home_discounted_price($data, false)) ?: []);
+                $lowestDiscountedPrice = $discountedRange[0] ?? $calculable_price;
+                $highestDiscountedPrice = $discountedRange[count($discountedRange) - 1] ?? $lowestDiscountedPrice;
                 // $calculable_price = round($calculable_price, 2);
                 $photo_paths = get_images_path($data->photos);
 
@@ -75,7 +78,9 @@ class ProductDetailCollection extends ResourceCollection
                     'photos' => $photos,
                     'thumbnail_image' => uploaded_asset($data->thumbnail_img),
                     'tags' => explode(',', $data->tags),
-                    'price_high_low' => (float)explode('-', home_discounted_base_price($data, false))[0] == (float)explode('-', home_discounted_price($data, false))[1] ? format_price((float)explode('-', home_discounted_price($data, false))[0]) : "From " . format_price((float)explode('-', home_discounted_price($data, false))[0]) . " to " . format_price((float)explode('-', home_discounted_price($data, false))[1]),
+                    'price_high_low' => $lowestDiscountedPrice == $highestDiscountedPrice
+                        ? format_price($lowestDiscountedPrice)
+                        : 'From '.format_price($lowestDiscountedPrice).' to '.format_price($highestDiscountedPrice),
                     'choice_options' => $this->convertToChoiceOptions(json_decode($data->choice_options)),
                     'colors' => json_decode($data->colors) ?? [],
                     'has_discount' => home_base_price($data, false) != home_discounted_base_price($data, false),
@@ -90,6 +95,17 @@ class ProductDetailCollection extends ResourceCollection
                     'rating_count' => (int)Review::where(['product_id' => $data->id])->count(),
                     'earn_point' => (float)$data->earn_point,
                     'description' => $data->getTranslation('description'),
+                    'information_sections' => $data->informationSections
+                        ->where('is_active', true)
+                        ->map(function ($section) {
+                            return [
+                                'title' => $section->getTranslation('title'),
+                                'content' => $section->getTranslation('content'),
+                                'sort_order' => (int) $section->sort_order,
+                            ];
+                        })
+                        ->filter(fn ($section) => filled($section['title']) && filled(trim(strip_tags((string) $section['content']))))
+                        ->values(),
                     'downloads' => $data->pdf ? uploaded_asset($data->pdf) : null,
                     'video_link' => $data->video_link != null ?  $data->video_link : "",
                     'brand' => $brand,

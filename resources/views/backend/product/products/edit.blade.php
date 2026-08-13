@@ -286,6 +286,7 @@
                                             <textarea class="aiz-text-editor" name="description">{{ $product->getTranslation('description', $lang) }}</textarea>
                                         </div>
                                     </div>
+                                    @include('partials.product.information_sections_form')
                                 </div>
 
                                 <!-- Status -->

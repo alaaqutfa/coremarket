@@ -24,6 +24,7 @@
         $coremarketAccountingCoreFeatureEnabled = coremarket_feature_enabled('accounting_core');
         $coremarketAccountingCoreEnabled = $coremarketAccountingCoreFeatureEnabled || $coremarketAccountingOperationsEnabled;
         $coremarketOperationsOwner = auth()->user()?->user_type === 'admin';
+        $coremarketSuperAdmin = $coremarketOperationsOwner && auth()->user()?->hasRole('Super Admin');
         $coremarketCanOperationsOverview = $coremarketOperationsOwner || auth()->user()?->can('operations.view');
         $coremarketCanBranches = $coremarketOperationsOwner || auth()->user()?->can('branches.manage');
         $coremarketCanInventoryDashboard = $coremarketInventoryOperationsEnabled && ($coremarketOperationsOwner || auth()->user()?->can('inventory.dashboard.view'));
@@ -417,25 +418,13 @@
                         @endcan
                         @endif
 
-                        @can('product_bulk_import')
-                        <li class="aiz-side-nav-item">
-                            <a href="{{ route('product_bulk_upload.index') }}" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text">{{ translate('Bulk Import') }}</span>
-                            </a>
-                        </li>
+                        @if($coremarketSuperAdmin)
                         <li class="aiz-side-nav-item">
                             <a href="{{ route('bulk-catalog.index') }}" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text">{{ translate('Bulk Catalog Import') }}</span>
+                                <span class="aiz-side-nav-text">{{ translate('Bulk Catalog') }}</span>
                             </a>
                         </li>
-                        @endcan
-                        @can('product_bulk_export')
-                        <li class="aiz-side-nav-item">
-                            <a href="{{route('product_bulk_export.index')}}" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text">{{translate('Bulk Export')}}</span>
-                            </a>
-                        </li>
-                        @endcan
+                        @endif
                         @can('view_product_categories')
                         <li class="aiz-side-nav-item">
                             <a href="{{route('categories.index')}}"
@@ -451,7 +440,7 @@
                             </a>
                         </li>
                         @endcan
-                        @canany(['view_all_brands', 'brand_bulk_upload'])
+                        @can('view_all_brands')
                         <li class="aiz-side-nav-item">
                             <a href="javascript:void(0);" class="aiz-side-nav-link">
                                 <span class="aiz-side-nav-text">{{translate('Brand')}}</span>
@@ -463,13 +452,6 @@
                                     <a href="{{ route('brands.index') }}"
                                         class="aiz-side-nav-link {{ areActiveRoutes(['brands.index', 'brands.create', 'brands.edit'])}}">
                                         <span class="aiz-side-nav-text">{{translate('All Brands')}}</span>
-                                    </a>
-                                </li>
-                                @endcan
-                                @can('brand_bulk_upload')
-                                <li class="aiz-side-nav-item">
-                                    <a href="{{ route('brand_bulk_upload.index') }}" class="aiz-side-nav-link">
-                                        <span class="aiz-side-nav-text">{{translate('Brand Bulk Import')}}</span>
                                     </a>
                                 </li>
                                 @endcan

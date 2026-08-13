@@ -18,6 +18,7 @@ use App\Services\CoreMarketProductClassificationService;
 use App\Services\CoreMarketProductPricingService;
 use App\Services\FrequentlyBoughtProductService;
 use App\Services\ProductFlashDealService;
+use App\Services\ProductInformationSectionService;
 use App\Services\ProductService;
 use App\Services\ProductStockService;
 use App\Services\ProductTaxService;
@@ -41,6 +42,7 @@ class ProductController extends Controller
     protected $frequentlyBoughtProductService;
     protected $licenseService;
     protected $productPricingService;
+    protected $productInformationSectionService;
 
     public function __construct(
         ProductService $productService,
@@ -49,7 +51,8 @@ class ProductController extends Controller
         ProductStockService $productStockService,
         FrequentlyBoughtProductService $frequentlyBoughtProductService,
         CoreMarketLicenseService $licenseService,
-        CoreMarketProductPricingService $productPricingService
+        CoreMarketProductPricingService $productPricingService,
+        ProductInformationSectionService $productInformationSectionService
     ) {
         $this->productService                 = $productService;
         $this->productTaxService              = $productTaxService;
@@ -58,6 +61,7 @@ class ProductController extends Controller
         $this->frequentlyBoughtProductService = $frequentlyBoughtProductService;
         $this->licenseService                 = $licenseService;
         $this->productPricingService          = $productPricingService;
+        $this->productInformationSectionService = $productInformationSectionService;
 
         // Staff Permission Check
         $this->middleware(['permission:add_new_product'])->only('create', 'store');
@@ -270,6 +274,7 @@ class ProductController extends Controller
         ProductTranslation::create($request->only([
             'lang', 'name', 'unit', 'description', 'product_id',
         ]));
+        $this->productInformationSectionService->sync($product, $request->input('information_sections', []), $request->lang);
 
         flash(translate('Product has been inserted successfully'))->success();
 
@@ -416,6 +421,7 @@ class ProductController extends Controller
                 'name', 'unit', 'description',
             ])
         );
+        $this->productInformationSectionService->sync($product, $request->input('information_sections', []), $request->lang);
 
         flash(translate('Product has been updated successfully'))->success();
 

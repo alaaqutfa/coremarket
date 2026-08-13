@@ -152,7 +152,6 @@
                             </div>
                         </div>
                     </div>
-    
                     <div class="card">
                         <div class="card-header">
                             <h5 class="mb-0 h6">{{ translate('Price') }}</h5>
@@ -223,6 +222,7 @@
                             </div>
                         </div>
                     </div>
+                    @include('partials.product.information_sections_form', ['lang' => env('DEFAULT_LANGUAGE', 'en')])
     
                     {{-- Frequently Bought Products --}}
                     <div class="card">

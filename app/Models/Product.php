@@ -26,6 +26,11 @@ class Product extends Model
         return $this->hasMany(ProductTranslation::class);
     }
 
+    public function informationSections()
+    {
+        return $this->hasMany(ProductInformationSection::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function main_category()
     {
         return $this->belongsTo(Category::class, 'category_id');

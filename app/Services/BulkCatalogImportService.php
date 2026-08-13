@@ -6,9 +6,9 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\CategoryTranslation;
 use App\Models\Product;
-use App\Models\ProductCategory;
 use App\Models\ProductStock;
 use App\Models\Upload;
+use App\Services\ProductInformationSectionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -114,6 +114,13 @@ class BulkCatalogImportService
             if (filled($row[$column] ?? null) && ! isset($files[$row[$column]])) return "Image file {$row[$column]} is missing from ZIP.";
         }
         foreach (array_filter(explode(';', (string) ($row['gallery_files'] ?? ''))) as $file) if (! isset($files[trim($file)])) return "Gallery image {$file} is missing from ZIP.";
+        if ($type === 'products' && array_key_exists('information_sections', $row)) {
+            try {
+                $this->parseInformationSections($row);
+            } catch (\InvalidArgumentException $exception) {
+                return $exception->getMessage();
+            }
+        }
         return null;
     }
 
@@ -177,7 +184,87 @@ class BulkCatalogImportService
 
     private function persistProducts(array $rows, string $directory, int $userId): array
     {
-        $result=['created'=>0,'updated'=>0]; foreach ($rows as $row) { $product=$this->productMatch($row); $new=!$product; $product??=new Product(); $category=$this->categoryFromRow($row); $brand=$this->brandFromRow($row); foreach(['name','description','unit','unit_price','tags','meta_title','meta_description','est_shipping_days','video_provider','video_link'] as $f)if(filled($row[$f]??null))$product->{$f}=$row[$f]; $product->category_id=$category?->id??$product->category_id; $product->brand_id=$brand?->id??$product->brand_id; $product->added_by='admin'; $product->user_id=$product->user_id?:$userId; $product->approved=1; $product->slug=filled($row['slug']??null)?Str::slug($row['slug']):($product->slug?:Str::slug($row['name']).'-'.Str::random(5)); if(filled($row['barcode']??null))$product->barcode=$row['barcode']; if(filled($row['thumbnail_file']??null))$product->thumbnail_img=$this->storeImage($directory,$row['thumbnail_file'],$userId); if(filled($row['gallery_files']??null))$product->photos=collect(explode(';',$row['gallery_files']))->map(fn($f)=>$this->storeImage($directory,trim($f),$userId))->implode(','); $product->save(); $stock=$product->stocks()->where('variant','')->first()??new ProductStock(['variant'=>'']); $stock->product_id=$product->id; foreach(['sku','barcode'] as $f)if(filled($row[$f]??null))$stock->{$f}=$row[$f]; $stock->price=$product->unit_price; $stock->qty=$row['qty']??$stock->qty??0; $stock->save(); ProductCategory::updateOrCreate(['product_id'=>$product->id,'category_id'=>$product->category_id]); \App\Models\ProductTranslation::updateOrCreate(['product_id'=>$product->id,'lang'=>env('DEFAULT_LANGUAGE','en')], ['name'=>$product->name,'unit'=>$product->unit,'description'=>$product->description]); $new?$result['created']++:$result['updated']++; } return $result;
+        $result = ['created' => 0, 'updated' => 0];
+
+        foreach ($rows as $row) {
+            $product = $this->productMatch($row);
+            $new = ! $product;
+            $product ??= new Product();
+            $category = $this->categoryFromRow($row);
+            $brand = $this->brandFromRow($row);
+
+            foreach (['name', 'description', 'unit', 'unit_price', 'tags', 'meta_title', 'meta_description', 'est_shipping_days', 'video_provider', 'video_link'] as $field) {
+                if (filled($row[$field] ?? null)) $product->{$field} = $row[$field];
+            }
+
+            $product->category_id = $category?->id ?? $product->category_id;
+            $product->brand_id = $brand?->id ?? $product->brand_id;
+            $product->added_by = 'admin';
+            $product->user_id = $product->user_id ?: $userId;
+            $product->approved = 1;
+            $product->slug = filled($row['slug'] ?? null) ? Str::slug($row['slug']) : ($product->slug ?: Str::slug($row['name']) . '-' . Str::random(5));
+            if (filled($row['barcode'] ?? null)) $product->barcode = $row['barcode'];
+            if (filled($row['thumbnail_file'] ?? null)) $product->thumbnail_img = $this->storeImage($directory, $row['thumbnail_file'], $userId);
+            if (filled($row['gallery_files'] ?? null)) $product->photos = collect(explode(';', $row['gallery_files']))->map(fn ($file) => $this->storeImage($directory, trim($file), $userId))->implode(',');
+            $product->save();
+
+            $stock = $product->stocks()->where('variant', '')->first() ?? new ProductStock(['variant' => '']);
+            $stock->product_id = $product->id;
+            foreach (['sku', 'barcode'] as $field) if (filled($row[$field] ?? null)) $stock->{$field} = $row[$field];
+            $stock->price = $product->unit_price;
+            $stock->qty = $row['qty'] ?? $stock->qty ?? 0;
+            $stock->save();
+
+            DB::table('product_categories')->updateOrInsert(
+                ['product_id' => $product->id, 'category_id' => $product->category_id]
+            );
+            \App\Models\ProductTranslation::updateOrCreate(
+                ['product_id' => $product->id, 'lang' => env('DEFAULT_LANGUAGE', 'en')],
+                ['name' => $product->name, 'unit' => $product->unit, 'description' => $product->description]
+            );
+
+            if (array_key_exists('information_sections', $row) && filled($row['information_sections'])) {
+                app(ProductInformationSectionService::class)->replaceFromBulk($product, $this->parseInformationSections($row));
+            }
+
+            $new ? $result['created']++ : $result['updated']++;
+        }
+
+        return $result;
+    }
+
+    public function parseInformationSections(array $row): array
+    {
+        $raw = trim((string) ($row['information_sections'] ?? ''));
+        if ($raw === '') return [];
+        try {
+            $sections = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new \InvalidArgumentException('information_sections must be a valid JSON array.');
+        }
+        if (! is_array($sections) || ! array_is_list($sections)) throw new \InvalidArgumentException('information_sections must be a JSON array.');
+
+        $defaultLanguage = env('DEFAULT_LANGUAGE', 'en');
+        return collect($sections)->values()->map(function ($section, $index) use ($defaultLanguage) {
+            if (! is_array($section)) throw new \InvalidArgumentException('Each information section must be an object.');
+            $title = trim((string) ($section['title'] ?? ''));
+            $content = (string) ($section['content'] ?? '');
+            if ($title === '' || trim(strip_tags($content)) === '') throw new \InvalidArgumentException('Each information section requires title and content.');
+            if (mb_strlen($title) > 255) throw new \InvalidArgumentException('An information section title may not exceed 255 characters.');
+            $translations = [$defaultLanguage => ['title' => $title, 'content' => $content]];
+            if (isset($section['translations']) && ! is_array($section['translations'])) throw new \InvalidArgumentException('Information section translations must be an object.');
+            foreach (($section['translations'] ?? []) as $lang => $translation) {
+                if (! is_array($translation)) throw new \InvalidArgumentException('Each information section translation must be an object.');
+                $translatedTitle = trim((string) ($translation['title'] ?? ''));
+                $translatedContent = (string) ($translation['content'] ?? '');
+                if (! is_string($lang) || trim($lang) === '' || $translatedTitle === '' || trim(strip_tags($translatedContent)) === '') throw new \InvalidArgumentException('Each information section translation requires language, title and content.');
+                if (mb_strlen($translatedTitle) > 255) throw new \InvalidArgumentException('An information section translation title may not exceed 255 characters.');
+                $translations[trim($lang)] = ['title' => $translatedTitle, 'content' => $translatedContent];
+            }
+            $isActive = filter_var($section['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($isActive === null) throw new \InvalidArgumentException('Information section is_active must be true or false.');
+            return ['sort_order' => is_numeric($section['sort_order'] ?? null) ? (int) $section['sort_order'] : $index + 1, 'is_active' => $isActive, 'translations' => $translations];
+        })->all();
     }
 
     private function productMatch(array $row): ?Product

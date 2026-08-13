@@ -22,6 +22,32 @@
                     <?php echo $detailedProduct->getTranslation('description'); ?>
                 </div>
             </div>
+            @php
+                $informationSections = $detailedProduct->informationSections
+                    ->where('is_active', true)
+                    ->filter(function ($section) {
+                        return filled($section->getTranslation('title')) && filled(trim(strip_tags((string) $section->getTranslation('content'))));
+                    });
+            @endphp
+            @if ($informationSections->isNotEmpty())
+                <div class="accordion pb-4" id="product-information-sections-{{ $detailedProduct->id }}">
+                    @foreach ($informationSections as $section)
+                        <div class="card border mb-2">
+                            <div class="card-header bg-white p-0" id="product-information-heading-{{ $section->id }}">
+                                <button class="btn btn-link btn-block text-left text-reset fw-700 py-3 px-4" type="button" data-toggle="collapse" data-target="#product-information-content-{{ $section->id }}" aria-expanded="false" aria-controls="product-information-content-{{ $section->id }}">
+                                    {{ $section->getTranslation('title') }}
+                                    <span class="float-right">+</span>
+                                </button>
+                            </div>
+                            <div id="product-information-content-{{ $section->id }}" class="collapse" aria-labelledby="product-information-heading-{{ $section->id }}" data-parent="#product-information-sections-{{ $detailedProduct->id }}">
+                                <div class="card-body aiz-editor-data mw-100 overflow-hidden text-left">
+                                    <?php echo $section->getTranslation('content'); ?>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <!-- Video -->

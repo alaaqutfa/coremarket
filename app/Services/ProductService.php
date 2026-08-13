@@ -30,6 +30,7 @@ class ProductService
         }
 
         $collection = collect($data);
+        unset($collection['information_sections']);
         $collection['current_stock'] = 0;
         $approved = 1;
         if (auth()->user()->user_type == 'seller') {
@@ -165,6 +166,7 @@ class ProductService
     public function update(array $data, Product $product)
     {
         $collection = collect($data);
+        unset($collection['information_sections']);
         $collection['current_stock'] = $product->current_stock;
 
         $slug = Str::slug($collection['name']);
@@ -322,6 +324,8 @@ class ProductService
         $product_new->approved = (get_setting('product_approve_by_admin') == 1 && $product->added_by != 'admin') ? 0 : 1;
         $product_new->save();
 
+        app(ProductInformationSectionService::class)->duplicate($product, $product_new);
+
         return $product_new;
     }
 
@@ -329,6 +333,7 @@ class ProductService
     {
         $product = Product::findOrFail($id);
         $product->product_translations()->delete();
+        $product->informationSections()->delete();
         $product->categories()->detach();
         $product->stocks()->delete();
         $product->taxes()->delete();

@@ -30,7 +30,7 @@ class ProductController extends Controller
 
     public function product_details($slug, $user_id)
     {
-        $product = Product::where('slug', $slug)->get();
+        $product = Product::with('informationSections')->where('slug', $slug)->get();
         if(get_setting('last_viewed_product_activation') == 1 && $user_id != null){
             lastViewedProducts($product[0]->id, $user_id);
         }

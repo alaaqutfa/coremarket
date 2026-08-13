@@ -407,7 +407,7 @@ class HomeController extends Controller
             session(['link' => url()->current()]);
         }
 
-        $detailedProduct  = Product::with('reviews', 'brand', 'stocks', 'user', 'user.shop')->where('auction_product', 0)->where('slug', $slug)->where('approved', 1)->first();
+        $detailedProduct  = Product::with('reviews', 'brand', 'stocks', 'user', 'user.shop', 'informationSections')->where('auction_product', 0)->where('slug', $slug)->where('approved', 1)->first();
 
         if ($detailedProduct != null && $detailedProduct->published) {
             if ((get_setting('vendor_system_activation') != 1) && $detailedProduct->added_by == 'seller') {

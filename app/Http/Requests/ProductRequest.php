@@ -52,6 +52,12 @@ class ProductRequest extends FormRequest
         $rules['barcode'] = ['nullable', 'string', 'max:255'];
         $rules['product_family_id'] = ['nullable', 'integer', 'exists:product_families,id'];
         $rules['product_sub_family_id'] = ['nullable', 'integer', 'exists:product_families,id'];
+        $rules['information_sections'] = ['nullable', 'array'];
+        $rules['information_sections.*.id'] = ['nullable', 'integer'];
+        $rules['information_sections.*.title'] = ['required_with:information_sections', 'string', 'max:255'];
+        $rules['information_sections.*.content'] = ['required_with:information_sections', 'string'];
+        $rules['information_sections.*.sort_order'] = ['nullable', 'integer', 'min:0'];
+        $rules['information_sections.*.is_active'] = ['nullable', 'boolean'];
 
         foreach ($this->all() as $key => $value) {
             if (str_starts_with($key, 'barcode_') || str_starts_with($key, 'sku_')) {

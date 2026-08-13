@@ -15,26 +15,26 @@ class ProductsExport implements FromCollection, WithMapping, WithHeadings
 
     public function collection()
     {
-        return Product::all();
+        return Product::query()->with(['stocks', 'informationSections.translations'])->get();
     }
 
     public function headings(): array
     {
         return [
             'name',
-            'description',
-            'added_by',
-            'user_id',
+            'sku',
+            'barcode',
             'category_id',
             'brand_id',
-            'video_provider',
-            'video_link',
             'unit_price',
             'unit',
-            'current_stock',
-            'est_shipping_days',
+            'qty',
+            'slug',
+            'description',
+            'tags',
             'meta_title',
             'meta_description',
+            'information_sections',
         ];
     }
 
@@ -49,19 +49,43 @@ class ProductsExport implements FromCollection, WithMapping, WithHeadings
         }
         return [
             $product->name,
-            $product->description,
-            $product->added_by,
-            $product->user_id,
+            $product->stocks->firstWhere('variant', '')?->sku,
+            $product->barcode ?: $product->stocks->firstWhere('variant', '')?->barcode,
             $product->category_id,
             $product->brand_id,
-            $product->video_provider,
-            $product->video_link,
             $product->unit_price,
             $product->unit,
             $qty,
-            $product->est_shipping_days,
+            $product->slug,
+            $product->description,
+            $product->tags,
             $product->meta_title,
             $product->meta_description,
+            $this->informationSections($product),
         ];
+    }
+
+    private function informationSections(Product $product): string
+    {
+        $defaultLanguage = env('DEFAULT_LANGUAGE', 'en');
+
+        return $product->informationSections->map(function ($section) use ($defaultLanguage) {
+            $default = $section->translations->firstWhere('lang', $defaultLanguage)
+                ?: $section->translations->first();
+
+            return [
+                'title' => $default?->title,
+                'content' => $default?->content,
+                'sort_order' => $section->sort_order,
+                'is_active' => $section->is_active,
+                'translations' => $section->translations
+                    ->where('lang', '!=', $defaultLanguage)
+                    ->mapWithKeys(fn ($translation) => [$translation->lang => [
+                        'title' => $translation->title,
+                        'content' => $translation->content,
+                    ]])
+                    ->all(),
+            ];
+        })->values()->toJson(JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }
