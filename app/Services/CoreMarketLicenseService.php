@@ -126,6 +126,7 @@ class CoreMarketLicenseService
     {
         $persistedStore = $this->runtimeSnapshot()->persistedStoreMetadata();
         $persistedSupport = $this->runtimeSnapshot()->persistedSupportMetadata();
+        $subscription = $this->runtimeSnapshot()->persistedSubscriptionMetadata();
         $matrix = $this->featureAccess()->matrixFor();
         $resolvedDomain = $persistedStore['store_url'] ?? config('coremarket.license.domain');
 
@@ -141,8 +142,8 @@ class CoreMarketLicenseService
             'plan_code' => $this->currentPlan(),
             'store_mode' => $this->currentStoreMode(),
             'status' => $this->status(),
-            'starts_at' => config('coremarket.license.starts_at'),
-            'expires_at' => config('coremarket.license.expires_at'),
+            'starts_at' => $subscription['starts_at'] ?? config('coremarket.license.starts_at'),
+            'expires_at' => $subscription['ends_at'] ?? config('coremarket.license.expires_at'),
             'grace_until' => config('coremarket.license.grace_until'),
             'suspension_reason' => config('coremarket.license.suspension_reason'),
             'limits' => $matrix['limits'],

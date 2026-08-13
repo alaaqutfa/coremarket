@@ -16,6 +16,8 @@ use App\Notifications\EmailVerificationNotification;
 use App\Notifications\ShopVerificationNotification;
 use Cache;
 use Illuminate\Support\Facades\Notification;
+use App\Services\CoreMarketSellerGovernanceService;
+use DomainException;
 
 class SellerController extends Controller
 {
@@ -80,12 +82,18 @@ class SellerController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(Request $request, CoreMarketSellerGovernanceService $governance)
     {
         if (User::where('email', $request->email)->first() != null) {
             flash(translate('Email already exists!'))->error();
             return back();
         }
+        try {
+            $governance->assertCanActivateSeller();
+        } catch (DomainException $exception) {
+            return back()->withErrors(['seller' => $exception->getMessage()])->withInput();
+        }
+
         $user = new User;
         $user->name = $request->name;
         $user->email = $request->email;
@@ -229,9 +237,14 @@ class SellerController extends Controller
         return view('backend.sellers.verification', compact('shop'));
     }
 
-    public function approve_seller($id)
+    public function approve_seller($id, CoreMarketSellerGovernanceService $governance)
     {
         $shop = Shop::findOrFail($id);
+        try {
+            $governance->assertCanActivateSeller($shop->user);
+        } catch (DomainException $exception) {
+            return back()->withErrors(['seller' => $exception->getMessage()]);
+        }
         $shop->verification_status = 1;
         $shop->save();
         Cache::forget('verified_sellers_id');
@@ -279,9 +292,16 @@ class SellerController extends Controller
         return view('backend.sellers.profile_modal', compact('shop'));
     }
 
-    public function updateApproved(Request $request)
+    public function updateApproved(Request $request, CoreMarketSellerGovernanceService $governance)
     {
         $shop = Shop::findOrFail($request->id);
+        if ((int) $request->status === 1) {
+            try {
+                $governance->assertCanActivateSeller($shop->user);
+            } catch (DomainException $exception) {
+                return response()->json(['message' => $exception->getMessage()], 422);
+            }
+        }
         $shop->verification_status = $request->status;
         $shop->save();
         Cache::forget('verified_sellers_id');
@@ -308,11 +328,16 @@ class SellerController extends Controller
         return redirect()->route('seller.dashboard');
     }
 
-    public function ban($id)
+    public function ban($id, CoreMarketSellerGovernanceService $governance)
     {
         $shop = Shop::findOrFail($id);
 
         if ($shop->user->banned == 1) {
+            try {
+                $governance->assertCanActivateSeller($shop->user);
+            } catch (DomainException $exception) {
+                return back()->withErrors(['seller' => $exception->getMessage()]);
+            }
             $shop->user->banned = 0;
             if ($shop->verification_info) {
                 $shop->verification_status = 1;

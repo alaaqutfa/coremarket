@@ -109,6 +109,8 @@
                         <li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Days remaining') }}</span><span>{{ $subscriptionMetadata['days_remaining'] ?? translate('Not set') }}</span></li>
                         @if(!empty($subscriptionMetadata['renewal_label']))<li class="list-group-item px-0"><span class="text-muted d-block">{{ translate('Renewal') }}</span><span>{{ $subscriptionMetadata['renewal_label'] }}</span></li>@endif
                         @if(isset($subscriptionMetadata['current_plan_price']))<li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Current plan price') }}</span><span>{{ $subscriptionMetadata['currency'] ?? 'USD' }} {{ $subscriptionMetadata['current_plan_price'] }}</span></li>@endif
+                        @if(isset($subscriptionMetadata['setup_fee']))<li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('One-time setup fee') }}</span><span>{{ $subscriptionMetadata['currency'] ?? 'USD' }} {{ $subscriptionMetadata['setup_fee'] }}</span></li>@endif
+                        @if(isset($subscriptionMetadata['renewal_price']))<li class="list-group-item px-0 d-flex justify-content-between"><span class="text-muted">{{ translate('Next renewal') }}</span><span>{{ $subscriptionMetadata['currency'] ?? 'USD' }} {{ $subscriptionMetadata['renewal_price'] }} / {{ $subscriptionMetadata['renewal_billing_cycle'] ?? 'yearly' }}</span></li>@endif
                         <li class="list-group-item px-0 d-flex justify-content-between">
                             <span class="text-muted">{{ translate('Expires at') }}</span>
                             <span>{{ $licenseSnapshot['expires_at'] ?: translate('Not set') }}</span>
@@ -221,6 +223,7 @@
                         <div class="text-muted fs-12">{{ translate('Monthly orders count') }}</div>
                         <div class="h5 mb-0">{{ $currentMonthlyOrderCount }}</div>
                     </div>
+                    <div class="border rounded px-3 py-2 mb-2"><div class="text-muted fs-12">{{ translate('Active marketplace sellers') }}</div><div class="h5 mb-0">{{ $currentSellerCount }}</div></div>
                     <div class="border rounded px-3 py-2 mb-2">
                         <div class="text-muted fs-12">{{ translate('Uploads count') }}</div>
                         <div class="h5 mb-0">{{ $currentUploadCount }}</div>

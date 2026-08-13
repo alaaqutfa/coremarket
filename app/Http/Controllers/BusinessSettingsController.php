@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\BusinessSetting;
 use App\Models\PaymentMethod;
 use App\Models\Upload;
+use App\Models\User;
 use Artisan;
 use CoreComponentRepository;
 use Illuminate\Support\Facades\Redirect;
@@ -160,6 +161,7 @@ class BusinessSettingsController extends Controller
         $currentProductCount = $licenseService->currentProductCount();
         $currentMonthlyOrderCount = $licenseService->currentMonthlyOrderCount();
         $currentUploadCount = Upload::query()->count();
+        $currentSellerCount = User::query()->where('user_type', 'seller')->where('banned', '!=', 1)->count();
 
         $storeInfo = [
             'store_name' => coremarketStoreName(),
@@ -191,7 +193,7 @@ class BusinessSettingsController extends Controller
             ->values();
 
         $limitRows = collect($featureMatrix['limits'])
-            ->map(function ($value, string $key) use ($currentProductCount, $currentMonthlyOrderCount, $currentUploadCount) {
+            ->map(function ($value, string $key) use ($currentProductCount, $currentMonthlyOrderCount, $currentUploadCount, $currentSellerCount) {
                 $usage = null;
                 $usageNote = null;
                 $label = match ($key) {
@@ -203,6 +205,10 @@ class BusinessSettingsController extends Controller
                     $usage = $currentProductCount;
                 } elseif ($key === 'monthly_orders_limit') {
                     $usage = $currentMonthlyOrderCount;
+                } elseif ($key === 'staff_limit') {
+                    $usage = \App\Models\Staff::query()->whereHas('user', fn ($query) => $query->where('user_type', 'staff'))->count();
+                } elseif ($key === 'sellers_limit') {
+                    $usage = $currentSellerCount;
                 } elseif ($key === 'storage_mb_limit') {
                     $usage = $currentUploadCount;
                     $usageNote = 'Uploads count shown as a safe placeholder. Media file size is not tracked reliably here yet.';
@@ -306,6 +312,7 @@ class BusinessSettingsController extends Controller
             'currentProductCount' => $currentProductCount,
             'currentMonthlyOrderCount' => $currentMonthlyOrderCount,
             'currentUploadCount' => $currentUploadCount,
+            'currentSellerCount' => $currentSellerCount,
             'quickActions' => $quickActions,
             'isLicenseActive' => $licenseService->isActive(),
             'isLicenseSuspended' => $licenseService->isSuspended(),
