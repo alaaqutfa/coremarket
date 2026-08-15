@@ -61,6 +61,20 @@ class BulkCatalogImportServiceTest extends TestCase
         File::deleteDirectory(storage_path('app/bulk-catalog/'.$preview['token']));
     }
 
+    public function test_brand_preview_accepts_the_brand_template_without_product_identity_columns(): void
+    {
+        $file = $this->workbook([
+            ['name', 'slug', 'meta_title', 'meta_description', 'logo_file'],
+            ['Genesis', 'genesis', 'Genesis', 'Premium pet nutrition', ''],
+        ]);
+
+        $preview = app(BulkCatalogImportService::class)->preview('brands', $file, null, 999);
+
+        $this->assertSame(1, $preview['created']);
+        $this->assertSame([], $preview['errors']);
+        File::deleteDirectory(storage_path('app/bulk-catalog/'.$preview['token']));
+    }
+
     private function workbook(array $rows): UploadedFile
     {
         $path = tempnam(sys_get_temp_dir(), 'bulk-catalog-').'.xlsx';

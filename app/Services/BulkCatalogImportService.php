@@ -107,7 +107,11 @@ class BulkCatalogImportService
         if ($type === 'products' && blank($row['unit_price'] ?? null)) return 'unit_price is required for products.';
         if ($type === 'products' && blank($row['category_slug'] ?? null) && blank($row['category_id'] ?? null)) return 'category_slug or category_id is required for products.';
         if ($type === 'products' && ! is_numeric($row['unit_price'])) return 'unit_price must be numeric.';
-        $identity = $type === 'categories' ? strtolower((string) $row['row_key']) : $this->normalise((string) ($row['sku'] ?: $row['barcode'] ?: $row['name']));
+        $identity = match ($type) {
+            'categories' => strtolower((string) $row['row_key']),
+            'products' => $this->normalise((string) (($row['sku'] ?? null) ?: ($row['barcode'] ?? null) ?: $row['name'])),
+            default => $this->normalise((string) $row['name']),
+        };
         if (isset($seen[$identity])) return 'Duplicate identity inside the uploaded file.';
         $seen[$identity] = true;
         foreach (['cover_image_file', 'banner_image_file', 'icon_file', 'logo_file', 'thumbnail_file'] as $column) {
