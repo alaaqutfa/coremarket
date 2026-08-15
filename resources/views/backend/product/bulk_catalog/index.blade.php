@@ -2,11 +2,21 @@
 @section('content')
 <div class="aiz-titlebar mt-2 mb-4"><h1 class="h3">{{ translate('Bulk Catalog') }}</h1></div>
 @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+@if ($errors->any())
+    <div class="alert alert-danger" role="alert">
+        <strong>{{ translate('The import preview could not be completed.') }}</strong>
+        <ul class="mb-0 mt-2">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 <div class="row">
 <div class="col-lg-8"><div class="card"><div class="card-header"><h5 class="mb-0">{{ translate('Import / Update') }}</h5></div><div class="card-body">
     <p>{{ translate('Upload an Excel file and an optional ZIP containing locally designed images. The file is validated and previewed before any records are saved.') }}</p>
     <form method="POST" action="{{ route('bulk-catalog.preview') }}" enctype="multipart/form-data">@csrf
-        <div class="row"><div class="col-md-3 form-group"><label>{{ translate('Import type') }}</label><select name="type" class="form-control" required><option value="categories">{{ translate('Categories') }}</option><option value="brands">{{ translate('Brands') }}</option><option value="products">{{ translate('Products') }}</option></select></div><div class="col-md-4 form-group"><label>{{ translate('Excel file') }}</label><input name="spreadsheet" type="file" accept=".xlsx,.xls,.csv" class="form-control" required></div><div class="col-md-4 form-group"><label>{{ translate('Images ZIP') }}</label><input name="images_zip" type="file" accept=".zip" class="form-control"></div><div class="col-md-1 form-group d-flex align-items-end"><button class="btn btn-primary">{{ translate('Preview') }}</button></div></div>
+        <div class="row"><div class="col-md-3 form-group"><label>{{ translate('Import type') }}</label><select name="type" class="form-control" required><option value="categories" @selected(old('type', 'categories') === 'categories')>{{ translate('Categories') }}</option><option value="brands" @selected(old('type') === 'brands')>{{ translate('Brands') }}</option><option value="products" @selected(old('type') === 'products')>{{ translate('Products') }}</option></select></div><div class="col-md-4 form-group"><label>{{ translate('Excel file') }}</label><input name="spreadsheet" type="file" accept=".xlsx,.xls,.csv" class="form-control" required></div><div class="col-md-4 form-group"><label>{{ translate('Images ZIP') }}</label><input name="images_zip" type="file" accept=".zip" class="form-control"></div><div class="col-md-1 form-group d-flex align-items-end"><button class="btn btn-primary">{{ translate('Preview') }}</button></div></div>
     </form>
 </div></div></div>
 <div class="col-lg-4"><div class="card"><div class="card-header"><h5 class="mb-0">{{ translate('Template & Export') }}</h5></div><div class="card-body">

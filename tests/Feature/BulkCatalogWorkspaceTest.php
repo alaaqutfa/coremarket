@@ -57,6 +57,16 @@ class BulkCatalogWorkspaceTest extends TestCase
             ->assertRedirect(route('bulk-catalog.index'));
     }
 
+    public function test_bulk_catalog_displays_preview_errors_after_a_failed_upload(): void
+    {
+        $this->actingAs($this->user('admin'))
+            ->withViewErrors(['spreadsheet' => 'The import file could not be read.'])
+            ->withSession(['_old_input' => ['type' => 'brands']])
+            ->view('backend.product.bulk_catalog.index')
+            ->assertSee('The import preview could not be completed.')
+            ->assertSee('The import file could not be read.');
+    }
+
     private function user(string $userType): User
     {
         $id = DB::table('users')->insertGetId([
