@@ -231,7 +231,7 @@ class HomeController extends Controller
 
     public function load_best_sellers_section()
     {
-        if (! coremarket_feature_enabled('vendor_mode_enabled')) {
+        if (! coremarket_feature_enabled('vendor_mode_enabled') || ! customer_seller_identity_visible()) {
             return '';
         }
 
@@ -470,8 +470,8 @@ class HomeController extends Controller
 
     public function shop($slug)
     {
-        if (get_setting('vendor_system_activation') != 1) {
-            return redirect()->route('home');
+        if (get_setting('vendor_system_activation') != 1 || ! customer_seller_identity_visible()) {
+            abort(404);
         }
         $shop  = Shop::where('slug', $slug)->first();
         if ($shop != null) {
@@ -489,8 +489,8 @@ class HomeController extends Controller
 
     public function filter_shop(Request $request, $slug, $type)
     {
-        if (get_setting('vendor_system_activation') != 1) {
-            return redirect()->route('home');
+        if (get_setting('vendor_system_activation') != 1 || ! customer_seller_identity_visible()) {
+            abort(404);
         }
         $shop  = Shop::where('slug', $slug)->first();
         if ($shop != null && $type != null) {
@@ -852,8 +852,8 @@ class HomeController extends Controller
 
     public function all_seller(Request $request)
     {
-        if (get_setting('vendor_system_activation') != 1) {
-            return redirect()->route('home');
+        if (get_setting('vendor_system_activation') != 1 || ! customer_seller_identity_visible()) {
+            abort(404);
         }
         $shops = Shop::whereIn('user_id', verified_sellers_id())
             ->paginate(15);

@@ -6,6 +6,7 @@
         : null;
     $coremarketSellerInteractionEnabled = coremarket_feature_enabled('vendor_mode_enabled')
         && get_setting('vendor_system_activation') == 1
+        && customer_seller_identity_visible()
         && $detailedProduct->added_by == 'seller';
 @endphp
 
@@ -99,6 +100,7 @@
     @endif
 
     <!-- Seller Info -->
+    @if (customer_seller_identity_visible())
     <div class="d-flex flex-wrap align-items-center">
         <div class="d-flex align-items-center mr-4">
             <!-- Shop Name -->
@@ -137,6 +139,9 @@
                 </button>
             </div>
         @endif
+    </div>
+    @endif
+
         <!-- Size guide -->
         @php
             $sizeChartId = ($detailedProduct->main_category && $detailedProduct->main_category->sizeChart) ? $detailedProduct->main_category->sizeChart->id : 0;
@@ -147,7 +152,6 @@
                 <a href="javascript:void(1);" onclick='showSizeChartDetail({{ $sizeChartId }}, "{{ $sizeChartName }}")' class="animate-underline-primary">{{ translate('Show size guide') }}</a>
             </div>
         @endif
-    </div>
 
     <hr>
 

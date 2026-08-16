@@ -76,6 +76,20 @@
                                 <div class="file-preview box sm"></div>
                             </div>
                         </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-from-label">{{ translate('Show seller information to customers') }}</label>
+                            <div class="col-sm-9">
+                                <input type="hidden" name="types[]" value="customer_seller_identity_visible">
+                                <label class="aiz-switch aiz-switch-success mb-0">
+                                    <input type="checkbox" name="customer_seller_identity_visible" value="1"
+                                        @checked(customer_seller_identity_visible())>
+                                    <span class="slider round"></span>
+                                </label>
+                                <small class="form-text text-muted">
+                                    {{ translate('When disabled, customers cannot see seller names, stores, seller links, or seller contact options. Seller operations remain available internally.') }}
+                                </small>
+                            </div>
+                        </div>
                         <div class="text-right">
     						<button type="submit" class="btn btn-primary">{{ translate('Update') }}</button>
     					</div>

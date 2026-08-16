@@ -1390,6 +1390,13 @@ if (! function_exists('get_setting')) {
     }
 }
 
+if (! function_exists('customer_seller_identity_visible')) {
+    function customer_seller_identity_visible(): bool
+    {
+        return (int) get_setting('customer_seller_identity_visible', 1) === 1;
+    }
+}
+
 function hex2rgba($color, $opacity = false)
 {
     $default = 'rgb(230,46,4)';

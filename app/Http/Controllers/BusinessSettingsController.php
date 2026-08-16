@@ -615,6 +615,11 @@ class BusinessSettingsController extends Controller
 
     public function update(Request $request)
     {
+        if (in_array('customer_seller_identity_visible', $request->types ?? [], true)
+            && ! $request->has('customer_seller_identity_visible')) {
+            $request->merge(['customer_seller_identity_visible' => 0]);
+        }
+
         if (isStoreAdmin()) {
             $allowedTypes = config('coremarket.access.store_admin_allowed_business_setting_types', []);
             $requestTypes = collect($request->types ?? [])

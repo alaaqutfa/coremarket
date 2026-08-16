@@ -149,6 +149,7 @@
         </div>
     </div>
 
+    @if (customer_seller_identity_visible())
     <!-- Chat Modal -->
     <div class="modal fade" id="chat_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
         aria-hidden="true">
@@ -184,6 +185,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Bid Modal -->
     @if($detailedProduct->auction_product == 1)

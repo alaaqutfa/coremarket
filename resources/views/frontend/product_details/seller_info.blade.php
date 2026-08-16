@@ -1,4 +1,4 @@
-@if ($detailedProduct->added_by == 'seller' && $detailedProduct->user->shop != null)
+@if (customer_seller_identity_visible() && $detailedProduct->added_by == 'seller' && $detailedProduct->user->shop != null)
     <div class="border mb-4" style="background: #fcfcfd;">
         <div class="position-relative p-3 p-sm-4 text-left">
             <div class="opacity-60 fs-14 mb-3">{{ translate('Seller') }}</div>

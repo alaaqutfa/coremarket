@@ -294,7 +294,7 @@
     </div>
 
     <!-- Banner section 4, Top Sellers -->
-    @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1)
+    @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1 && customer_seller_identity_visible())
         @php
             $best_selers = get_best_sellers(10);
             $homeBanner4Images = get_setting('home_banner4_images', null, $lang);
@@ -340,6 +340,7 @@
                     @endif
 
                     <!-- Top Sellers -->
+                    @if (customer_seller_identity_visible())
                     <div class="col mb-2 mb-md-3 mt-2 mt-md-3">
                         <div class="h-100" id="section_top_sellers">
                             <div class="border px-3 py-2rem">
@@ -395,6 +396,7 @@
                             </div>
                         </div>
                     </div>
+                    @endif
 
                 </div>
             </div>

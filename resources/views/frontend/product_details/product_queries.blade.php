@@ -1,6 +1,7 @@
 @php
     $coremarketSellerInteractionEnabled = coremarket_feature_enabled('vendor_mode_enabled')
         && get_setting('vendor_system_activation') == 1
+        && customer_seller_identity_visible()
         && $detailedProduct->added_by == 'seller';
 @endphp
 

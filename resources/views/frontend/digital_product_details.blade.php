@@ -117,15 +117,18 @@
                                             {{ translate('Add to Compare') }}
                                         </a>
                                     </div>
-                                    <div class="text-md-right mt-1">
-                                        <a href="#" class="text-blue hov-text-primary fs-14">{{ translate('Ask about this product') }}</a>
-                                    </div>
+                                    @if (customer_seller_identity_visible())
+                                        <div class="text-md-right mt-1">
+                                            <a href="#" class="text-blue hov-text-primary fs-14">{{ translate('Ask about this product') }}</a>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
 
 
                             <hr>
 
+                            @if (customer_seller_identity_visible())
                             <!-- Seller Info -->
                             <div class="row align-items-center">
                                 <div class="col-md-4 fs-14 fw-700 mb-3">
@@ -189,6 +192,8 @@
                                     </div>
                                 @endif
                             </div>
+
+                            @endif
 
                             <hr>
 
@@ -390,7 +395,7 @@
                 <div class="col-xl-3 order-1 order-xl-0">
 
                     <!-- Seller Info -->
-                    @if ($detailedProduct->added_by == 'seller' && $detailedProduct->user->shop != null)
+                    @if (customer_seller_identity_visible() && $detailedProduct->added_by == 'seller' && $detailedProduct->user->shop != null)
                         <div class="border mb-4" style="background: #fcfcfd;">
                             <div class="position-relative p-4 text-left">
                                 @if ($detailedProduct->user->shop->verification_status)
@@ -794,6 +799,7 @@
 @endsection
 
 @section('modal')
+    @if (customer_seller_identity_visible())
     <div class="modal fade" id="chat_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-zoom product-modal" id="modal-size" role="document">
             <div class="modal-content position-relative">
@@ -822,6 +828,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Modal -->
     <div class="modal fade" id="login_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">

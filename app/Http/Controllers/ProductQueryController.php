@@ -47,6 +47,8 @@ class ProductQueryController extends Controller
         ]);
         $product = Product::find($request->product);
 
+        abort_if($product?->added_by === 'seller' && ! customer_seller_identity_visible(), 404);
+
         $query = new ProductQuery();
         $query->customer_id = Auth::id();
         $query->seller_id = $product->user_id;

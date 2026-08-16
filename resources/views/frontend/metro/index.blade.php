@@ -563,7 +563,7 @@
     @endif
 
     <!-- Top Sellers -->
-    @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1)
+    @if (coremarket_feature_enabled('vendor_mode_enabled') && get_setting('vendor_system_activation') == 1 && customer_seller_identity_visible())
         @php
             $best_selers = get_best_sellers(10);
         @endphp

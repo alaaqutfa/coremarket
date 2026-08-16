@@ -14,8 +14,14 @@ use Cache;
 
 class ShopController extends Controller
 {
+    private function ensureSellerIdentityVisible(): void
+    {
+        abort_unless(customer_seller_identity_visible(), 404);
+    }
+
     public function index(Request $request)
     {
+        $this->ensureSellerIdentityVisible();
         $shop_query = Shop::query();
 
         if ($request->name != null && $request->name != "") {
@@ -31,22 +37,26 @@ class ShopController extends Controller
 
     public function info($id)
     {
+        $this->ensureSellerIdentityVisible();
         return new ShopDetailsCollection(Shop::where('slug', $id)->first());
     }
 
     public function shopOfUser($id)
     {
+        $this->ensureSellerIdentityVisible();
         return new ShopCollection(Shop::where('user_id', $id)->get());
     }
 
     public function allProducts($id)
     {
+        $this->ensureSellerIdentityVisible();
         $shop = Shop::findOrFail($id);
         return new ProductCollection(Product::where('user_id', $shop->user_id)->where('published', 1)->latest()->paginate(10));
     }
 
     public function topSellingProducts($id)
     {
+        $this->ensureSellerIdentityVisible();
         $shop = Shop::findOrFail($id);
 
         return Cache::remember("app.top_selling_products-$id", 86400, function () use ($shop) {
@@ -56,6 +66,7 @@ class ShopController extends Controller
 
     public function featuredProducts($id)
     {
+        $this->ensureSellerIdentityVisible();
         $shop = Shop::findOrFail($id);
 
         return Cache::remember("app.featured_products-$id", 86400, function () use ($shop) {
@@ -65,6 +76,7 @@ class ShopController extends Controller
 
     public function newProducts($id)
     {
+        $this->ensureSellerIdentityVisible();
         $shop = Shop::findOrFail($id);
 
         return Cache::remember("app.new_products-$id", 86400, function () use ($shop) {
