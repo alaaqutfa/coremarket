@@ -27,7 +27,7 @@ class BulkCatalogImportController extends Controller
         $headers = match ($type) {
             'categories' => ['row_key', 'parent_row_key', 'name', 'slug', 'meta_title', 'meta_description', 'order_level', 'cover_image_file', 'banner_image_file', 'icon_file'],
             'brands' => ['name', 'slug', 'meta_title', 'meta_description', 'logo_file'],
-            default => ['name', 'sku', 'barcode', 'category_slug', 'category_id', 'brand_slug', 'brand_id', 'unit_price', 'unit', 'qty', 'slug', 'description', 'tags', 'meta_title', 'meta_description', 'thumbnail_file', 'gallery_files', 'information_sections'],
+            default => ['name', 'sku', 'barcode', 'category_slug', 'category_id', 'brand_slug', 'brand_id', 'unit_price', 'unit', 'qty', 'slug', 'description', 'tags', 'meta_title', 'meta_description', 'thumbnail_file', 'meta_img_file', 'gallery_files', 'information_sections'],
         };
         $book = new Spreadsheet();
         $book->getActiveSheet()->fromArray($headers, null, 'A1');

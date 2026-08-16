@@ -75,15 +75,14 @@ class BulkCatalogImportServiceTest extends TestCase
         File::deleteDirectory(storage_path('app/bulk-catalog/'.$preview['token']));
     }
 
-    public function test_gallery_thumbnail_reference_is_recognised_without_a_zip_filename(): void
+    public function test_thumbnail_reference_is_recognised_without_a_zip_filename(): void
     {
         $service = app(BulkCatalogImportService::class);
-        $method = new \ReflectionMethod($service, 'galleryFiles');
+        $method = new \ReflectionMethod($service, 'isThumbnailReference');
         $method->setAccessible(true);
 
-        $this->assertSame(['@thumbnail', 'detail.webp'], $method->invoke($service, [
-            'gallery_files' => '@THUMBNAIL; detail.webp',
-        ]));
+        $this->assertTrue($method->invoke($service, '@THUMBNAIL'));
+        $this->assertFalse($method->invoke($service, 'detail.webp'));
     }
 
     private function workbook(array $rows): UploadedFile

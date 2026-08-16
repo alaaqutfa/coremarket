@@ -117,7 +117,16 @@ class BulkCatalogImportService
         };
         if (isset($seen[$identity])) return 'Duplicate identity inside the uploaded file.';
         $seen[$identity] = true;
-        foreach (['cover_image_file', 'banner_image_file', 'icon_file', 'logo_file', 'thumbnail_file'] as $column) {
+        foreach (['cover_image_file', 'banner_image_file', 'icon_file', 'logo_file', 'thumbnail_file', 'meta_img_file'] as $column) {
+            if ($column === 'meta_img_file' && $this->isThumbnailReference($row[$column] ?? null)) {
+                $existingThumbnail = $this->productMatch($row)?->thumbnail_img;
+                if (blank($row['thumbnail_file'] ?? null) && ! $existingThumbnail) {
+                    return 'meta_img_file @thumbnail requires an existing product thumbnail or thumbnail_file.';
+                }
+
+                continue;
+            }
+
             if (filled($row[$column] ?? null) && ! isset($files[$row[$column]])) return "Image file {$row[$column]} is missing from ZIP.";
         }
         foreach ($this->galleryFiles($row) as $file) {
@@ -228,6 +237,15 @@ class BulkCatalogImportService
             $product->slug = filled($row['slug'] ?? null) ? Str::slug($row['slug']) : ($product->slug ?: Str::slug($row['name']) . '-' . Str::random(5));
             if (filled($row['barcode'] ?? null)) $product->barcode = $row['barcode'];
             if (filled($row['thumbnail_file'] ?? null)) $product->thumbnail_img = $this->storeImage($directory, $row['thumbnail_file'], $userId);
+            if (filled($row['meta_img_file'] ?? null)) {
+                if ($this->isThumbnailReference($row['meta_img_file'])) {
+                    if (! $product->thumbnail_img) throw new \RuntimeException('meta_img_file @thumbnail requires a product thumbnail.');
+
+                    $product->meta_img = $product->thumbnail_img;
+                } else {
+                    $product->meta_img = $this->storeImage($directory, $row['meta_img_file'], $userId);
+                }
+            }
             if (filled($row['gallery_files'] ?? null)) {
                 $gallery = collect($this->galleryFiles($row))->map(function ($file) use ($product, $directory, $userId) {
                     if ($file === '@thumbnail') {
@@ -319,9 +337,14 @@ class BulkCatalogImportService
         return collect(explode(';', (string) ($row['gallery_files'] ?? '')))
             ->map(fn ($file) => trim($file))
             ->filter()
-            ->map(fn ($file) => strtolower($file) === '@thumbnail' ? '@thumbnail' : $file)
+            ->map(fn ($file) => $this->isThumbnailReference($file) ? '@thumbnail' : $file)
             ->values()
             ->all();
+    }
+
+    private function isThumbnailReference(mixed $value): bool
+    {
+        return is_string($value) && strtolower(trim($value)) === '@thumbnail';
     }
 
     private function storeImage(string $directory, string $name, int $userId): int
