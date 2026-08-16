@@ -81,8 +81,8 @@ class ProductDetailCollection extends ResourceCollection
                     'price_high_low' => $lowestDiscountedPrice == $highestDiscountedPrice
                         ? format_price($lowestDiscountedPrice)
                         : 'From '.format_price($lowestDiscountedPrice).' to '.format_price($highestDiscountedPrice),
-                    'choice_options' => $this->convertToChoiceOptions(json_decode($data->choice_options)),
-                    'colors' => json_decode($data->colors) ?? [],
+                    'choice_options' => $this->convertToChoiceOptions($data->choiceOptionsArray()),
+                    'colors' => $data->colorsArray(),
                     'has_discount' => home_base_price($data, false) != home_discounted_base_price($data, false),
                     'discount' => "-" . discount_in_percentage($data) . "%",
                     'stroked_price' => home_base_price($data),

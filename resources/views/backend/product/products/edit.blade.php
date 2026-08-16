@@ -1,6 +1,11 @@
 @extends('backend.layouts.app')
 
 @section('content')
+    @php
+        $productColors = $product->colorsArray();
+        $productAttributes = $product->attributesArray();
+        $productChoiceOptions = $product->choiceOptionsArray();
+    @endphp
     <div class="page-content">
         <div class="aiz-titlebar text-left mt-2 pb-2 px-3 px-md-2rem border-bottom border-gray">
             <div class="row align-items-center">
@@ -527,7 +532,7 @@
                                                 @foreach (\App\Models\Color::orderBy('name', 'asc')->get() as $key => $color)
                                                     <option value="{{ $color->code }}"
                                                         data-content="<span><span class='size-15px d-inline-block mr-2 rounded border' style='background:{{ $color->code }}'></span><span>{{ $color->name }}</span></span>"
-                                                        <?php if (in_array($color->code, json_decode($product->colors))) {
+                                                        <?php if (in_array($color->code, $productColors, true)) {
                                                             echo 'selected';
                                                         } ?>></option>
                                                 @endforeach
@@ -536,7 +541,7 @@
                                         <div class="col-md-1">
                                             <label class="aiz-switch aiz-switch-success mb-0">
                                                 <input value="1" type="checkbox" name="colors_active"
-                                                    <?php if (count(json_decode($product->colors)) > 0) {
+                                                    <?php if (count($productColors) > 0) {
                                                         echo 'checked';
                                                     } ?>>
                                                 <span></span>
@@ -556,7 +561,7 @@
                                                 data-placeholder="{{ translate('Choose Attributes') }}">
                                                 @foreach (\App\Models\Attribute::all() as $key => $attribute)
                                                     <option value="{{ $attribute->id }}"
-                                                        @if ($product->attributes != null && in_array($attribute->id, json_decode($product->attributes, true))) selected @endif>
+                                                        @if (in_array($attribute->id, $productAttributes)) selected @endif>
                                                         {{ $attribute->getTranslation('name') }}</option>
                                                 @endforeach
                                             </select>
@@ -570,7 +575,7 @@
 
                                     <!-- choice options -->
                                     <div class="customer_choice_options" id="customer_choice_options">
-                                        @foreach (json_decode($product->choice_options) as $key => $choice_option)
+                                        @foreach ($productChoiceOptions as $key => $choice_option)
                                             <div class="form-group row">
                                                 <div class="col-lg-3">
                                                     <input type="hidden" name="choice_no[]"
@@ -1288,7 +1293,7 @@
                 }
             });
 
-            var str = @php echo $product->attributes @endphp;
+            var str = @json($productAttributes);
 
             $.each(str, function(index, value) {
                 flag = false;

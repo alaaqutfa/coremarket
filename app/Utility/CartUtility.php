@@ -17,9 +17,9 @@ class CartUtility
             $str = $request['color'];
         }
 
-        if (isset($product->choice_options) && count(json_decode($product->choice_options)) > 0) {
+        if ($product->choiceOptionsArray() !== []) {
             //Gets all the choice values of customer choice option and generate a string like Black-S-Cotton
-            foreach (json_decode($product->choice_options) as $key => $choice) {
+            foreach ($product->choiceOptionsArray() as $key => $choice) {
                 if ($str != null) {
                     $str .= '-' . str_replace(' ', '', $request['attribute_id_' . $choice->attribute_id]);
                 } else {

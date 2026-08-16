@@ -611,8 +611,8 @@ class HomeController extends Controller
             $str = $request['color'];
         }
 
-        if (json_decode($product->choice_options) != null) {
-            foreach (json_decode($product->choice_options) as $key => $choice) {
+        if ($product->choiceOptionsArray() !== []) {
+            foreach ($product->choiceOptionsArray() as $key => $choice) {
                 if ($str != null) {
                     $str .= '-' . str_replace(' ', '', $request['attribute_id_' . $choice->attribute_id]);
                 } else {

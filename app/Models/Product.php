@@ -31,6 +31,36 @@ class Product extends Model
         return $this->hasMany(ProductInformationSection::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function colorsArray(): array
+    {
+        return $this->jsonArray($this->getAttribute('colors'), true);
+    }
+
+    public function attributesArray(): array
+    {
+        return $this->jsonArray($this->getAttribute('attributes'), true);
+    }
+
+    public function choiceOptionsArray(): array
+    {
+        return $this->jsonArray($this->getAttribute('choice_options'));
+    }
+
+    private function jsonArray(mixed $value, bool $associative = false): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (! is_string($value)) {
+            return [];
+        }
+
+        $decoded = json_decode((string) $value, $associative);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
     public function main_category()
     {
         return $this->belongsTo(Category::class, 'category_id');

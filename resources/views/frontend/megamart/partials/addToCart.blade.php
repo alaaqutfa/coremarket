@@ -133,8 +133,8 @@
                     
                     @if($product->digital !=1)
                         <!-- Product Choice options -->
-                        @if ($product->choice_options != null)
-                            @foreach (json_decode($product->choice_options) as $key => $choice)
+                        @if ($product->choiceOptionsArray() !== [])
+                            @foreach ($product->choiceOptionsArray() as $key => $choice)
 
                                 <div class="row no-gutters mt-3">
                                     <div class="col-3">
@@ -163,14 +163,14 @@
                         @endif
 
                         <!-- Color -->
-                        @if ($product->colors && count(json_decode($product->colors)) > 0)
+                        @if ($product->colorsArray() !== [])
                             <div class="row no-gutters mt-3">
                                 <div class="col-3">
                                     <div class="text-secondary fs-14 fw-400 mt-2">{{ translate('Color')}}</div>
                                 </div>
                                 <div class="col-9">
                                     <div class="aiz-radio-inline">
-                                        @foreach (json_decode($product->colors) as $key => $color)
+                                        @foreach ($product->colorsArray() as $key => $color)
                                         <label class="aiz-megabox pl-0 mr-2 mb-0" data-toggle="tooltip" data-title="{{ get_single_color_name($color) }}">
                                             <input
                                                 type="radio"

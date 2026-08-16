@@ -194,6 +194,11 @@ class BulkCatalogImportService
             $product = $this->productMatch($row);
             $new = ! $product;
             $product ??= new Product();
+            if ($new) {
+                $product->attributes = '[]';
+                $product->choice_options = '[]';
+                $product->colors = '[]';
+            }
             $category = $this->categoryFromRow($row);
             $brand = $this->brandFromRow($row);
 

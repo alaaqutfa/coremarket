@@ -101,7 +101,7 @@ class DemoController extends Controller
         foreach (Product::all() as $product) {
             if ($product->variant_product) {
                 try {
-                    $choice_options = json_decode($product->choice_options);
+                    $choice_options = $product->choiceOptionsArray();
                     foreach ($choice_options as $choice_option) {
                         foreach ($choice_option->values as $value) {
                             $attribute_value = AttributeValue::where('value', $value)->first();

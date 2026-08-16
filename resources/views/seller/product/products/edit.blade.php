@@ -545,7 +545,7 @@
                 }
             });
 
-            var str = @php echo $product->attributes @endphp;
+            var str = @json($product->attributesArray());
 
             $.each(str, function(index, value) {
                 flag = false;
