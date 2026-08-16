@@ -1850,13 +1850,13 @@
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
-                        @can('general_settings')
+                        @if ($coremarketSuperAdmin)
                         <li class="aiz-side-nav-item">
                             <a href="{{route('general_setting.index')}}" class="aiz-side-nav-link">
                                 <span class="aiz-side-nav-text">{{translate('General Settings')}}</span>
                             </a>
                         </li>
-                        @endcan
+                        @endif
                         @can('features_activation')
                         <li class="aiz-side-nav-item">
                             <a href="{{route('activation.index')}}" class="aiz-side-nav-link">

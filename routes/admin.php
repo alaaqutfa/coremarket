@@ -479,7 +479,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
         Route::post('/business-settings/update', 'update')->name('business_settings.update');
         Route::post('/business-settings/update/activation', 'updateActivationSettings')->name('business_settings.update.activation');
         Route::post('/payment-activation', 'updatePaymentActivationSettings')->name('payment.activation');
-        Route::get('/general-setting', 'general_setting')->name('general_setting.index');
+        Route::get('/general-setting', 'general_setting')->middleware('super_admin')->name('general_setting.index');
         Route::get('/activation', 'activation')->name('activation.index');
         Route::get('/my-subscription', 'subscriptionOverview')->name('subscription.index')->middleware('coremarket_feature:subscription_page,0');
         Route::get('/payment-method', 'payment_method')->name('payment_method.index');

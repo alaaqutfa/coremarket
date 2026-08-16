@@ -615,6 +615,18 @@ class BusinessSettingsController extends Controller
 
     public function update(Request $request)
     {
+        $requestTypes = collect($request->types ?? [])
+            ->map(function ($type) {
+                return is_array($type) ? array_values($type)[0] ?? null : $type;
+            })
+            ->filter()
+            ->values();
+
+        if ($requestTypes->contains('customer_seller_identity_visible')) {
+            $user = $request->user();
+            abort_unless($user?->user_type === 'admin' && $user->hasRole('Super Admin'), 403);
+        }
+
         if (in_array('customer_seller_identity_visible', $request->types ?? [], true)
             && ! $request->has('customer_seller_identity_visible')) {
             $request->merge(['customer_seller_identity_visible' => 0]);
@@ -622,17 +634,6 @@ class BusinessSettingsController extends Controller
 
         if (isStoreAdmin()) {
             $allowedTypes = config('coremarket.access.store_admin_allowed_business_setting_types', []);
-            $requestTypes = collect($request->types ?? [])
-                ->map(function ($type) {
-                    if (is_array($type)) {
-                        return array_values($type)[0] ?? null;
-                    }
-
-                    return $type;
-                })
-                ->filter()
-                ->values();
-
             $hasDisallowedType = $requestTypes->contains(function ($type) use ($allowedTypes) {
                 return !in_array($type, $allowedTypes, true);
             });
