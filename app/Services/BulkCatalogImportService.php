@@ -20,6 +20,9 @@ class BulkCatalogImportService
 {
     private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
 
+    /** @var array<string, int> */
+    private array $storedImages = [];
+
     public function preview(string $type, UploadedFile $spreadsheet, ?UploadedFile $images, int $userId): array
     {
         $token = (string) Str::uuid();
@@ -117,7 +120,18 @@ class BulkCatalogImportService
         foreach (['cover_image_file', 'banner_image_file', 'icon_file', 'logo_file', 'thumbnail_file'] as $column) {
             if (filled($row[$column] ?? null) && ! isset($files[$row[$column]])) return "Image file {$row[$column]} is missing from ZIP.";
         }
-        foreach (array_filter(explode(';', (string) ($row['gallery_files'] ?? ''))) as $file) if (! isset($files[trim($file)])) return "Gallery image {$file} is missing from ZIP.";
+        foreach ($this->galleryFiles($row) as $file) {
+            if ($file === '@thumbnail') {
+                $existingThumbnail = $this->productMatch($row)?->thumbnail_img;
+                if (blank($row['thumbnail_file'] ?? null) && ! $existingThumbnail) {
+                    return 'gallery_files @thumbnail requires an existing product thumbnail or thumbnail_file.';
+                }
+
+                continue;
+            }
+
+            if (! isset($files[$file])) return "Gallery image {$file} is missing from ZIP.";
+        }
         if ($type === 'products' && array_key_exists('information_sections', $row)) {
             try {
                 $this->parseInformationSections($row);
@@ -214,7 +228,19 @@ class BulkCatalogImportService
             $product->slug = filled($row['slug'] ?? null) ? Str::slug($row['slug']) : ($product->slug ?: Str::slug($row['name']) . '-' . Str::random(5));
             if (filled($row['barcode'] ?? null)) $product->barcode = $row['barcode'];
             if (filled($row['thumbnail_file'] ?? null)) $product->thumbnail_img = $this->storeImage($directory, $row['thumbnail_file'], $userId);
-            if (filled($row['gallery_files'] ?? null)) $product->photos = collect(explode(';', $row['gallery_files']))->map(fn ($file) => $this->storeImage($directory, trim($file), $userId))->implode(',');
+            if (filled($row['gallery_files'] ?? null)) {
+                $gallery = collect($this->galleryFiles($row))->map(function ($file) use ($product, $directory, $userId) {
+                    if ($file === '@thumbnail') {
+                        if (! $product->thumbnail_img) throw new \RuntimeException('gallery_files @thumbnail requires a product thumbnail.');
+
+                        return $product->thumbnail_img;
+                    }
+
+                    return $this->storeImage($directory, $file, $userId);
+                })->unique()->values();
+
+                $product->photos = $gallery->implode(',');
+            }
             $product->save();
 
             $stock = $product->stocks()->where('variant', '')->first() ?? new ProductStock(['variant' => '']);
@@ -288,9 +314,22 @@ class BulkCatalogImportService
     private function categoryFromRow(array $row): ?Category { if (filled($row['category_slug']??null)) return Category::query()->where('slug',$row['category_slug'])->first(); return filled($row['category_id']??null)?Category::find($row['category_id']):null; }
     private function brandFromRow(array $row): ?Brand { if (filled($row['brand_slug']??null)) return Brand::query()->where('slug',$row['brand_slug'])->first(); return filled($row['brand_id']??null)?Brand::find($row['brand_id']):null; }
 
+    private function galleryFiles(array $row): array
+    {
+        return collect(explode(';', (string) ($row['gallery_files'] ?? '')))
+            ->map(fn ($file) => trim($file))
+            ->filter()
+            ->map(fn ($file) => strtolower($file) === '@thumbnail' ? '@thumbnail' : $file)
+            ->values()
+            ->all();
+    }
+
     private function storeImage(string $directory, string $name, int $userId): int
     {
-        $zip=new ZipArchive(); $zip->open("{$directory}/images.zip"); $content=$zip->getFromName($name); $zip->close(); if($content===false) throw new \RuntimeException("Image {$name} was not found."); $extension=strtolower(pathinfo($name,PATHINFO_EXTENSION)); $path='uploads/all/'.Str::random(40).'.'.$extension; File::ensureDirectoryExists(public_path('uploads/all')); file_put_contents(public_path($path),$content); return Upload::create(['file_original_name'=>pathinfo($name,PATHINFO_FILENAME),'file_name'=>$path,'user_id'=>$userId,'extension'=>$extension,'type'=>'image','file_size'=>strlen($content)])->id;
+        $key = "{$directory}:{$userId}:{$name}";
+        if (isset($this->storedImages[$key])) return $this->storedImages[$key];
+
+        $zip=new ZipArchive(); $zip->open("{$directory}/images.zip"); $content=$zip->getFromName($name); $zip->close(); if($content===false) throw new \RuntimeException("Image {$name} was not found."); $extension=strtolower(pathinfo($name,PATHINFO_EXTENSION)); $path='uploads/all/'.Str::random(40).'.'.$extension; File::ensureDirectoryExists(public_path('uploads/all')); file_put_contents(public_path($path),$content); return $this->storedImages[$key] = Upload::create(['file_original_name'=>pathinfo($name,PATHINFO_FILENAME),'file_name'=>$path,'user_id'=>$userId,'extension'=>$extension,'type'=>'image','file_size'=>strlen($content)])->id;
     }
     private function normalise(string $value): string { return preg_replace('/\s+/u',' ',mb_strtolower(trim($value))); }
 }
