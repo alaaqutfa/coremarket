@@ -14,7 +14,7 @@ class ProductDetailCollection extends ResourceCollection
         $showSellerIdentity = customer_seller_identity_visible();
 
         return [
-            'data' => $this->collection->map(function ($data) {
+            'data' => $this->collection->map(function ($data) use ($showSellerIdentity) {
                 $precision = 2;
                 $calculable_price = home_discounted_base_price($data, false);
                 $calculable_price = number_format($calculable_price, $precision, '.', '');
