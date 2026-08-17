@@ -393,6 +393,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'admin', 'prevent-ba
     Route::controller(\App\Http\Controllers\BulkCatalogImportController::class)->middleware('super_admin')->group(function () {
         Route::get('/bulk-catalog-import', 'index')->name('bulk-catalog.index');
         Route::get('/bulk-catalog-import/template/{type}', 'template')->name('bulk-catalog.template');
+        Route::get('/bulk-catalog-import/preview', 'showPreview')->name('bulk-catalog.preview.show');
         Route::post('/bulk-catalog-import/preview', 'preview')->name('bulk-catalog.preview');
         Route::post('/bulk-catalog-import/confirm', 'confirm')->name('bulk-catalog.confirm');
         Route::get('/bulk-catalog-import/export/products', 'exportProducts')->name('bulk-catalog.products.export');

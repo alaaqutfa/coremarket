@@ -67,6 +67,16 @@ class BulkCatalogWorkspaceTest extends TestCase
             ->assertSee('The import file could not be read.');
     }
 
+    public function test_preview_page_is_a_get_route_and_requires_a_preview_token(): void
+    {
+        $superAdmin = $this->user('admin');
+        $superAdmin->syncRoles([Role::query()->firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web'])]);
+
+        $this->actingAs($superAdmin)
+            ->get(route('bulk-catalog.preview.show'))
+            ->assertRedirect(route('bulk-catalog.index'));
+    }
+
     private function user(string $userType): User
     {
         $id = DB::table('users')->insertGetId([

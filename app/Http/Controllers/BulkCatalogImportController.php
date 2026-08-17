@@ -59,6 +59,27 @@ class BulkCatalogImportController extends Controller
             return back()->withInput()->withErrors(['spreadsheet' => translate('The import file could not be read.')]);
         }
 
+        return redirect()->route('bulk-catalog.preview.show', ['token' => $preview['token']]);
+    }
+
+    public function showPreview(Request $request)
+    {
+        if (! $request->filled('token')) {
+            return redirect()->route('bulk-catalog.index')
+                ->withErrors(['spreadsheet' => translate('This import preview is no longer available. Please upload the file again.')]);
+        }
+
+        $token = $request->validate(['token' => ['required', 'uuid']])['token'];
+
+        try {
+            $preview = $this->imports->previewFor($token, (int) $request->user()->id);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('bulk-catalog.index')
+                ->withErrors(['spreadsheet' => translate('This import preview is no longer available. Please upload the file again.')]);
+        }
+
         return view('backend.product.bulk_catalog.preview', compact('preview'));
     }
 

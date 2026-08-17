@@ -54,6 +54,15 @@ class BulkCatalogImportService
         return ['created'=>$result['created'], 'updated'=>$result['updated'], 'skipped'=>0, 'errors'=>[], 'media'=>$result['media'] ?? []];
     }
 
+    public function previewFor(string $token, int $userId): array
+    {
+        $preview = json_decode((string) @file_get_contents(storage_path("app/bulk-catalog/{$token}/preview.json")), true);
+
+        abort_unless(is_array($preview) && (int) ($preview['user_id'] ?? 0) === $userId, 404);
+
+        return $preview;
+    }
+
     private function readRows(string $path): array
     {
         $sheet = Excel::toArray([], $path)[0] ?? [];
