@@ -155,6 +155,7 @@ class ProductInformationSectionsRuntimeTest extends TestCase
                 'product_group_key' => 'generic-dog-food',
                 'name' => 'Generic Dog Food',
                 'sku' => 'DOG-3KG-'.Str::random(5),
+                'barcode' => '',
                 'category_path' => 'Test Pets > Dry Food',
                 'variant_options' => '{"Weight":"3KG"}',
                 'is_default_variant' => 'true',
@@ -168,6 +169,7 @@ class ProductInformationSectionsRuntimeTest extends TestCase
                 'product_group_key' => 'generic-dog-food',
                 'name' => 'Generic Dog Food',
                 'sku' => 'DOG-10KG-'.Str::random(5),
+                'barcode' => '',
                 'category_path' => 'Test Pets > Dry Food',
                 'variant_options' => '{"Weight":"10KG"}',
                 'unit_price' => 45,
@@ -200,6 +202,7 @@ class ProductInformationSectionsRuntimeTest extends TestCase
         $this->assertSame(1, $product->variant_product);
         $this->assertSame(18.50, (float) $product->unit_price);
         $this->assertCount(2, $product->stocks);
+        $this->assertTrue($product->stocks->every(fn (ProductStock $stock) => $stock->barcode === null));
         $this->assertSame(['Weight'], array_map(fn ($choice) => \App\Models\Attribute::find($choice->attribute_id)->name, $product->choiceOptionsArray()));
     }
 

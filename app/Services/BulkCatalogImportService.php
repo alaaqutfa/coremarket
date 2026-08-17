@@ -201,7 +201,17 @@ class BulkCatalogImportService
 
     private function persistSimpleStock(Product $product,array $row,string $directory,int $userId): void
     {
-        $stock=$this->stockForRow($product,$row)??$product->stocks()->where('variant','')->first()??new ProductStock(['variant'=>'']);$stock->product_id=$product->id;$stock->variant='';foreach(['sku','barcode']as$field)if(filled($row[$field]??null))$stock->{$field}=$row[$field];$stock->price=(float)$row['unit_price'];$stock->qty=filled($row['qty']??null)?(int)$row['qty']:($stock->qty??0);if(filled($row['variant_image_file']??null))$stock->image=$this->storeImage($directory,$row['variant_image_file'],$userId);$stock->save();
+        $stock = $this->stockForRow($product, $row) ?? $product->stocks()->where('variant', '')->first() ?? new ProductStock(['variant' => '']);
+        $isNewStock = ! $stock->exists;
+        $stock->product_id = $product->id;
+        $stock->variant = '';
+        if (filled($row['sku'] ?? null)) $stock->sku = $row['sku'];
+        if (filled($row['barcode'] ?? null)) $stock->barcode = $row['barcode'];
+        elseif ($isNewStock) $stock->barcode = null;
+        $stock->price = (float) $row['unit_price'];
+        $stock->qty = filled($row['qty'] ?? null) ? (int) $row['qty'] : ($stock->qty ?? 0);
+        if (filled($row['variant_image_file'] ?? null)) $stock->image = $this->storeImage($directory, $row['variant_image_file'], $userId);
+        $stock->save();
     }
 
     private function persistVariantStocks(Product $product,array $rows,string $directory,int $userId): void
@@ -209,7 +219,7 @@ class BulkCatalogImportService
         $optionsByRow=array_map(fn($row)=>$this->variantOptions($row),$rows);$attributeIds=[];
         foreach(array_keys($optionsByRow[0])as$name){$attribute=Attribute::query()->get()->first(fn(Attribute $item)=>$this->normalise((string)$item->name)===$this->normalise($name));if(! $attribute){$attribute=new Attribute();$attribute->name=$name;$attribute->save();}AttributeTranslation::updateOrCreate(['attribute_id'=>$attribute->id,'lang'=>env('DEFAULT_LANGUAGE','en')],['name'=>$attribute->name]);$attributeIds[$name]=$attribute->id;}
         $choiceOptions=[];foreach($attributeIds as$name=>$id){$values=collect($optionsByRow)->pluck($name)->unique()->values()->all();foreach($values as$value){if(!AttributeValue::query()->where('attribute_id',$id)->where('value',$value)->exists()){$attributeValue=new AttributeValue();$attributeValue->attribute_id=$id;$attributeValue->value=$value;$attributeValue->save();}}$choiceOptions[]=['attribute_id'=>$id,'values'=>$values];}$product->attributes=json_encode(array_values($attributeIds));$product->choice_options=json_encode($choiceOptions,JSON_UNESCAPED_UNICODE);$product->variant_product=1;$product->save();
-        foreach($rows as$row){$options=$this->variantOptions($row);$stock=$this->stockForRow($product,$row)??$product->stocks()->where('variant',$this->variantString($options))->first()??new ProductStock();$stock->product_id=$product->id;$stock->variant=$this->variantString($options);$stock->sku=$row['sku']??$stock->sku;$stock->barcode=$row['barcode']??$stock->barcode;$stock->price=(float)$row['unit_price'];$stock->qty=filled($row['qty']??null)?(int)$row['qty']:($stock->qty??0);if(filled($row['variant_image_file']??null))$stock->image=$this->storeImage($directory,$row['variant_image_file'],$userId);$stock->save();}
+        foreach($rows as$row){$options=$this->variantOptions($row);$stock=$this->stockForRow($product,$row)??$product->stocks()->where('variant',$this->variantString($options))->first()??new ProductStock();$isNewStock=!$stock->exists;$stock->product_id=$product->id;$stock->variant=$this->variantString($options);if(filled($row['sku']??null))$stock->sku=$row['sku'];if(filled($row['barcode']??null))$stock->barcode=$row['barcode'];elseif($isNewStock)$stock->barcode=null;$stock->price=(float)$row['unit_price'];$stock->qty=filled($row['qty']??null)?(int)$row['qty']:($stock->qty??0);if(filled($row['variant_image_file']??null))$stock->image=$this->storeImage($directory,$row['variant_image_file'],$userId);$stock->save();}
     }
 
     private function applyParentImages(Product $product,array $row,string $directory,int $userId): void
