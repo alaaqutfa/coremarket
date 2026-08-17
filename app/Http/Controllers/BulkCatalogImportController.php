@@ -27,7 +27,7 @@ class BulkCatalogImportController extends Controller
         $headers = match ($type) {
             'categories' => ['row_key', 'parent_row_key', 'name', 'slug', 'meta_title', 'meta_description', 'order_level', 'cover_image_file', 'banner_image_file', 'icon_file'],
             'brands' => ['name', 'slug', 'meta_title', 'meta_description', 'logo_file'],
-            default => ['name', 'sku', 'barcode', 'category_slug', 'category_id', 'brand_slug', 'brand_id', 'unit_price', 'unit', 'qty', 'slug', 'description', 'tags', 'meta_title', 'meta_description', 'thumbnail_file', 'meta_img_file', 'gallery_files', 'information_sections'],
+            default => ['product_group_key', 'name', 'sku', 'barcode', 'category_slug', 'category_id', 'category_path', 'brand_slug', 'brand_id', 'variant_options', 'is_default_variant', 'unit_price', 'unit', 'qty', 'slug', 'description', 'tags', 'meta_title', 'meta_description', 'thumbnail_file', 'meta_img_file', 'gallery_files', 'variant_image_file', 'information_sections'],
         };
         $book = new Spreadsheet();
         $book->getActiveSheet()->fromArray($headers, null, 'A1');
@@ -43,10 +43,17 @@ class BulkCatalogImportController extends Controller
             'type' => ['required', 'in:categories,brands,products'],
             'spreadsheet' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
             'images_zip' => ['nullable', 'file', 'mimes:zip', 'max:102400'],
+            'replace_product_images' => ['nullable', 'boolean'],
         ]);
 
         try {
-            $preview = $this->imports->preview($data['type'], $request->file('spreadsheet'), $request->file('images_zip'), (int) $request->user()->id);
+            $preview = $this->imports->preview(
+                $data['type'],
+                $request->file('spreadsheet'),
+                $request->file('images_zip'),
+                (int) $request->user()->id,
+                $request->boolean('replace_product_images'),
+            );
         } catch (\Throwable $exception) {
             report($exception);
             return back()->withInput()->withErrors(['spreadsheet' => translate('The import file could not be read.')]);

@@ -145,6 +145,64 @@ class ProductInformationSectionsRuntimeTest extends TestCase
         $this->assertCount(0, $product->fresh()->informationSections);
     }
 
+    public function test_bulk_catalog_creates_a_single_product_with_weight_variants(): void
+    {
+        $user = $this->user();
+        $service = app(BulkCatalogImportService::class);
+        $slug = 'generic-dog-food-'.Str::random(8);
+        $rows = [
+            [
+                'product_group_key' => 'generic-dog-food',
+                'name' => 'Generic Dog Food',
+                'sku' => 'DOG-3KG-'.Str::random(5),
+                'category_path' => 'Test Pets > Dry Food',
+                'variant_options' => '{"Weight":"3KG"}',
+                'is_default_variant' => 'true',
+                'unit_price' => 18.50,
+                'unit' => 'bag',
+                'qty' => 0,
+                'slug' => $slug,
+                'description' => 'A generic product description.',
+            ],
+            [
+                'product_group_key' => 'generic-dog-food',
+                'name' => 'Generic Dog Food',
+                'sku' => 'DOG-10KG-'.Str::random(5),
+                'category_path' => 'Test Pets > Dry Food',
+                'variant_options' => '{"Weight":"10KG"}',
+                'unit_price' => 45,
+                'unit' => 'bag',
+                'qty' => 0,
+                'slug' => $slug,
+                'description' => 'A generic product description.',
+            ],
+        ];
+
+        $headers = array_values(array_unique(array_merge(...array_map('array_keys', $rows))));
+        $book = new Spreadsheet();
+        $sheet = $book->getActiveSheet();
+        $sheet->fromArray($headers, null, 'A1');
+        foreach ($rows as $index => $row) {
+            $sheet->fromArray(array_map(fn ($header) => $row[$header] ?? null, $headers), null, 'A'.($index + 2));
+        }
+        $path = storage_path('app/testing-bulk-'.Str::uuid().'.xlsx');
+        (new Xlsx($book))->save($path);
+        $upload = UploadedFile::fake()->createWithContent('products.xlsx', (string) file_get_contents($path));
+        @unlink($path);
+
+        $preview = $service->preview('products', $upload, null, $user->id);
+        $this->assertSame([], $preview['errors']);
+        $this->assertSame(1, $preview['created']);
+        $this->assertSame(2, $preview['variant_rows']);
+        $service->confirm($preview['token'], $user->id);
+
+        $product = Product::query()->where('name', 'Generic Dog Food')->firstOrFail();
+        $this->assertSame(1, $product->variant_product);
+        $this->assertSame(18.50, (float) $product->unit_price);
+        $this->assertCount(2, $product->stocks);
+        $this->assertSame(['Weight'], array_map(fn ($choice) => \App\Models\Attribute::find($choice->attribute_id)->name, $product->choiceOptionsArray()));
+    }
+
     private function confirmProducts(BulkCatalogImportService $service, int $userId, array $rows): void
     {
         $headers = array_values(array_unique(array_merge(...array_map('array_keys', $rows))));
