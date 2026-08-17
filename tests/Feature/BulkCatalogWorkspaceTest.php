@@ -77,6 +77,27 @@ class BulkCatalogWorkspaceTest extends TestCase
             ->assertRedirect(route('bulk-catalog.index'));
     }
 
+    public function test_preview_displays_confirm_errors(): void
+    {
+        $superAdmin = $this->user('admin');
+        $superAdmin->syncRoles([Role::query()->firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web'])]);
+
+        $this->actingAs($superAdmin)
+            ->withViewErrors(['token' => 'The import could not be completed. No partial records were saved.'])
+            ->view('backend.product.bulk_catalog.preview', ['preview' => [
+                'created' => 0,
+                'updated' => 0,
+                'errors' => [],
+                'type' => 'products',
+                'product_groups' => 0,
+                'variant_rows' => 0,
+                'replace_product_images' => false,
+                'token' => (string) Str::uuid(),
+            ]])
+            ->assertSee('The import could not be completed.')
+            ->assertSee('No partial records were saved.');
+    }
+
     private function user(string $userType): User
     {
         $id = DB::table('users')->insertGetId([

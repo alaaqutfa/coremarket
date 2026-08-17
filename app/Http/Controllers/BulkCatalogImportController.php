@@ -90,9 +90,13 @@ class BulkCatalogImportController extends Controller
             $result = $this->imports->confirm($request->token, (int) $request->user()->id);
         } catch (\Throwable $exception) {
             report($exception);
-            return back()->withErrors(['token' => translate('The import could not be completed. No partial records were saved.')]);
+            return redirect()->route('bulk-catalog.preview.show', ['token' => $request->token])
+                ->withErrors(['token' => translate('The import could not be completed. No partial records were saved.')]);
         }
-        if (! empty($result['errors'])) return back()->withErrors(['token' => implode(' ', $result['errors'])]);
+        if (! empty($result['errors'])) {
+            return redirect()->route('bulk-catalog.preview.show', ['token' => $request->token])
+                ->withErrors(['token' => implode(' ', $result['errors'])]);
+        }
         return redirect()->route('bulk-catalog.index')->with('success', "{$result['created']} created, {$result['updated']} updated.");
     }
 
