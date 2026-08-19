@@ -195,8 +195,34 @@ class BulkCatalogImportService
     private function persistProducts(array $rows,string $directory,int $userId,bool $replace): array
     {
         $result=['created'=>0,'updated'=>0,'media_cleanup'=>[]];
-        foreach($this->productGroups($rows)as$group){$product=$this->productForGroup($group);$new=!$product;$product??=new Product();$parent=$this->parentRow($group);$default=$this->defaultRow($group);$oldMedia=!$new&&$replace&&$this->hasNewProductImages($group)?app(ProductMediaReplacementService::class)->productMediaIds($product):[];if($new){$product->attributes='[]';$product->choice_options='[]';$product->colors='[]';}$category=$this->categoryFromRow($parent,true);$brand=$this->brandFromRow($parent);foreach(['name','description','unit','tags','meta_title','meta_description','est_shipping_days','video_provider','video_link']as$field)if(filled($parent[$field]??null))$product->{$field}=$parent[$field];$product->category_id=$category?->id??$product->category_id;$product->brand_id=$brand?->id??$product->brand_id;$product->added_by='admin';$product->user_id=$product->user_id?:$userId;$product->approved=1;$product->slug=filled($parent['slug']??null)?Str::slug($parent['slug']):($product->slug?:Str::slug($parent['name']).'-'.Str::random(5));$product->unit_price=(float)$default['unit_price'];if(filled($default['barcode']??null))$product->barcode=$default['barcode'];if($replace&&$this->hasNewParentImages($parent)){$product->thumbnail_img=null;$product->meta_img=null;$product->photos=null;}$this->applyParentImages($product,$parent,$directory,$userId);$product->save();if($this->variantOptions($default)!==[])$this->persistVariantStocks($product,$group,$directory,$userId);else$this->persistSimpleStock($product,$default,$directory,$userId);DB::table('product_categories')->updateOrInsert(['product_id'=>$product->id,'category_id'=>$product->category_id]);\App\Models\ProductTranslation::updateOrCreate(['product_id'=>$product->id,'lang'=>env('DEFAULT_LANGUAGE','en')],['name'=>$product->name,'unit'=>$product->unit,'description'=>$product->description]);if(array_key_exists('information_sections',$parent)&&filled($parent['information_sections']))app(ProductInformationSectionService::class)->replaceFromBulk($product,$this->parseInformationSections($parent));$result['media_cleanup']=array_merge($result['media_cleanup'],$oldMedia);$new?$result['created']++:$result['updated']++;}
+        foreach($this->productGroups($rows)as$group){$product=$this->productForGroup($group);$new=!$product;$product??=new Product();$parent=$this->parentRow($group);$default=$this->defaultRow($group);$oldMedia=!$new&&$replace&&$this->hasNewProductImages($group)?$this->replacementMediaIds($product,$group):[];if($new){$product->attributes='[]';$product->choice_options='[]';$product->colors='[]';}$category=$this->categoryFromRow($parent,true);$brand=$this->brandFromRow($parent);foreach(['name','description','unit','tags','meta_title','meta_description','est_shipping_days','video_provider','video_link']as$field)if(filled($parent[$field]??null))$product->{$field}=$parent[$field];$product->category_id=$category?->id??$product->category_id;$product->brand_id=$brand?->id??$product->brand_id;$product->added_by='admin';$product->user_id=$product->user_id?:$userId;$product->approved=1;$product->slug=filled($parent['slug']??null)?Str::slug($parent['slug']):($product->slug?:Str::slug($parent['name']).'-'.Str::random(5));$product->unit_price=(float)$default['unit_price'];if(filled($default['barcode']??null))$product->barcode=$default['barcode'];if($replace)$this->clearReplacedParentImageSlots($product,$parent);$this->applyParentImages($product,$parent,$directory,$userId);$product->save();if($this->variantOptions($default)!==[])$this->persistVariantStocks($product,$group,$directory,$userId);else$this->persistSimpleStock($product,$default,$directory,$userId);DB::table('product_categories')->updateOrInsert(['product_id'=>$product->id,'category_id'=>$product->category_id]);\App\Models\ProductTranslation::updateOrCreate(['product_id'=>$product->id,'lang'=>env('DEFAULT_LANGUAGE','en')],['name'=>$product->name,'unit'=>$product->unit,'description'=>$product->description]);if(array_key_exists('information_sections',$parent)&&filled($parent['information_sections']))app(ProductInformationSectionService::class)->replaceFromBulk($product,$this->parseInformationSections($parent));$result['media_cleanup']=array_merge($result['media_cleanup'],$oldMedia);$new?$result['created']++:$result['updated']++;}
         return $result;
+    }
+
+    /** @return array<int, int> */
+    private function replacementMediaIds(Product $product, array $rows): array
+    {
+        $parent = $this->parentRow($rows);
+        $ids = [];
+
+        if (filled($parent['thumbnail_file'] ?? null)) $ids[] = $product->thumbnail_img;
+        if (filled($parent['meta_img_file'] ?? null)) $ids[] = $product->meta_img;
+        if (filled($parent['gallery_files'] ?? null)) $ids = [...$ids, ...explode(',', (string) $product->photos)];
+
+        foreach ($rows as $row) {
+            if (! filled($row['variant_image_file'] ?? null)) continue;
+            $stock = $this->stockForRow($product, $row) ?? $product->stocks()->where('variant', $this->variantString($this->variantOptions($row)))->first();
+            if ($stock) $ids[] = $stock->image;
+        }
+
+        return collect($ids)->filter(fn ($id) => is_numeric($id) && (int) $id > 0)->map(fn ($id) => (int) $id)->unique()->values()->all();
+    }
+
+    private function clearReplacedParentImageSlots(Product $product, array $parent): void
+    {
+        if (filled($parent['thumbnail_file'] ?? null)) $product->thumbnail_img = null;
+        if (filled($parent['meta_img_file'] ?? null)) $product->meta_img = null;
+        if (filled($parent['gallery_files'] ?? null)) $product->photos = null;
     }
 
     private function persistSimpleStock(Product $product,array $row,string $directory,int $userId): void

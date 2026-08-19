@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Models\Product;
+use App\Models\ProductStock;
 use App\Services\BulkCatalogImportService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
@@ -83,6 +85,36 @@ class BulkCatalogImportServiceTest extends TestCase
 
         $this->assertTrue($method->invoke($service, '@THUMBNAIL'));
         $this->assertFalse($method->invoke($service, 'detail.webp'));
+    }
+
+    public function test_media_replacement_targets_only_the_supplied_media_slots(): void
+    {
+        $product = new Product([
+            'thumbnail_img' => 10,
+            'meta_img' => 10,
+            'photos' => '10,11,12',
+        ]);
+        $product->setRelation('stocks', collect([
+            new ProductStock(['sku' => 'SKU-3', 'variant' => '3KG', 'image' => 13]),
+            new ProductStock(['sku' => 'SKU-6', 'variant' => '6KG', 'image' => 14]),
+        ]));
+
+        $service = app(BulkCatalogImportService::class);
+        $method = new \ReflectionMethod($service, 'replacementMediaIds');
+        $method->setAccessible(true);
+
+        $ids = $method->invoke($service, $product, [[
+            'sku' => 'SKU-3',
+            'variant_options' => '{"Weight":"3KG"}',
+            'gallery_files' => 'translated-detail.png',
+        ], [
+            'sku' => 'SKU-6',
+            'variant_options' => '{"Weight":"6KG"}',
+        ]]);
+
+        $this->assertSame([10, 11, 12], $ids);
+        $this->assertNotContains(13, $ids);
+        $this->assertNotContains(14, $ids);
     }
 
     private function workbook(array $rows): UploadedFile
