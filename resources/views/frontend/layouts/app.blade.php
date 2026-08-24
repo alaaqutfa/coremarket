@@ -629,6 +629,14 @@
                     url: '{{ route('products.variant_price') }}',
                     data: $('#option-choice-form').serializeArray(),
                     success: function(data){
+                        if (data.valid === false) {
+                            $('#option-choice-form #chosen_price_div').addClass('d-none');
+                            $('.buy-now').addClass('d-none');
+                            $('.add-to-cart').addClass('d-none');
+                            $('.out-of-stock').removeClass('d-none');
+                            return;
+                        }
+
                         $('.product-gallery-thumb .carousel-box').each(function (i) {
                             if($(this).data('variation') && data.variation == $(this).data('variation')){
                                 $('.product-gallery-thumb').slick('slickGoTo', i);
@@ -672,6 +680,59 @@
 
             return false;
         }
+
+        $(document).on('click', '.product-card-variant-option', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            var $option = $(this);
+            var $cardVariants = $option.closest('.product-card-variants');
+            var $attribute = $option.closest('[data-card-attribute-id]');
+
+            $attribute.find('.product-card-variant-option')
+                .removeClass('btn-primary text-white is-selected')
+                .addClass('btn-light')
+                .attr('aria-pressed', 'false');
+            $option.removeClass('btn-light').addClass('btn-primary text-white is-selected').attr('aria-pressed', 'true');
+
+            var requestData = {
+                _token: AIZ.data.csrf,
+                id: $cardVariants.data('product-id'),
+                quantity: 1
+            };
+            $cardVariants.find('[data-card-attribute-id]').each(function() {
+                var $group = $(this);
+                requestData['attribute_id_' + $group.data('card-attribute-id')] = $group.find('.is-selected').data('value');
+            });
+
+            var $status = $cardVariants.find('.product-card-variant-status');
+            $status.addClass('d-none').text('');
+
+            $.post($cardVariants.data('variant-price-url'), requestData)
+                .done(function(data) {
+                    if (!data.valid) {
+                        $status.text(data.message || "{{ translate('This option combination is unavailable.') }}").removeClass('d-none');
+                        return;
+                    }
+
+                    var $card = $cardVariants.closest('.aiz-card-box');
+                    $card.find('.product-card-price').html(data.price);
+                    var $compareWrap = $card.find('.product-card-compare-wrap');
+                    if (data.compare_at_price) {
+                        $compareWrap.find('.product-card-compare').html(data.compare_at_price);
+                        $compareWrap.removeClass('d-none');
+                    } else {
+                        $compareWrap.addClass('d-none');
+                    }
+
+                    if (parseInt(data.in_stock, 10) === 0) {
+                        $status.text("{{ translate('Out of Stock') }}").removeClass('d-none');
+                    }
+                })
+                .fail(function() {
+                    $status.text("{{ translate('Unable to load this option price.') }}").removeClass('d-none');
+                });
+        });
 
         function addToCart(){
             @if (Auth::check() && Auth::user()->user_type != 'customer')

@@ -603,6 +603,10 @@ class HomeController extends Controller
     public function variant_price(Request $request)
     {
         $product = Product::find($request->id);
+        if (! $product) {
+            return response()->json(['valid' => false, 'message' => translate('Product not found.')], 404);
+        }
+
         $str = '';
         $quantity = 0;
         $max_limit = 0;
@@ -613,15 +617,33 @@ class HomeController extends Controller
 
         if ($product->choiceOptionsArray() !== []) {
             foreach ($product->choiceOptionsArray() as $key => $choice) {
+                $selectedValue = $request->input('attribute_id_' . $choice->attribute_id);
+                if ($selectedValue === null || $selectedValue === '') {
+                    return response()->json([
+                        'valid' => false,
+                        'message' => translate('Please select all options.'),
+                        'digital' => $product->digital,
+                    ]);
+                }
+
                 if ($str != null) {
-                    $str .= '-' . str_replace(' ', '', $request['attribute_id_' . $choice->attribute_id]);
+                    $str .= '-' . str_replace(' ', '', $selectedValue);
                 } else {
-                    $str .= str_replace(' ', '', $request['attribute_id_' . $choice->attribute_id]);
+                    $str .= str_replace(' ', '', $selectedValue);
                 }
             }
         }
 
         $product_stock = $product->stocks->where('variant', $str)->first();
+        if (! $product_stock) {
+            return response()->json([
+                'valid' => false,
+                'message' => translate('This option combination is unavailable.'),
+                'digital' => $product->digital,
+                'variation' => $str,
+                'in_stock' => 0,
+            ]);
+        }
 
         $price = $product_stock->price;
 
@@ -652,16 +674,20 @@ class HomeController extends Controller
         }
 
         $saleCandidate = \App\Utility\CartUtility::discount_calculation($product, $price);
-        $price = app(\App\Services\CoreMarketStorefrontPriceDisplayService::class)
+        $priceDisplay = app(\App\Services\CoreMarketStorefrontPriceDisplayService::class)
             ->display($product_stock, null, [
                 'regular_price' => $product_stock->price,
                 'sale_price' => (float) $saleCandidate !== (float) $product_stock->price
                     ? $saleCandidate
                     : null,
-            ])['display_price'];
+            ]);
 
         return array(
-            'price' => single_price($price * $request->quantity),
+            'valid' => true,
+            'price' => single_price($priceDisplay['display_price'] * $request->quantity),
+            'compare_at_price' => $priceDisplay['compare_at_price'] === null
+                ? null
+                : single_price($priceDisplay['compare_at_price'] * $request->quantity),
             'quantity' => $quantity,
             'digital' => $product->digital,
             'variation' => $str,

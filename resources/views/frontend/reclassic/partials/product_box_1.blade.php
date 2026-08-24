@@ -94,14 +94,12 @@
         <div class="fs-14 d-flex justify-content-center mt-3">
             @if ($product->auction_product == 0)
                 <!-- Previous price -->
-                @if (home_base_price($product) != home_discounted_base_price($product))
-                    <div class="disc-amount has-transition">
-                        <del class="fw-400 text-secondary mr-1">{{ home_base_price($product) }}</del>
-                    </div>
-                @endif
+                <div class="disc-amount has-transition product-card-compare-wrap {{ home_base_price($product) == home_discounted_base_price($product) ? 'd-none' : '' }}">
+                    <del class="fw-400 text-secondary mr-1 product-card-compare">{{ home_base_price($product) }}</del>
+                </div>
                 <!-- price -->
                 <div class="">
-                    <span class="fw-700 text-primary">{{ home_discounted_base_price($product) }}</span>
+                    <span class="fw-700 text-primary product-card-price">{{ home_discounted_base_price($product) }}</span>
                 </div>
             @endif
             @if ($product->auction_product == 1)
@@ -111,5 +109,6 @@
                 </div>
             @endif
         </div>
+        @include('frontend.partials.product_card_variants', ['product' => $product])
     </div>
 </div>
