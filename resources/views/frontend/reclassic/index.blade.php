@@ -62,14 +62,11 @@
                                 @endphp
                                 @foreach ($sliders as $key => $slider)
                                     <div class="carousel-box">
-                                        <a class="d-block" href="{{ isset(json_decode($home_slider_links, true)[$key]) ? json_decode($home_slider_links, true)[$key] : '' }}">
-                                            <img
-                                                class="d-block mw-100 img-fit h-180px h-md-320px @if(count($featured_categories) == 0) h-lg-530px @else h-lg-350px @endif"
-                                                src="{{ $slider ? my_asset($slider->file_name) : static_asset('assets/img/placeholder.jpg') }}"
-                                                alt="{{ env('APP_NAME')}} promo"
-                                                onerror="this.onerror=null;this.src='{{ static_asset('assets/img/placeholder-rect.jpg') }}';"
-                                            >
-                                        </a>
+                                        @include('frontend.partials.home_slider_media', [
+                                            'slider' => $slider,
+                                            'href' => isset(json_decode($home_slider_links, true)[$key]) ? json_decode($home_slider_links, true)[$key] : '',
+                                            'heightClasses' => 'h-180px h-md-320px ' . (count($featured_categories) == 0 ? 'h-lg-530px' : 'h-lg-350px'),
+                                        ])
                                     </div>
                                 @endforeach
                             </div>
