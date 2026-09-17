@@ -13,9 +13,15 @@ class SliderController extends Controller
         $images = $get_images != null ? json_decode($get_images, true) : [];
         $get_links = get_setting('home_slider_links', null, request()->header('App-Language'));
         $links = ($get_images != null && $get_links != null) ? json_decode($get_links, true) : [];
+        $get_mobile_images = get_setting('home_slider_mobile_images', null, request()->header('App-Language'));
+        $mobileImages = $get_mobile_images != null ? json_decode($get_mobile_images, true) : [];
         $sliders = [];
         for ($i = 0; $i < count($images); $i++) {
-            $sliders[$i] = ['link' => $links[$i], "image" => $images[$i]];
+            $sliders[$i] = [
+                'link' => $links[$i] ?? '',
+                'image' => $images[$i],
+                'mobile_image' => $mobileImages[$i] ?? null,
+            ];
         }
 
         return new SliderCollection($sliders);

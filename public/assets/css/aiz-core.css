@@ -11965,42 +11965,36 @@ ul.apps a:hover i{
     line-height: 0;
 }
 .home-slider-media-link {
+    display: block;
     height: 100%;
 }
 .home-slider-media {
     position: relative;
     width: 100%;
+    aspect-ratio: 1903 / 553;
     overflow: hidden;
-    isolation: isolate;
     background-color: #f5f5f5;
 }
-.home-slider-media-backdrop {
-    position: absolute;
-    inset: -24px;
-    z-index: 0;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-    filter: blur(18px);
-    transform: scale(1.08);
-    opacity: .55;
-}
-.home-slider-media::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background: rgba(0, 0, 0, .08);
+.home-slider-media picture {
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 .home-slider-media-foreground {
-    position: relative;
-    z-index: 2;
     display: block;
     width: 100%;
     height: 100% !important;
     margin: 0 auto;
     object-fit: contain;
     object-position: center;
+}
+@media (max-width: 767.98px) {
+    .home-slider-media {
+        aspect-ratio: 4 / 5;
+    }
+    .mobile-img-auto-height .home-slider-media-foreground {
+        height: 100% !important;
+    }
 }
 
 .hov-svg-danger > svg *,

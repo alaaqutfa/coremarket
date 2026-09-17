@@ -59,12 +59,14 @@
                                     $decoded_slider_images = json_decode(get_setting('home_slider_images', null, $lang), true);
                                     $sliders = get_slider_images($decoded_slider_images);
                                     $home_slider_links = get_setting('home_slider_links', null, $lang);
+                                    $home_slider_mobile_images = json_decode(get_setting('home_slider_mobile_images', null, $lang), true) ?: [];
                                 @endphp
                                 @foreach ($sliders as $key => $slider)
                                     <div class="carousel-box">
                                         @include('frontend.partials.home_slider_media', [
                                             'slider' => $slider,
                                             'href' => isset(json_decode($home_slider_links, true)[$key]) ? json_decode($home_slider_links, true)[$key] : '',
+                                            'mobileSliderImageId' => $home_slider_mobile_images[$key] ?? null,
                                             'heightClasses' => 'h-180px h-md-320px ' . (count($featured_categories) == 0 ? 'h-lg-530px' : 'h-lg-350px'),
                                         ])
                                     </div>

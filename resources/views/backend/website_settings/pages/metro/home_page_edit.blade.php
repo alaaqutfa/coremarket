@@ -175,6 +175,7 @@
 							@csrf
 							<input type="hidden" name="tab" value="home_slider">
 							<input type="hidden" name="types[][{{ $lang }}]" value="home_slider_images">
+							<input type="hidden" name="types[][{{ $lang }}]" value="home_slider_mobile_images">
 							<input type="hidden" name="types[][{{ $lang }}]" value="home_slider_links">
 
 							<div class="bg-white p-3 p-sm-2rem">
@@ -190,8 +191,9 @@
 											</svg>
 										</div>
 										<div class="ml-2 text-gray">
-											<div class="mb-2">{{ translate('Minimum dimensions required: 1903px width X 553px height.') }}</div>
-											<div>{{ translate('We have limited banner height to maintain UI. We had to crop from both left & right side in view for different devices to make it responsive. Before designing banner keep these points in mind.') }}</div>
+											<div class="mb-2">{{ translate('Desktop image: 1903px width X 553px height.') }}</div>
+											<div class="mb-2">{{ translate('Mobile image: 1080px width X 1350px height.') }}</div>
+											<div>{{ translate('Keep all important content inside the central safe area. The same link is used for desktop and mobile images.') }}</div>
 										</div>
 									</div>
 
@@ -199,6 +201,7 @@
 									<div class="home-slider-target">
 										@php
 											$home_slider_images = get_setting('home_slider_images', null, $lang);
+											$home_slider_mobile_images = json_decode(get_setting('home_slider_mobile_images', null, $lang), true) ?: [];
 											$home_slider_links = get_setting('home_slider_links', null, $lang);
 										@endphp
 										@if ($home_slider_images != null)
@@ -215,11 +218,25 @@
 																	<div class="form-control file-amount">{{ translate('Choose File') }}</div>
 																	<input type="hidden" name="home_slider_images[]" class="selected-files" value="{{ json_decode($home_slider_images, true)[$key] }}">
 																</div>
-																<div class="file-preview box sm">
-																</div>
-															</div>
-														</div>
-														<!-- link -->
+												<div class="file-preview box sm">
+												</div>
+											</div>
+										</div>
+										<!-- Mobile Image -->
+										<div class="col-md-4">
+											<div class="form-group mb-md-0">
+												<label class="col-form-label fs-13">{{ translate('Mobile Image') }} <small class="text-muted">({{ translate('Optional') }})</small></label>
+												<div class="input-group" data-toggle="aizuploader" data-type="image">
+													<div class="input-group-prepend">
+														<div class="input-group-text bg-soft-secondary font-weight-medium">{{ translate('Browse')}}</div>
+													</div>
+													<div class="form-control file-amount">{{ translate('Choose File') }}</div>
+													<input type="hidden" name="home_slider_mobile_images[]" class="selected-files" value="{{ $home_slider_mobile_images[$key] ?? '' }}">
+												</div>
+												<div class="file-preview box sm"></div>
+											</div>
+										</div>
+										<!-- link -->
 														<div class="col-md">
 															<div class="form-group mb-md-0">
 																<input type="text" class="form-control" placeholder="http://" name="home_slider_links[]" value="{{ isset(json_decode($home_slider_links, true)[$key]) ? json_decode($home_slider_links, true)[$key] : '' }}">
@@ -258,11 +275,25 @@
 																<div class="form-control file-amount">{{ translate('Choose File') }}</div>
 																<input type="hidden" name="home_slider_images[]" class="selected-files" value="">
 															</div>
-															<div class="file-preview box sm">
-															</div>
-														</div>
+												<div class="file-preview box sm">
+												</div>
+											</div>
+										</div>
+										<!-- Mobile Image -->
+										<div class="col-md-4">
+											<div class="form-group mb-md-0">
+												<label class="col-form-label fs-13">{{ translate('Mobile Image') }} <small class="text-muted">{{ translate('Optional') }}</small></label>
+												<div class="input-group" data-toggle="aizuploader" data-type="image">
+													<div class="input-group-prepend">
+														<div class="input-group-text bg-soft-secondary font-weight-medium">{{ translate('Browse')}}</div>
 													</div>
-													<!-- link -->
+													<div class="form-control file-amount">{{ translate('Choose File') }}</div>
+													<input type="hidden" name="home_slider_mobile_images[]" class="selected-files" value="">
+												</div>
+												<div class="file-preview box sm"></div>
+											</div>
+										</div>
+										<!-- link -->
 													<div class="col-md">
 														<div class="form-group mb-md-0">
 															<input type="text" class="form-control" placeholder="http://" name="home_slider_links[]" value="">

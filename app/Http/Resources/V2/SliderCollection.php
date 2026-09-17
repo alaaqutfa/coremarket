@@ -14,6 +14,7 @@ class SliderCollection extends ResourceCollection
                 //dd($data);
                 return [
                     'photo' => uploaded_asset($data['image']),
+                    'mobile_photo' => !empty($data['mobile_image']) ? uploaded_asset($data['mobile_image']) : null,
                     'url' => ($data['link']),
                 ];
             })

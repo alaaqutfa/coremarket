@@ -1774,9 +1774,18 @@ if (! function_exists('get_admin')) {
 if (! function_exists('get_slider_images')) {
     function get_slider_images($ids)
     {
-        $slider_query = Upload::query();
-        $sliders      = $slider_query->whereIn('id', $ids)->get();
-        return $sliders;
+        $ids = array_values(array_filter((array) $ids));
+
+        if (empty($ids)) {
+            return collect();
+        }
+
+        $slidersById = Upload::whereIn('id', $ids)->get()->keyBy('id');
+
+        return collect($ids)
+            ->map(fn ($id) => $slidersById->get($id))
+            ->filter()
+            ->values();
     }
 }
 
