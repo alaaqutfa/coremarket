@@ -35,7 +35,6 @@ class ProductStockService
                 $product_stock = new ProductStock();
                 $product_stock->product_id = $product->id;
                 $product_stock->variant = $str;
-                $product_stock->wholesale_price = $product->wholesale_price;
                 $product_stock->price = request()['price_' . str_replace('.', '_', $str)];
                 $product_stock->sku = request()['sku_' . str_replace('.', '_', $str)];
                 $product_stock->barcode = request()['barcode_' . str_replace('.', '_', $str)] ?? null;

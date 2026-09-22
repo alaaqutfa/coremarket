@@ -58,7 +58,6 @@ class QuickProductCreateTest extends TestCase
             $this->assertDatabaseHas('products', [
                 'id' => $productId,
                 'purchase_price' => 10,
-                'wholesale_price' => 10,
                 'unit_price' => 15,
                 'discount' => 1,
                 'discount_type' => 'amount',
@@ -157,6 +156,10 @@ class QuickProductCreateTest extends TestCase
         ]);
         $this->assertSame(50.0, $fromRegular['margin_percent']);
         $this->assertNull($fromRegular['sale_price']);
+
+        $fields = $pricing->productFields($fromMargin);
+        $this->assertSame(20.0, $fields['purchase_price']);
+        $this->assertArrayNotHasKey('wholesale_price', $fields);
     }
 
     public function test_purchase_form_contains_ajax_modal_and_manual_add_item_remains_available(): void

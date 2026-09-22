@@ -549,7 +549,7 @@
                                         <div class="col-md-6">
                                             <input type="number" lang="en" min="0" value="0"
                                                 step="0.01" placeholder="{{ translate('Cost price') }}"
-                                                name="wholesale_price" id="coremarket-cost-price" class="form-control" required>
+                                                name="purchase_price" id="coremarket-cost-price" class="form-control" required>
                                         </div>
                                     </div>
 

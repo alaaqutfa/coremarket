@@ -15,9 +15,7 @@ class CoreMarketProductPricingService
     {
         $cost = $payload['cost_price']
             ?? $payload['purchase_price']
-            ?? $payload['wholesale_price']
-            ?? $product?->purchase_price
-            ?? $product?->wholesale_price;
+            ?? $product?->purchase_price;
         $regular = $payload['regular_price']
             ?? $payload['unit_price']
             ?? $product?->unit_price;
@@ -48,7 +46,6 @@ class CoreMarketProductPricingService
 
         return [
             'purchase_price' => (float) ($pricing['cost_price'] ?? 0),
-            'wholesale_price' => (float) ($pricing['cost_price'] ?? 0),
             'unit_price' => $regular,
             'discount' => $sale === null ? 0 : round($regular - (float) $sale, 2),
             'discount_type' => 'amount',

@@ -619,9 +619,9 @@
                                                 class="text-danger">*</span></label>
                                         <div class="col-md-6">
                                             <input type="number" min="0" step="0.01"
-                                                placeholder="{{ translate('Cost price') }}" name="wholesale_price"
+                                                placeholder="{{ translate('Cost price') }}" name="purchase_price"
                                                 id="coremarket-cost-price" class="form-control"
-                                                value="{{ $product->purchase_price ?? $product->wholesale_price }}" required>
+                                                value="{{ $product->purchase_price }}" required>
                                         </div>
                                     </div>
 
@@ -630,7 +630,7 @@
                                         <div class="col-md-6">
                                             <input type="number" step="0.01" name="margin_percent"
                                                 id="coremarket-margin-percent" class="form-control"
-                                                value="{{ ($product->purchase_price ?? $product->wholesale_price) > 0 ? round((($product->unit_price - ($product->purchase_price ?? $product->wholesale_price)) / ($product->purchase_price ?? $product->wholesale_price)) * 100, 2) : '' }}">
+                                                value="{{ $product->purchase_price > 0 ? round((($product->unit_price - $product->purchase_price) / $product->purchase_price) * 100, 2) : '' }}">
                                         </div>
                                     </div>
 
