@@ -32,16 +32,15 @@ class FrequentlyBoughtProductService
         //         'category_id' => $collection['fq_bought_product_category_id'],
         //     ]);
     }
+
+    public function product_duplicate_store($frequently_bought_products, $product_new)
+    {
+        foreach ($frequently_bought_products as $fqb_product) {
+            FrequentlyBoughtProduct::insert([
+                'product_id' => $product_new->id,
+                'frequently_bought_product_id' => $fqb_product->frequently_bought_product_id,
+                'category_id' => $fqb_product->category_id,
+            ]);
+        }
+    }
 }
-
-
-    // public function product_duplicate_store($frequently_bought_products, $product_new)
-    // {
-    //     foreach ($frequently_bought_products as $fqb_product) {
-    //         FrequentlyBoughtProduct::insert([
-    //             'product_id' => $product_new->id,
-    //             'frequently_bought_product_id' => $fqb_product->frequently_bought_product_id,
-    //             'category_id' => $fqb_product->category_id,
-    //         ]);
-    //     }
-    // }
