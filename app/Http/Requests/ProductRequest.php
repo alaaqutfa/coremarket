@@ -94,7 +94,7 @@ class ProductRequest extends FormRequest
                 ];
             }
 
-            if ($this->filled('sku')) {
+            if ($this->filled('sku') && $suffixes === []) {
                 $identities[] = ['sku' => $this->input('sku'), 'sku_key' => 'sku'];
             }
 
